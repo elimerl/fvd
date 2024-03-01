@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { Fragment, useEffect, useReducer, useRef, useState } from "react";
 import * as THREE from "three";
 import { Sky } from "three/addons/objects/Sky.js";
 
@@ -18,6 +18,8 @@ import {
     metersPerSecondToMph,
     metersToFeet,
 } from "./core/constants";
+
+import { showSaveFilePicker } from "file-system-access";
 
 function resizeCanvasToDisplaySize(
     renderer: THREE.WebGLRenderer,
@@ -352,6 +354,29 @@ function App() {
 
     return (
         <div className="flex flex-col h-full">
+            <button
+                onClick={async () => {
+                    const options = {
+                        types: [
+                            {
+                                description: "NL2 element files",
+                                accept: {
+                                    "text/xml": [".nl2elem"],
+                                },
+                            },
+                        ],
+                    };
+
+                    const handle = await showSaveFilePicker(options);
+                    const writable = await handle.createWritable();
+
+                    await writable.write(spline.exportToNl2Elem());
+                    await writable.close();
+                    console.log(handle.name);
+                }}
+            >
+                save nl2elem
+            </button>
             <div className="p-4 bg-green-600 text-white">
                 {debugInfo.point && (
                     <>
@@ -490,6 +515,7 @@ function App() {
 function Graph({ transitions }: { transitions: Transitions }) {
     const [zoomLevel, setZoomLevel] = useState(1);
     const vertPoints = [];
+
     for (let t = 0; t < transitionsLength(transitions.vert); t += 0.01) {
         vertPoints.push(
             `${t * 10},${
@@ -528,7 +554,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
 
     return (
         <div
-            className="my-4 overflow-hidden"
+            className="my-4 overflow-hidden overscroll-none"
             onWheel={(ev) => {
                 if (ev.deltaMode !== 0) {
                     throw new Error("Wheel event not in pixels");
@@ -540,6 +566,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
             onScroll={(ev) => {
                 ev.preventDefault();
                 ev.stopPropagation();
+                return false;
             }}
             onMouseDown={(ev) => {
                 dragging.current = true;
@@ -582,7 +609,27 @@ function Graph({ transitions }: { transitions: Transitions }) {
                             fill="none"
                             vectorEffect={"non-scaling-stroke"}
                         />
+                        {svgRef.current &&
+                            _.range(0, 500).map((v) => {
+                                const x = (v * 10) / zoomLevel;
+                                const y = 90;
+                                return (
+                                    <Fragment key={v}>
+                                        <line
+                                            x1={x}
+                                            x2={x}
+                                            y1={y}
+                                            y2={0}
+                                            stroke="black"
+                                            strokeWidth={1}
+                                            vectorEffect={"non-scaling-stroke"}
+                                            opacity={v === 0 ? 0.5 : 0.2}
+                                        />
+                                    </Fragment>
+                                );
+                            })}
                     </svg>
+
                     {svgRef.current && (
                         <g>
                             {_.range(-2, 7).map((v) => {
@@ -590,12 +637,13 @@ function Graph({ transitions }: { transitions: Transitions }) {
                                     svgRef.current!.clientHeight * 0.75 -
                                     v * 25;
                                 return (
-                                    <>
+                                    <Fragment key={v}>
                                         <text
                                             x="10"
                                             y={y}
                                             textAnchor="middle"
                                             alignmentBaseline="middle"
+                                            className="select-none"
                                         >
                                             {v}g
                                         </text>
@@ -607,9 +655,32 @@ function Graph({ transitions }: { transitions: Transitions }) {
                                             stroke="black"
                                             opacity={v === 0 ? 0.5 : 0.2}
                                         />
-                                    </>
+                                    </Fragment>
                                 );
                             })}
+                            {svgRef.current &&
+                                _.range(0, 500).map((v) => {
+                                    const x = v * 10;
+                                    const y = svgRef.current!.clientHeight - 10;
+                                    return (
+                                        <Fragment key={v}>
+                                            <text
+                                                x={
+                                                    (x * 10 -
+                                                        xOffset.current * 10 +
+                                                        27) /
+                                                    zoomLevel // FIXME
+                                                }
+                                                y={y}
+                                                textAnchor="middle"
+                                                alignmentBaseline="middle"
+                                                className="select-none"
+                                            >
+                                                {v}s
+                                            </text>
+                                        </Fragment>
+                                    );
+                                })}
                         </g>
                     )}
                 </svg>
@@ -646,6 +717,24 @@ function NumberDisplay({
             {parentheses && ")"}
         </div>
     );
+}
+
+function svgUnscale(el: SVGElement) {
+    var svg = el.ownerSVGElement;
+    //@ts-expect-error
+    var xf = el.scaleIndependentXForm;
+    if (!xf) {
+        // Keep a single transform matrix in the stack for fighting transformations
+        // @ts-expect-error
+        xf = el.scaleIndependentXForm = svg.createSVGTransform();
+        // Be sure to apply this transform after existing transforms (translate)
+        // @ts-expect-error
+        el.transform.baseVal.appendItem(xf);
+    }
+    //@ts-expect-error
+    var m = svg.getTransformToElement(el.parentNode);
+    m.e = m.f = 0; // Ignore (preserve) any translations done up to this point
+    xf.setMatrix(m);
 }
 
 export default App;
