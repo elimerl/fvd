@@ -14,6 +14,7 @@ export interface TrackPoint {
     pos: vec3;
     rot: quaternion;
     velocity: number;
+    time: number;
 }
 
 // export point interval in meters
@@ -48,6 +49,7 @@ export class TrackSpline {
                     pos: interpolatedPos,
                     rot: interpolatedRot,
                     velocity: lerp(prevPoint.velocity, currPoint.velocity, t),
+                    time: lerp(prevPoint.time, currPoint.time, t),
                 };
             }
 
@@ -69,9 +71,7 @@ export class TrackSpline {
             if (intervalAccum > INTERVAL) {
                 intervalAccum = 0;
                 exportPoints.push({
-                    pos: p.pos,
-                    rot: p.rot,
-                    velocity: p.velocity,
+                    ...p,
                 });
             }
 
@@ -82,11 +82,11 @@ export class TrackSpline {
 
         exportPoints.forEach((p, i) => {
             const isStrict = i === 0 || i === exportPoints.length - 1;
-            output += `<vertex><x>${metersToFeet(p.pos[0]).toFixed(
+            output += `<vertex><x>${p.pos[0].toFixed(
                 3
-            )}</x><y>${metersToFeet(p.pos[1]).toFixed(3)}</y><z>${metersToFeet(
-                p.pos[2]
-            ).toFixed(3)}</z><strict>${isStrict}</strict></vertex>`;
+            )}</x><y>${p.pos[1].toFixed(3)}</y><z>${p.pos[2].toFixed(
+                3
+            )}</z><strict>${isStrict}</strict></vertex>`;
         });
 
         let totalLength = 0;

@@ -16,3 +16,7 @@ export function metersToFeet(meters: number) {
 export function metersPerSecondToMph(v: number) {
     return 2.2369363 * v;
 }
+
+export function metersPerSecondToKph(v: number) {
+    return 3.6 * v;
+}

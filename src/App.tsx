@@ -1,20 +1,23 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { Sky } from "three/addons/objects/Sky.js";
+
 import {
     TransitionCurve,
     Transitions,
-    evalCurve,
-    timewarp,
+    transitionsEvaluate,
+    transitionsLength,
 } from "./core/Transitions";
 import { defaultFvdConfig, fvd } from "./core/fvd";
 import { qrotate, vec, vsub } from "./core/math";
 import { InfiniteGridHelper } from "./InfiniteGridHelper";
 import { TrackPoint, TrackSpline } from "./core/TrackSpline";
-import { metersPerSecondToMph } from "./core/constants";
+import * as _ from "lodash-es";
+import {
+    metersPerSecondToKph,
+    metersPerSecondToMph,
+    metersToFeet,
+} from "./core/constants";
 
 function resizeCanvasToDisplaySize(
     renderer: THREE.WebGLRenderer,
@@ -37,26 +40,72 @@ let scene: THREE.Scene;
 let spline: TrackSpline;
 
 const povState = {
-    t: 0,
     pos: 0,
 };
 
+enum UnitSystem {
+    Metric = "metric",
+    MetricKph = "metric-kph",
+    Imperial = "imperial",
+}
+
 function App() {
+    const [unitSystem, setUnitSystem] = useState(UnitSystem.Imperial);
+
+    let speedUnit: string;
+    let distanceUnit: string;
+
+    switch (unitSystem) {
+        case UnitSystem.Metric:
+            distanceUnit = "m";
+            speedUnit = "m/s";
+            break;
+        case UnitSystem.MetricKph:
+            distanceUnit = "m";
+            speedUnit = "kph";
+            break;
+        case UnitSystem.Imperial:
+            distanceUnit = "ft";
+            speedUnit = "mph";
+            break;
+    }
+
+    const convertSpeed = (velocity: number) => {
+        switch (unitSystem) {
+            case UnitSystem.Imperial:
+                return metersPerSecondToMph(velocity);
+            case UnitSystem.MetricKph:
+                return metersPerSecondToKph(velocity);
+            case UnitSystem.Metric:
+                return velocity;
+        }
+    };
+
+    const convertDistance = (dist: number) => {
+        switch (unitSystem) {
+            case UnitSystem.Imperial:
+                return metersToFeet(dist);
+            case UnitSystem.MetricKph:
+            case UnitSystem.Metric:
+                return dist;
+        }
+    };
+
     const [, forceUpdate] = useReducer((x) => x + 1, 0);
 
     const [transitions] = useState(() => {
         const transitions = new Transitions(1, 0, 0);
 
-        transitions.roll[0].length = 7.5;
-        transitions.roll[0].curve = TransitionCurve.Plateau;
-        transitions.roll[0].value = 0;
+        // transitions.roll[0].length = 7.8;
+        // transitions.roll[0].curve = TransitionCurve.Plateau;
+        // transitions.roll[0].value = 0;
 
-        transitions.roll.push({
-            length: 2.5,
-            curve: TransitionCurve.Plateau,
-            tension: 0,
-            value: 200,
-        });
+        // transitions.roll.push({
+        //     length: 2.5,
+        //     curve: TransitionCurve.Plateau,
+        //     tension: 0,
+        //     value: 200,
+        // });
 
         // transitions.roll.push({
         //     length: 10,
@@ -64,38 +113,45 @@ function App() {
         //     tension: 0,
         //     value: 0,
         // });
+        transitions.vert[0].length = 30;
+        transitions.roll[0].length = 30;
+
         transitions.lat[0].length = 30;
-        transitions.vert.pop();
-        transitions.vert.push({
-            curve: TransitionCurve.Cubic,
-            length: 1.5,
-            tension: 0,
-            value: -1,
-        });
-        transitions.vert.push({
-            curve: TransitionCurve.Cubic,
-            length: 0.5,
-            tension: 0,
-            value: 0,
-        });
-        transitions.vert.push({
-            curve: TransitionCurve.Cubic,
-            length: 1,
-            tension: 0,
-            value: 3.5,
-        });
-        transitions.vert.push({
-            curve: TransitionCurve.Cubic,
-            length: 3.5,
-            tension: 0,
-            value: 0,
-        });
-        transitions.vert.push({
-            curve: TransitionCurve.Plateau,
-            length: 4,
-            tension: 0,
-            value: -3.5,
-        });
+        transitions.lat[0].curve = TransitionCurve.Plateau;
+        transitions.lat[0].tension = 10;
+        transitions.lat[0].value = 2;
+
+        // transitions.vert.pop();
+        // transitions.vert.push({
+        //     curve: TransitionCurve.Cubic,
+        //     length: 1.5,
+        //     tension: 0,
+        //     value: -1.5,
+        // });
+        // transitions.vert.push({
+        //     curve: TransitionCurve.Cubic,
+        //     length: 0.3,
+        //     tension: 0,
+        //     value: 0,
+        // });
+        // transitions.vert.push({
+        //     curve: TransitionCurve.Cubic,
+        //     length: 1,
+        //     tension: 0,
+        //     value: 3.5,
+        // });
+        // transitions.vert.push({
+        //     curve: TransitionCurve.Cubic,
+        //     length: 4.6,
+        //     tension: 0,
+        //     value: 0,
+        // });
+        // transitions.vert.push({
+        //     curve: TransitionCurve.Plateau,
+        //     length: 4,
+        //     tension: 0,
+        //     value: -3,
+        // });
 
         return transitions;
     });
@@ -104,13 +160,17 @@ function App() {
 
     useEffect(() => {
         if (canvasThree.current && !renderer) {
-            spline = fvd(transitions, vec(0, 30, 0), 2.5, defaultFvdConfig());
+            spline = fvd(transitions, vec(0, 1, 0), 30, defaultFvdConfig());
             console.log(spline.exportToNl2Elem());
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 canvas: canvasThree.current,
+                powerPreference: "low-power",
             });
-            camera = new THREE.PerspectiveCamera(90, 2, 0.1, 1000);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 0.5;
+
+            camera = new THREE.PerspectiveCamera(80, 2, 0.1, 1000);
             camera.position.z = 0;
             camera.position.y = 2;
             camera.position.x = 2;
@@ -118,11 +178,12 @@ function App() {
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color("white");
+
             const grid = new InfiniteGridHelper(
                 1,
                 10,
                 new THREE.Color("black"),
-                1000,
+                200,
                 "xzy"
             );
             scene.add(grid);
@@ -197,6 +258,7 @@ function App() {
     useEffect(() => {
         let shouldStop = false;
         let lastFrameTime = 0;
+        let realTime = 0;
         const frame = (frameTime: number) => {
             if (shouldStop) return;
 
@@ -206,11 +268,10 @@ function App() {
                 return;
             }
             const dt = (frameTime - lastFrameTime) * 0.001;
-            povState.t += dt;
+            realTime += dt;
 
             const vel = spline.evaluate(povState.pos)!.velocity;
             if (povState.pos + vel * dt >= spline.getLength()) {
-                povState.t = 0;
                 povState.pos = 0;
             }
             povState.pos += vel * dt;
@@ -233,6 +294,9 @@ function App() {
         rollPerS: number;
 
         point: TrackPoint | undefined;
+        transitionsAtTime:
+            | { vert: number; lat: number; roll: number }
+            | undefined;
     } = {
         pitch: 0,
         yaw: 0,
@@ -242,6 +306,7 @@ function App() {
         rollPerS: 0,
 
         point: undefined,
+        transitionsAtTime: undefined,
     };
     if (spline) {
         const dp = 0.001;
@@ -281,35 +346,106 @@ function App() {
         debugInfo.rollPerS = -THREE.MathUtils.radToDeg(
             (euler.z - lastEuler.z) * (point.velocity / dp)
         );
+
+        debugInfo.transitionsAtTime = transitions.evaluate(point.time);
     }
 
     return (
         <div className="flex flex-col h-full">
-            <div className="font-mono">
+            <div className="p-4 bg-green-600 text-white">
                 {debugInfo.point && (
                     <>
-                        time: {povState.t.toFixed(1)}s<br /> x:{" "}
-                        {debugInfo.point.pos[0].toFixed(1)}m y:{" "}
-                        {debugInfo.point.pos[1].toFixed(1)}m z:
-                        {debugInfo.point.pos[2].toFixed(1)}m pos:{" "}
-                        {povState.pos.toFixed(1)}m velocity:{" "}
-                        {metersPerSecondToMph(debugInfo.point.velocity).toFixed(
-                            1
-                        )}
-                        mph <br />
-                        pitch: {debugInfo.pitch.toFixed(1)} (
-                        {debugInfo.pitchPerS.toFixed(1)}deg/s) yaw:{" "}
-                        {debugInfo.yaw.toFixed(1)} (
-                        {debugInfo.yawPerS.toFixed(1)}deg/s) roll:{" "}
-                        {debugInfo.roll.toFixed(1)}deg (
-                        {debugInfo.rollPerS.toFixed(1)}deg/s)
-                        <br />
-                        vert:{" "}
-                        {transitions.evaluate(povState.t)!.vert.toFixed(1)}g
-                        lat: {transitions.evaluate(povState.t)!.lat.toFixed(1)}g
-                        roll:{" "}
-                        {transitions.evaluate(povState.t)!.roll.toFixed(1)}
-                        deg/s
+                        <div className="my-1">
+                            <NumberDisplay
+                                value={debugInfo.point.time}
+                                unit={"s"}
+                                label="time"
+                            />
+                        </div>
+                        <div className="my-1 flex gap-x-4">
+                            <NumberDisplay
+                                value={convertDistance(debugInfo.point.pos[0])}
+                                unit={distanceUnit}
+                                label="x"
+                            />
+                            <NumberDisplay
+                                value={convertDistance(debugInfo.point.pos[1])}
+                                unit={distanceUnit}
+                                label="y"
+                            />
+                            <NumberDisplay
+                                value={convertDistance(debugInfo.point.pos[2])}
+                                unit={distanceUnit}
+                                label="z"
+                            />
+                            <NumberDisplay
+                                value={convertSpeed(debugInfo.point.velocity)}
+                                unit={speedUnit}
+                                label="velocity"
+                                fractionalDigits={1}
+                            />
+                        </div>
+                        <div className="my-1 flex gap-x-4">
+                            <NumberDisplay
+                                value={debugInfo.pitch}
+                                unit="°"
+                                label="pitch"
+                                plusPositive={true}
+                                fractionalDigits={1}
+                            />
+                            <NumberDisplay
+                                value={debugInfo.pitchPerS}
+                                unit="°/s"
+                                label=""
+                                plusPositive={true}
+                                fractionalDigits={1}
+                                parentheses={true}
+                            />
+                            <NumberDisplay
+                                value={debugInfo.yaw}
+                                unit="°"
+                                label="yaw"
+                                plusPositive={true}
+                                fractionalDigits={1}
+                            />
+                            <NumberDisplay
+                                value={debugInfo.yawPerS}
+                                unit="°/s"
+                                label=""
+                                plusPositive={true}
+                                fractionalDigits={1}
+                                parentheses={true}
+                            />
+                            <NumberDisplay
+                                value={debugInfo.roll}
+                                unit="°"
+                                label="roll"
+                                plusPositive={true}
+                                fractionalDigits={1}
+                            />
+                            <NumberDisplay
+                                value={debugInfo.rollPerS}
+                                unit="°/s"
+                                label=""
+                                plusPositive={true}
+                                fractionalDigits={1}
+                                parentheses={true}
+                            />
+                        </div>
+                        <div className="my-1 flex gap-x-4">
+                            <NumberDisplay
+                                value={debugInfo.transitionsAtTime!.vert}
+                                fractionalDigits={2}
+                                label="vert"
+                                unit="g"
+                            />
+                            <NumberDisplay
+                                value={debugInfo.transitionsAtTime!.lat}
+                                fractionalDigits={2}
+                                label="lat"
+                                unit="g"
+                            />
+                        </div>
                     </>
                 )}
             </div>
@@ -323,34 +459,191 @@ function App() {
     );
 }
 
-function drawGraph(
-    canvas: HTMLCanvasElement,
-    transitions: Transitions,
-    zoomLevel: number
-) {
-    canvas.width = transitions.length() * zoomLevel;
-    const ctx = canvas.getContext("2d");
+// function drawGraph(
+//     canvas: HTMLCanvasElement,
+//     transitions: Transitions,
+//     zoomLevel: number
+// ) {
+//     canvas.width = Math.round(1000 * zoomLevel);
+//     const ctx = canvas.getContext("2d")!;
 
-    ctx?.clearRect(0, 0, canvas.width, canvas.height);
+//     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx?.moveTo(100, 100);
-    ctx?.lineTo(200, 100);
-    ctx?.stroke();
-}
+//     if (transitionsLength(transitions.vert) > 0) {
+//         ctx.moveTo(
+//             0,
+//             transitionsEvaluate(transitions.vert, 0, transitions.vertStart)! *
+//                 100
+//         );
+//         const vertLength = transitionsLength(transitions.vert);
+//         for (let x = 0; x < vertLength; x += 0.1) {
+//             ctx.lineTo(
+//                 x / 0.1,
+//                 transitionsEvaluate(transitions.vert, 0, 1)! * 100
+//             );
+//         }
+//         ctx.strokeStyle = "blue";
+//         ctx.stroke();
+//     }
+// }
 
 function Graph({ transitions }: { transitions: Transitions }) {
     const [zoomLevel, setZoomLevel] = useState(1);
-    const graphCanvas = useRef<HTMLCanvasElement>(null);
-
-    if (graphCanvas.current) {
-        drawGraph(graphCanvas.current, transitions, zoomLevel);
+    const vertPoints = [];
+    for (let t = 0; t < transitionsLength(transitions.vert); t += 0.01) {
+        vertPoints.push(
+            `${t * 10},${
+                -transitionsEvaluate(
+                    transitions.vert,
+                    t,
+                    transitions.vertStart
+                )! *
+                    10 +
+                75
+            }`
+        );
     }
 
+    const latPoints = [];
+    for (let t = 0; t < transitionsLength(transitions.lat); t += 0.01) {
+        latPoints.push(
+            `${t * 10},${
+                -transitionsEvaluate(
+                    transitions.lat,
+                    t,
+                    transitions.latStart
+                )! *
+                    10 +
+                75
+            }`
+        );
+    }
+
+    const svgRef = useRef<SVGSVGElement>(null);
+    const graphSvgRef = useRef<SVGSVGElement>(null);
+
+    const xOffset = useRef<number>(0);
+
+    const dragging = useRef<boolean>(false);
+
     return (
-        <div style={{ width: "100%", overflow: "scroll" }}>
-            <div style={{ overflow: "hidden" }}>
-                <canvas ref={graphCanvas} />
+        <div
+            className="my-4 overflow-hidden"
+            onWheel={(ev) => {
+                if (ev.deltaMode !== 0) {
+                    throw new Error("Wheel event not in pixels");
+                }
+                setZoomLevel((z) => {
+                    return _.clamp(z + ev.deltaY * 0.01, 0.1, 10);
+                });
+            }}
+            onScroll={(ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+            }}
+            onMouseDown={(ev) => {
+                dragging.current = true;
+            }}
+            onMouseUp={(ev) => {
+                dragging.current = false;
+            }}
+            onMouseMove={(ev) => {
+                if (dragging.current) {
+                    xOffset.current -= ev.movementX / (zoomLevel * 10);
+                    graphSvgRef.current!.viewBox.baseVal.x =
+                        xOffset.current * zoomLevel;
+                }
+            }}
+        >
+            <div className="overflow-hidden">
+                <svg className="w-full h-64" ref={svgRef}>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox={`${xOffset.current * zoomLevel} 0 ${
+                            100 * zoomLevel
+                        } 100`}
+                        x={20}
+                        preserveAspectRatio="none"
+                        ref={graphSvgRef}
+                    >
+                        <polyline
+                            points={vertPoints.join(" ")}
+                            width={zoomLevel * vertPoints.length}
+                            stroke="blue"
+                            strokeWidth={2}
+                            fill="none"
+                            vectorEffect={"non-scaling-stroke"}
+                        />
+                        <polyline
+                            points={latPoints.join(" ")}
+                            width={zoomLevel * vertPoints.length}
+                            stroke="green"
+                            strokeWidth={2}
+                            fill="none"
+                            vectorEffect={"non-scaling-stroke"}
+                        />
+                    </svg>
+                    {svgRef.current && (
+                        <g>
+                            {_.range(-2, 7).map((v) => {
+                                const y =
+                                    svgRef.current!.clientHeight * 0.75 -
+                                    v * 25;
+                                return (
+                                    <>
+                                        <text
+                                            x="10"
+                                            y={y}
+                                            textAnchor="middle"
+                                            alignmentBaseline="middle"
+                                        >
+                                            {v}g
+                                        </text>
+                                        <line
+                                            x1={"25"}
+                                            x2={svgRef.current!.clientWidth}
+                                            y1={y}
+                                            y2={y}
+                                            stroke="black"
+                                            opacity={v === 0 ? 0.5 : 0.2}
+                                        />
+                                    </>
+                                );
+                            })}
+                        </g>
+                    )}
+                </svg>
             </div>
+        </div>
+    );
+}
+
+function NumberDisplay({
+    value,
+    fractionalDigits: decimalPoints,
+    unit,
+    label,
+    plusPositive,
+    parentheses,
+}: {
+    value: number;
+    fractionalDigits?: number;
+    unit: string;
+    label?: string;
+    plusPositive?: boolean;
+    parentheses?: boolean;
+}) {
+    return (
+        <div className="inline-flex m-0 text-base">
+            {parentheses && "("}
+            <span>{label ? label + ": " : "\u00A0"}</span>
+
+            <div className="w-20 text-right font-mono">
+                {(!plusPositive || value <= 0 ? "" : "+") +
+                    value.toFixed(decimalPoints ?? 2)}
+                {unit}
+            </div>
+            {parentheses && ")"}
         </div>
     );
 }

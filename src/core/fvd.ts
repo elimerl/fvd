@@ -140,10 +140,11 @@ export function fvd(
                         G)
         );
 
+        spline.points.push({ pos, rot: direction, velocity, time });
+
         time += DT;
         traveled += deltaLength;
 
-        spline.points.push({ pos, rot: direction, velocity });
         pointEnergies.push(energy);
     }
 

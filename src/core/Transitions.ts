@@ -35,6 +35,43 @@ export function timewarp(t: number, tension: number) {
     }
 }
 
+export function transitionsLength(transitions: Transition[]) {
+    let length = 0;
+
+    for (const transition of transitions) {
+        length += transition.length;
+    }
+    return length;
+}
+
+export function transitionsEvaluate(
+    transitions: Transition[],
+    t: number,
+    start: number
+): number | undefined {
+    if (t < 0 || t >= transitionsLength(transitions)) return undefined;
+    let value = start;
+    let timeAccum = 0;
+    for (const transition of transitions) {
+        if (timeAccum <= t && t <= timeAccum + transition.length) {
+            value +=
+                evalCurve(
+                    transition.curve,
+                    timewarp(
+                        (t - timeAccum) / transition.length,
+                        transition.tension
+                    )
+                ) * transition.value;
+            break;
+        }
+
+        value += evalCurve(transition.curve, 1) * transition.value;
+
+        timeAccum += transition.length;
+    }
+    return value;
+}
+
 export interface Transition {
     curve: TransitionCurve;
     value: number;
@@ -89,71 +126,18 @@ export class Transitions {
     evaluate(
         t: number
     ): { vert: number; lat: number; roll: number } | undefined {
-        if (t < 0 || t >= this.length()) {
+        if (t < 0) {
             return undefined;
         }
-        let vertValue = this.vertStart;
-
-        let timeAccum = 0;
-        for (const transition of this.vert) {
-            if (timeAccum <= t && t <= timeAccum + transition.length) {
-                vertValue +=
-                    evalCurve(
-                        transition.curve,
-                        timewarp(
-                            (t - timeAccum) / transition.length,
-                            transition.tension
-                        )
-                    ) * transition.value;
-                break;
-            }
-
-            vertValue += evalCurve(transition.curve, 1) * transition.value;
-
-            timeAccum += transition.length;
-        }
-
-        let latValue = this.latStart;
-        timeAccum = 0;
-
-        for (const transition of this.lat) {
-            if (timeAccum <= t && t <= timeAccum + transition.length) {
-                latValue +=
-                    evalCurve(
-                        transition.curve,
-                        timewarp(
-                            (t - timeAccum) / transition.length,
-                            transition.tension
-                        )
-                    ) * transition.value;
-                break;
-            }
-
-            latValue += evalCurve(transition.curve, 1) * transition.value;
-
-            timeAccum += transition.length;
-        }
-
-        let rollValue = this.rollStart;
-        timeAccum = 0;
-
-        for (const transition of this.roll) {
-            if (timeAccum <= t && t <= timeAccum + transition.length) {
-                rollValue +=
-                    evalCurve(
-                        transition.curve,
-                        timewarp(
-                            (t - timeAccum) / transition.length,
-                            transition.tension
-                        )
-                    ) * transition.value;
-                break;
-            }
-
-            rollValue += evalCurve(transition.curve, 1) * transition.value;
-
-            timeAccum += transition.length;
-        }
+        const vertValue = transitionsEvaluate(this.vert, t, this.vertStart);
+        const latValue = transitionsEvaluate(this.lat, t, this.latStart);
+        const rollValue = transitionsEvaluate(this.roll, t, this.rollStart);
+        if (
+            vertValue === undefined ||
+            latValue === undefined ||
+            rollValue === undefined
+        )
+            return undefined;
 
         return { vert: vertValue, lat: latValue, roll: rollValue };
     }
