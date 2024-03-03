@@ -96,19 +96,18 @@ function App() {
     };
 
     const [, forceUpdate] = useReducer((x) => x + 1, 0);
-
     const [transitions] = useState(() => {
         const transitions = new Transitions(1, 0, 0);
         transitions.lat[0].length = 30;
-        transitions.roll[0].length = 7.8;
+        transitions.roll[0].length = 6.8;
         transitions.roll[0].curve = TransitionCurve.Plateau;
         transitions.roll[0].value = 0;
 
         transitions.roll.push({
-            length: 3.5,
+            length: 3,
             curve: TransitionCurve.Plateau,
-            tension: 2,
-            value: 200,
+            tension: 1,
+            value: 150,
         });
         transitions.vert.pop();
         transitions.vert.push({
@@ -131,13 +130,13 @@ function App() {
         });
         transitions.vert.push({
             curve: TransitionCurve.Cubic,
-            length: 4.6,
+            length: 4,
             tension: 0,
             value: 0,
         });
         transitions.vert.push({
             curve: TransitionCurve.Plateau,
-            length: 4,
+            length: 3,
             tension: 0,
             value: -3.5,
         });
@@ -149,7 +148,8 @@ function App() {
 
     useEffect(() => {
         if (canvasThree.current && !renderer) {
-            spline = fvd(transitions, vec(0, 1, 0), 3, defaultFvdConfig());
+            spline = fvd(transitions, vec(0, 35, 0), 3, defaultFvdConfig());
+
             console.log(spline.exportToNl2Elem());
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -490,15 +490,15 @@ function drawGraph(
 
     ctx.resetTransform();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.scale(canvas.width / zoomLevel, canvas.height);
-    ctx.translate(-timeOffset / canvas.width, 0);
+    const transform = getGraphTransform(
+        canvas.width,
+        canvas.height,
+        zoomLevel,
+        timeOffset
+    );
+    ctx.setTransform(transform);
     const transformG = (t: number) => -t * 0.125 + 0.75;
     const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.75;
-
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.restore();
 
     // gridlines
     for (
@@ -558,42 +558,20 @@ function drawGraph(
     if (transitionsLength(transitions.vert) > 0) {
         ctx.beginPath();
 
-        // const vertLength = transitionsLength(transitions.vert);
-        // for (let x = 0; x < vertLength; x += 0.05) {
-        //     ctx.lineTo(
-        //         x,
-        //         transformG(
-        //             transitionsEvaluate(
-        //                 transitions.vert,
-        //                 x,
-        //                 transitions.vertStart
-        //             )!
-        //         )
-        //     );
-        // }
-
-        // let timeAccum = 0;
-        // let value = transitions.vertStart;
-        // for (const transition of transitions.vert) {
-        // for (let x = timeAccum; x < transition.length + timeAccum; x += 0.05) {
-        //     ctx.lineTo(
-        //         x,
-        //         transformG(evalTransition(transition, x - timeAccum)!) + value
-        //     );
-        // }
-
-        //     timeAccum += transition.length;
-        // }
-
         let value = transitions.vertStart;
         let timeAccum = 0;
 
         for (const transition of transitions.vert) {
             ctx.moveTo(timeAccum, transformG(value));
+
+            const step =
+                Math.abs(transition.value) < 0.01
+                    ? transition.length
+                    : 0.01 * (zoomLevel / 3);
             for (
                 let x = timeAccum;
-                x < transition.length + timeAccum;
-                x += 0.05
+                x <= transition.length + timeAccum;
+                x += step
             ) {
                 ctx.lineTo(
                     x,
@@ -602,6 +580,12 @@ function drawGraph(
                     )
                 );
             }
+            ctx.lineTo(
+                timeAccum + transition.length,
+                transformG(
+                    evalCurve(transition.curve, 1) * transition.value + value
+                )
+            );
             value += evalCurve(transition.curve, 1) * transition.value;
 
             timeAccum += transition.length;
@@ -618,64 +602,101 @@ function drawGraph(
     if (transitionsLength(transitions.lat) > 0) {
         ctx.beginPath();
 
-        ctx.moveTo(
-            0,
-            transformG(
-                transitionsEvaluate(transitions.lat, 0, transitions.latStart)!
-            )
-        );
-        const latLength = transitionsLength(transitions.lat);
-        for (let x = 0; x < latLength; x += 0.05) {
+        let value = transitions.latStart;
+        let timeAccum = 0;
+
+        for (const transition of transitions.lat) {
+            ctx.moveTo(timeAccum, transformG(value));
+
+            const step =
+                Math.abs(transition.value) < 0.01
+                    ? transition.length
+                    : 0.01 * (zoomLevel / 3);
+            for (
+                let x = timeAccum;
+                x <= transition.length + timeAccum;
+                x += step
+            ) {
+                ctx.lineTo(
+                    x,
+                    transformG(
+                        evalTransition(transition, x - timeAccum)! + value
+                    )
+                );
+            }
             ctx.lineTo(
-                x,
+                timeAccum + transition.length,
                 transformG(
-                    transitionsEvaluate(
-                        transitions.lat,
-                        x,
-                        transitions.latStart
-                    )!
+                    evalCurve(transition.curve, 1) * transition.value + value
                 )
             );
-        }
+            value += evalCurve(transition.curve, 1) * transition.value;
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "green";
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.stroke();
-        ctx.restore();
+            timeAccum += transition.length;
+
+            ctx.lineWidth = transition === selectedTransition ? 4 : 2;
+            ctx.strokeStyle = "green";
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
     // roll
     if (transitionsLength(transitions.roll) > 0) {
         ctx.beginPath();
 
-        ctx.moveTo(
-            0,
-            transformRoll(
-                transitionsEvaluate(transitions.roll, 0, transitions.rollStart)!
-            )
-        );
-        const latLength = transitionsLength(transitions.roll);
-        for (let x = 0; x < latLength; x += 0.05) {
+        let value = transitions.rollStart;
+        let timeAccum = 0;
+
+        for (const transition of transitions.roll) {
+            ctx.moveTo(timeAccum, transformG(value));
+
+            const step =
+                Math.abs(transition.value) < 0.01
+                    ? transition.length
+                    : 0.01 * (zoomLevel / 3);
+            for (
+                let x = timeAccum;
+                x <= transition.length + timeAccum;
+                x += step
+            ) {
+                ctx.lineTo(
+                    x,
+                    transformRoll(
+                        evalTransition(transition, x - timeAccum)! + value
+                    )
+                );
+            }
             ctx.lineTo(
-                x,
+                timeAccum + transition.length,
                 transformRoll(
-                    transitionsEvaluate(
-                        transitions.roll,
-                        x,
-                        transitions.rollStart
-                    )!
+                    evalCurve(transition.curve, 1) * transition.value + value
                 )
             );
-        }
+            value += evalCurve(transition.curve, 1) * transition.value;
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "red";
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.stroke();
-        ctx.restore();
+            timeAccum += transition.length;
+
+            ctx.lineWidth = transition === selectedTransition ? 4 : 2;
+            ctx.strokeStyle = "red";
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
+}
+
+function getGraphTransform(
+    width: number,
+    height: number,
+    zoomLevel: number,
+    timeOffset: number
+) {
+    return new DOMMatrix()
+        .scale(width / zoomLevel, height)
+        .translate(-timeOffset / width, 0);
 }
 
 function Graph({ transitions }: { transitions: Transitions }) {
@@ -717,6 +738,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
     const timeOffset = useRef<number>(-32);
 
     const dragging = useRef<boolean>(false);
+    const selectedTransitionRef = useRef<Transition | null>(null);
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     if (canvasRef.current)
@@ -724,7 +746,8 @@ function Graph({ transitions }: { transitions: Transitions }) {
             canvasRef.current,
             transitions,
             zoomLevel,
-            timeOffset.current!
+            timeOffset.current!,
+            selectedTransitionRef.current ?? undefined
         );
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -735,7 +758,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
                     throw new Error("Wheel event not in pixels");
                 }
                 setZoomLevel((z) => {
-                    return _.clamp(z + e.deltaY * 0.01, 0.01, 30);
+                    return _.clamp(z + e.deltaY * 0.01, 0.5, 30);
                 });
                 e.preventDefault();
                 e.stopPropagation();
@@ -765,108 +788,29 @@ function Graph({ transitions }: { transitions: Transitions }) {
             }}
         >
             <div className="overflow-clip">
-                <canvas className="w-full h-64" ref={canvasRef}></canvas>
-                {/* <svg className="w-full h-64" ref={svgRef}>
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox={`${xOffset.current * zoomLevel} 0 ${
-                            100 * zoomLevel
-                        } 100`}
-                        x={20}
-                        preserveAspectRatio="none"
-                        ref={graphSvgRef}
-                    >
-                        <polyline
-                            points={vertPoints.join(" ")}
-                            width={zoomLevel * vertPoints.length}
-                            stroke="blue"
-                            strokeWidth={2}
-                            fill="none"
-                            vectorEffect={"non-scaling-stroke"}
-                        />
-                        <polyline
-                            points={latPoints.join(" ")}
-                            width={zoomLevel * vertPoints.length}
-                            stroke="green"
-                            strokeWidth={2}
-                            fill="none"
-                            vectorEffect={"non-scaling-stroke"}
-                        />
-                        {svgRef.current &&
-                            _.range(0, 500).map((v) => {
-                                const x = (v * 10) / zoomLevel;
-                                const y = 90;
-                                return (
-                                    <Fragment key={v}>
-                                        <line
-                                            x1={x}
-                                            x2={x}
-                                            y1={y}
-                                            y2={0}
-                                            stroke="black"
-                                            strokeWidth={1}
-                                            vectorEffect={"non-scaling-stroke"}
-                                            opacity={v === 0 ? 0.5 : 0.2}
-                                        />
-                                    </Fragment>
-                                );
-                            })}
-                    </svg>
-
-                    {svgRef.current && (
-                        <g>
-                            {_.range(-2, 7).map((v) => {
-                                const y =
-                                    svgRef.current!.clientHeight * 0.75 -
-                                    v * 25;
-                                return (
-                                    <Fragment key={v}>
-                                        <text
-                                            x="10"
-                                            y={y}
-                                            textAnchor="middle"
-                                            alignmentBaseline="middle"
-                                            className="select-none"
-                                        >
-                                            {v}g
-                                        </text>
-                                        <line
-                                            x1={"25"}
-                                            x2={svgRef.current!.clientWidth}
-                                            y1={y}
-                                            y2={y}
-                                            stroke="black"
-                                            opacity={v === 0 ? 0.5 : 0.2}
-                                        />
-                                    </Fragment>
-                                );
-                            })}
-                            {svgRef.current &&
-                                _.range(0, 500).map((v) => {
-                                    const x = v * 10;
-                                    const y = svgRef.current!.clientHeight - 10;
-                                    return (
-                                        <Fragment key={v}>
-                                            <text
-                                                x={
-                                                    (x * 10 -
-                                                        xOffset.current * 10 +
-                                                        27) /
-                                                    zoomLevel // FIXME
-                                                }
-                                                y={y}
-                                                textAnchor="middle"
-                                                alignmentBaseline="middle"
-                                                className="select-none"
-                                            >
-                                                {v}s
-                                            </text>
-                                        </Fragment>
-                                    );
-                                })}
-                        </g>
-                    )}
-                </svg> */}
+                <canvas
+                    className="w-full h-64"
+                    ref={canvasRef}
+                    onClick={(ev) => {
+                        const x = ev.clientX - canvasRef.current!.offsetLeft;
+                        const y = ev.clientY - canvasRef.current!.offsetTop;
+                        console.log(
+                            invTransform(
+                                {
+                                    x: x * window.devicePixelRatio,
+                                    y: y * window.devicePixelRatio,
+                                },
+                                getGraphTransform(
+                                    canvasRef.current!.width,
+                                    canvasRef.current!.height,
+                                    zoomLevel,
+                                    timeOffset.current!
+                                )
+                            )
+                        );
+                        // todo: find nearest transition vertically
+                    }}
+                ></canvas>
             </div>
         </div>
     );
@@ -918,6 +862,24 @@ function svgUnscale(el: SVGElement) {
     var m = svg.getTransformToElement(el.parentNode);
     m.e = m.f = 0; // Ignore (preserve) any translations done up to this point
     xf.setMatrix(m);
+}
+
+function transform({ x, y }: { x: number; y: number }, transform: DOMMatrix) {
+    return {
+        x: x * transform.a + y * transform.c + transform.e,
+        y: x * transform.b + y * transform.d + transform.f,
+    };
+}
+
+function invTransform(
+    { x, y }: { x: number; y: number },
+    transformOrig: DOMMatrix
+) {
+    const transform = transformOrig.inverse();
+    return {
+        x: x * transform.a + y * transform.c + transform.e,
+        y: x * transform.b + y * transform.d + transform.f,
+    };
 }
 
 export default App;
