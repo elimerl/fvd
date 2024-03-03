@@ -1,15 +1,11 @@
-import { Fragment, useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import * as THREE from "three";
-import { Sky } from "three/addons/objects/Sky.js";
 
 import {
     TransitionCurve,
     Transitions,
     evalCurve,
     evalTransition,
-    fixAngleRange,
-    integrate,
-    toZeroRoll,
     transitionsEvaluate,
     transitionsLength,
 } from "./core/Transitions";
@@ -282,7 +278,7 @@ function App() {
             shouldStop = true;
         };
     }, []);
-    let debugInfo: {
+    const debugInfo: {
         pitch: number;
         yaw: number;
         roll: number;
@@ -483,7 +479,8 @@ function drawGraph(
     canvas: HTMLCanvasElement,
     transitions: Transitions,
     zoomLevel: number,
-    timeOffset: number
+    timeOffset: number,
+    selectedTransition?: Transition
 ) {
     canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
     canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
@@ -590,8 +587,8 @@ function drawGraph(
         let value = transitions.vertStart;
         let timeAccum = 0;
 
-        ctx.moveTo(0, transformG(value));
         for (const transition of transitions.vert) {
+            ctx.moveTo(timeAccum, transformG(value));
             for (
                 let x = timeAccum;
                 x < transition.length + timeAccum;
@@ -599,21 +596,22 @@ function drawGraph(
             ) {
                 ctx.lineTo(
                     x,
-                    transformG(evalTransition(transition, x - timeAccum)!)
+                    transformG(
+                        evalTransition(transition, x - timeAccum)! + value
+                    )
                 );
             }
-            // FIXMe
             value += evalCurve(transition.curve, 1) * transition.value;
 
             timeAccum += transition.length;
-        }
 
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "blue";
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.stroke();
-        ctx.restore();
+            ctx.lineWidth = transition === selectedTransition ? 4 : 2;
+            ctx.strokeStyle = "blue";
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
     }
     // lat
     if (transitionsLength(transitions.lat) > 0) {

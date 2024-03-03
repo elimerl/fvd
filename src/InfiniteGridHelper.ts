@@ -85,7 +85,6 @@ export class InfiniteGridHelper extends THREE.Mesh {
                   float g1 = getGrid(uSize1);
                   float g2 = getGrid(uSize2);
                   
-                  
                   gl_FragColor = vec4(uColor.rgb, mix(g2, g1, g1) * pow(d, 3.0));
                   gl_FragColor.a = mix(0.5 * gl_FragColor.a, gl_FragColor.a, g2);
                 
