@@ -5,6 +5,11 @@ import { Sky } from "three/addons/objects/Sky.js";
 import {
     TransitionCurve,
     Transitions,
+    evalCurve,
+    evalTransition,
+    fixAngleRange,
+    integrate,
+    toZeroRoll,
     transitionsEvaluate,
     transitionsLength,
 } from "./core/Transitions";
@@ -97,63 +102,48 @@ function App() {
 
     const [transitions] = useState(() => {
         const transitions = new Transitions(1, 0, 0);
-
-        // transitions.roll[0].length = 7.8;
-        // transitions.roll[0].curve = TransitionCurve.Plateau;
-        // transitions.roll[0].value = 0;
-
-        // transitions.roll.push({
-        //     length: 2.5,
-        //     curve: TransitionCurve.Plateau,
-        //     tension: 0,
-        //     value: 200,
-        // });
-
-        // transitions.roll.push({
-        //     length: 10,
-        //     curve: TransitionCurve.Plateau,
-        //     tension: 0,
-        //     value: 0,
-        // });
-        transitions.vert[0].length = 30;
-        transitions.roll[0].length = 30;
-
         transitions.lat[0].length = 30;
-        transitions.lat[0].curve = TransitionCurve.Plateau;
-        transitions.lat[0].tension = 10;
-        transitions.lat[0].value = 2;
+        transitions.roll[0].length = 7.8;
+        transitions.roll[0].curve = TransitionCurve.Plateau;
+        transitions.roll[0].value = 0;
 
-        // transitions.vert.pop();
-        // transitions.vert.push({
-        //     curve: TransitionCurve.Cubic,
-        //     length: 1.5,
-        //     tension: 0,
-        //     value: -1.5,
-        // });
-        // transitions.vert.push({
-        //     curve: TransitionCurve.Cubic,
-        //     length: 0.3,
-        //     tension: 0,
-        //     value: 0,
-        // });
-        // transitions.vert.push({
-        //     curve: TransitionCurve.Cubic,
-        //     length: 1,
-        //     tension: 0,
-        //     value: 3.5,
-        // });
-        // transitions.vert.push({
-        //     curve: TransitionCurve.Cubic,
-        //     length: 4.6,
-        //     tension: 0,
-        //     value: 0,
-        // });
-        // transitions.vert.push({
-        //     curve: TransitionCurve.Plateau,
-        //     length: 4,
-        //     tension: 0,
-        //     value: -3,
-        // });
+        transitions.roll.push({
+            length: 3.5,
+            curve: TransitionCurve.Plateau,
+            tension: 2,
+            value: 200,
+        });
+        transitions.vert.pop();
+        transitions.vert.push({
+            curve: TransitionCurve.Cubic,
+            length: 1.5,
+            tension: 0,
+            value: -1.5,
+        });
+        transitions.vert.push({
+            curve: TransitionCurve.Cubic,
+            length: 0.3,
+            tension: 0,
+            value: 0,
+        });
+        transitions.vert.push({
+            curve: TransitionCurve.Cubic,
+            length: 1,
+            tension: 0,
+            value: 4,
+        });
+        transitions.vert.push({
+            curve: TransitionCurve.Cubic,
+            length: 4.6,
+            tension: 0,
+            value: 0,
+        });
+        transitions.vert.push({
+            curve: TransitionCurve.Plateau,
+            length: 4,
+            tension: 0,
+            value: -3.5,
+        });
 
         return transitions;
     });
@@ -162,13 +152,14 @@ function App() {
 
     useEffect(() => {
         if (canvasThree.current && !renderer) {
-            spline = fvd(transitions, vec(0, 1, 0), 30, defaultFvdConfig());
+            spline = fvd(transitions, vec(0, 1, 0), 3, defaultFvdConfig());
             console.log(spline.exportToNl2Elem());
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
                 canvas: canvasThree.current,
                 powerPreference: "low-power",
             });
+            renderer.setPixelRatio(window.devicePixelRatio);
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 0.5;
 
@@ -180,6 +171,10 @@ function App() {
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color("white");
+
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(0, 1, 0); //default; light shining from top
+            light.castShadow = true; // default false
 
             const grid = new InfiniteGridHelper(
                 1,
@@ -484,90 +479,280 @@ function App() {
     );
 }
 
-// function drawGraph(
-//     canvas: HTMLCanvasElement,
-//     transitions: Transitions,
-//     zoomLevel: number
-// ) {
-//     canvas.width = Math.round(1000 * zoomLevel);
-//     const ctx = canvas.getContext("2d")!;
+function drawGraph(
+    canvas: HTMLCanvasElement,
+    transitions: Transitions,
+    zoomLevel: number,
+    timeOffset: number
+) {
+    canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+    canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
 
-//     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const ctx = canvas.getContext("2d")!;
 
-//     if (transitionsLength(transitions.vert) > 0) {
-//         ctx.moveTo(
-//             0,
-//             transitionsEvaluate(transitions.vert, 0, transitions.vertStart)! *
-//                 100
-//         );
-//         const vertLength = transitionsLength(transitions.vert);
-//         for (let x = 0; x < vertLength; x += 0.1) {
-//             ctx.lineTo(
-//                 x / 0.1,
-//                 transitionsEvaluate(transitions.vert, 0, 1)! * 100
-//             );
-//         }
-//         ctx.strokeStyle = "blue";
-//         ctx.stroke();
-//     }
-// }
+    ctx.resetTransform();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.scale(canvas.width / zoomLevel, canvas.height);
+    ctx.translate(-timeOffset / canvas.width, 0);
+    const transformG = (t: number) => -t * 0.125 + 0.75;
+    const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.75;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.restore();
+
+    // gridlines
+    for (
+        let t = Math.floor(timeOffset / canvas.width);
+        t < Math.ceil(timeOffset / canvas.width + zoomLevel);
+        t++
+    ) {
+        ctx.strokeStyle = "grey";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(t, 0.08);
+        ctx.lineTo(t, 1);
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        ctx.font = `${
+            (window.devicePixelRatio || 1) * 16
+        }px "Overpass Variable"`;
+        ctx.fillText(
+            t + "s",
+            (t - timeOffset / canvas.width) * (canvas.width / zoomLevel),
+            18 * window.devicePixelRatio
+        );
+        ctx.restore();
+    }
+    for (let g = -2; g < 6; g++) {
+        ctx.strokeStyle = "grey";
+        ctx.beginPath();
+        ctx.moveTo(
+            timeOffset / canvas.width + 0.018 * zoomLevel,
+            transformG(g)
+        );
+        ctx.lineTo(timeOffset / canvas.width + zoomLevel, transformG(g));
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.stroke();
+
+        ctx.fillStyle = "black";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = `${
+            (window.devicePixelRatio || 1) * 16
+        }px "Overpass Variable"`;
+        ctx.fillText(
+            g + "g",
+            8 * window.devicePixelRatio,
+            (-g * 0.125 + 0.75) * canvas.height + 2
+        );
+        ctx.restore();
+    }
+    // vert
+    if (transitionsLength(transitions.vert) > 0) {
+        ctx.beginPath();
+
+        // const vertLength = transitionsLength(transitions.vert);
+        // for (let x = 0; x < vertLength; x += 0.05) {
+        //     ctx.lineTo(
+        //         x,
+        //         transformG(
+        //             transitionsEvaluate(
+        //                 transitions.vert,
+        //                 x,
+        //                 transitions.vertStart
+        //             )!
+        //         )
+        //     );
+        // }
+
+        // let timeAccum = 0;
+        // let value = transitions.vertStart;
+        // for (const transition of transitions.vert) {
+        // for (let x = timeAccum; x < transition.length + timeAccum; x += 0.05) {
+        //     ctx.lineTo(
+        //         x,
+        //         transformG(evalTransition(transition, x - timeAccum)!) + value
+        //     );
+        // }
+
+        //     timeAccum += transition.length;
+        // }
+
+        let value = transitions.vertStart;
+        let timeAccum = 0;
+
+        ctx.moveTo(0, transformG(value));
+        for (const transition of transitions.vert) {
+            for (
+                let x = timeAccum;
+                x < transition.length + timeAccum;
+                x += 0.05
+            ) {
+                ctx.lineTo(
+                    x,
+                    transformG(evalTransition(transition, x - timeAccum)!)
+                );
+            }
+            // FIXMe
+            value += evalCurve(transition.curve, 1) * transition.value;
+
+            timeAccum += transition.length;
+        }
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "blue";
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.stroke();
+        ctx.restore();
+    }
+    // lat
+    if (transitionsLength(transitions.lat) > 0) {
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            transformG(
+                transitionsEvaluate(transitions.lat, 0, transitions.latStart)!
+            )
+        );
+        const latLength = transitionsLength(transitions.lat);
+        for (let x = 0; x < latLength; x += 0.05) {
+            ctx.lineTo(
+                x,
+                transformG(
+                    transitionsEvaluate(
+                        transitions.lat,
+                        x,
+                        transitions.latStart
+                    )!
+                )
+            );
+        }
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "green";
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.stroke();
+        ctx.restore();
+    }
+    // roll
+    if (transitionsLength(transitions.roll) > 0) {
+        ctx.beginPath();
+
+        ctx.moveTo(
+            0,
+            transformRoll(
+                transitionsEvaluate(transitions.roll, 0, transitions.rollStart)!
+            )
+        );
+        const latLength = transitionsLength(transitions.roll);
+        for (let x = 0; x < latLength; x += 0.05) {
+            ctx.lineTo(
+                x,
+                transformRoll(
+                    transitionsEvaluate(
+                        transitions.roll,
+                        x,
+                        transitions.rollStart
+                    )!
+                )
+            );
+        }
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "red";
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
 
 function Graph({ transitions }: { transitions: Transitions }) {
-    const [zoomLevel, setZoomLevel] = useState(1);
-    const vertPoints = [];
+    // const vertPoints = [];
 
-    for (let t = 0; t < transitionsLength(transitions.vert); t += 0.01) {
-        vertPoints.push(
-            `${t * 10},${
-                -transitionsEvaluate(
-                    transitions.vert,
-                    t,
-                    transitions.vertStart
-                )! *
-                    10 +
-                75
-            }`
-        );
-    }
+    // for (let t = 0; t < transitionsLength(transitions.vert); t += 0.01) {
+    //     vertPoints.push(
+    //         `${t * 10},${
+    //             -transitionsEvaluate(
+    //                 transitions.vert,
+    //                 t,
+    //                 transitions.vertStart
+    //             )! *
+    //                 10 +
+    //             75
+    //         }`
+    //     );
+    // }
 
-    const latPoints = [];
-    for (let t = 0; t < transitionsLength(transitions.lat); t += 0.01) {
-        latPoints.push(
-            `${t * 10},${
-                -transitionsEvaluate(
-                    transitions.lat,
-                    t,
-                    transitions.latStart
-                )! *
-                    10 +
-                75
-            }`
-        );
-    }
+    // const latPoints = [];
+    // for (let t = 0; t < transitionsLength(transitions.lat); t += 0.01) {
+    //     latPoints.push(
+    //         `${t * 10},${
+    //             -transitionsEvaluate(
+    //                 transitions.lat,
+    //                 t,
+    //                 transitions.latStart
+    //             )! *
+    //                 10 +
+    //             75
+    //         }`
+    //     );
+    // }
 
-    const svgRef = useRef<SVGSVGElement>(null);
-    const graphSvgRef = useRef<SVGSVGElement>(null);
+    // const svgRef = useRef<SVGSVGElement>(null);
+    // const graphSvgRef = useRef<SVGSVGElement>(null);
 
-    const xOffset = useRef<number>(0);
+    const [zoomLevel, setZoomLevel] = useState(5);
+    const timeOffset = useRef<number>(-32);
 
     const dragging = useRef<boolean>(false);
 
-    return (
-        <div
-            className="my-4 overflow-hidden overscroll-none"
-            onWheel={(ev) => {
-                if (ev.deltaMode !== 0) {
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    if (canvasRef.current)
+        drawGraph(
+            canvasRef.current,
+            transitions,
+            zoomLevel,
+            timeOffset.current!
+        );
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (containerRef.current) {
+            const cb = (e: WheelEvent) => {
+                if (e.deltaMode !== 0) {
                     throw new Error("Wheel event not in pixels");
                 }
                 setZoomLevel((z) => {
-                    return _.clamp(z + ev.deltaY * 0.01, 0.1, 10);
+                    return _.clamp(z + e.deltaY * 0.01, 0.01, 30);
                 });
-            }}
-            onScroll={(ev) => {
-                ev.preventDefault();
-                ev.stopPropagation();
+                e.preventDefault();
+                e.stopPropagation();
                 return false;
-            }}
+            };
+            containerRef.current.addEventListener("wheel", cb, {
+                passive: false,
+            });
+            return () => containerRef.current!.removeEventListener("wheel", cb);
+        }
+    }, [containerRef.current]);
+
+    return (
+        <div
+            ref={containerRef}
+            className="my-4 overflow-clip overscroll-none"
             onMouseDown={(ev) => {
                 dragging.current = true;
             }}
@@ -576,14 +761,13 @@ function Graph({ transitions }: { transitions: Transitions }) {
             }}
             onMouseMove={(ev) => {
                 if (dragging.current) {
-                    xOffset.current -= ev.movementX / (zoomLevel * 10);
-                    graphSvgRef.current!.viewBox.baseVal.x =
-                        xOffset.current * zoomLevel;
+                    timeOffset.current -= ev.movementX * zoomLevel * 2;
                 }
             }}
         >
-            <div className="overflow-hidden">
-                <svg className="w-full h-64" ref={svgRef}>
+            <div className="overflow-clip">
+                <canvas className="w-full h-64" ref={canvasRef}></canvas>
+                {/* <svg className="w-full h-64" ref={svgRef}>
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox={`${xOffset.current * zoomLevel} 0 ${
@@ -683,7 +867,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
                                 })}
                         </g>
                     )}
-                </svg>
+                </svg> */}
             </div>
         </div>
     );

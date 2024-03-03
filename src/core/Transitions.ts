@@ -6,6 +6,25 @@ export enum TransitionCurve {
     Plateau = "plateau",
 }
 
+export function fixAngleRange(angle: number) {
+    const full = Math.floor(angle / 360);
+    let v = angle - full * 360;
+    if (v > 180) {
+        v -= 360;
+    } else if (v < -180) {
+        v += 360;
+    }
+    return v;
+}
+
+export function evalTransition(transition: Transition, t: number) {
+    return (
+        evalCurve(
+            transition.curve,
+            timewarp(t / transition.length, transition.tension)
+        ) * transition.value
+    );
+}
 export function evalCurve(curve: TransitionCurve, t: number) {
     t = _.clamp(t, 0, 1);
 
@@ -20,6 +39,20 @@ export function evalCurve(curve: TransitionCurve, t: number) {
             return 1 - Math.exp(-15 * Math.pow(1 - Math.abs(2 * t - 1), 3));
     }
 }
+// export function evalCurveDerivative(curve: TransitionCurve, t: number) {
+//     t = _.clamp(t, 0, 1);
+
+//     switch (curve) {
+//         case TransitionCurve.Linear:
+//             return t;
+//         case TransitionCurve.Cubic:
+//             return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+//         case TransitionCurve.Quadratic:
+//             return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+//         case TransitionCurve.Plateau:
+//             return (-90* Math.exp(15* (-1 + Math.abs(1 - 2 *t))^3)*(-1 + 2 *t)* (-1 + Math.abs(1 - 2 *t))^2)/Math.abs(1 - 2* t);
+//     }
+// }
 
 export function timewarp(t: number, tension: number) {
     if (Math.abs(tension) < 0.01) {
@@ -54,14 +87,7 @@ export function transitionsEvaluate(
     let timeAccum = 0;
     for (const transition of transitions) {
         if (timeAccum <= t && t <= timeAccum + transition.length) {
-            value +=
-                evalCurve(
-                    transition.curve,
-                    timewarp(
-                        (t - timeAccum) / transition.length,
-                        transition.tension
-                    )
-                ) * transition.value;
+            value += evalTransition(transition, t - timeAccum);
             break;
         }
 
