@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import * as THREE from "three";
 
 import {
+    Transition,
     TransitionCurve,
     Transitions,
     evalCurve,
@@ -751,10 +752,10 @@ function Graph({ transitions }: { transitions: Transitions }) {
         <div
             ref={containerRef}
             className="my-4 overflow-clip overscroll-none"
-            onMouseDown={(ev) => {
+            onMouseDown={() => {
                 dragging.current = true;
             }}
-            onMouseUp={(ev) => {
+            onMouseUp={() => {
                 dragging.current = false;
             }}
             onMouseMove={(ev) => {
