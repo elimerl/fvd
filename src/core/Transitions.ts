@@ -97,6 +97,22 @@ export function transitionsEvaluate(
     }
     return value;
 }
+export function transitionsGetAtT(
+    transitions: Transition[],
+    t: number
+): Transition | undefined {
+    if (t < 0 || t >= transitionsLength(transitions)) return undefined;
+    let timeAccum = 0;
+    for (const transition of transitions) {
+        if (timeAccum <= t && t <= timeAccum + transition.length) {
+            return transition;
+            break;
+        }
+
+        timeAccum += transition.length;
+    }
+    return undefined;
+}
 
 export interface Transition {
     curve: TransitionCurve;

@@ -8,6 +8,7 @@ import {
     evalCurve,
     evalTransition,
     transitionsEvaluate,
+    transitionsGetAtT,
     transitionsLength,
 } from "./core/Transitions";
 import { defaultFvdConfig, fvd } from "./core/fvd";
@@ -43,6 +44,8 @@ let camera: THREE.PerspectiveCamera;
 let scene: THREE.Scene;
 let spline: TrackSpline;
 
+let heartline: THREE.Line;
+
 const povState = {
     pos: 0,
 };
@@ -55,6 +58,9 @@ enum UnitSystem {
 
 function App() {
     const [unitSystem, setUnitSystem] = useState(UnitSystem.Imperial);
+    const [selectedTransition, setSelectedTransition] = useState<
+        Transition | undefined
+    >(undefined);
 
     let speedUnit: string;
     let distanceUnit: string;
@@ -106,8 +112,8 @@ function App() {
         transitions.roll.push({
             length: 3,
             curve: TransitionCurve.Plateau,
-            tension: 1,
-            value: 150,
+            tension: 0,
+            value: 180,
         });
         transitions.vert.pop();
         transitions.vert.push({
@@ -130,14 +136,14 @@ function App() {
         });
         transitions.vert.push({
             curve: TransitionCurve.Cubic,
-            length: 4,
+            length: 3.5,
             tension: 0,
             value: 0,
         });
         transitions.vert.push({
             curve: TransitionCurve.Plateau,
-            length: 3,
-            tension: 0,
+            length: 3.5,
+            tension: -1,
             value: -3.5,
         });
 
@@ -146,10 +152,25 @@ function App() {
 
     const canvasThree = useRef<HTMLCanvasElement>(null);
 
+    const updateTransitions = () => {
+        spline = fvd(transitions, vec(0, 35, 0), 3, defaultFvdConfig());
+        forceUpdate();
+
+        heartline.geometry.dispose();
+
+        const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
+            spline.points.map(
+                (v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2])
+            )
+        );
+        heartline.geometry = heartlineGeometry;
+
+        // TODO change rails also
+    };
+
     useEffect(() => {
         if (canvasThree.current && !renderer) {
             spline = fvd(transitions, vec(0, 35, 0), 3, defaultFvdConfig());
-
             console.log(spline.exportToNl2Elem());
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -192,7 +213,7 @@ function App() {
                 color: new THREE.Color("red"),
             });
 
-            const heartline = new THREE.Line(heartlineGeometry, heartlineMat);
+            heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
             const heartlineOffset = 1.1;
@@ -345,7 +366,7 @@ function App() {
     }
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full w-screen">
             <button
                 onClick={async () => {
                     const options = {
@@ -469,12 +490,42 @@ function App() {
             <div className="flex-1">
                 <canvas className="w-full h-full" ref={canvasThree} />
             </div>
-            <div className="flex-1">
-                <Graph transitions={transitions} />
+            <div className="flex-1 flex">
+                <div className="w-1/6 m-0">
+                    {selectedTransition && (
+                        <>
+                            <input
+                                type="number"
+                                step={0.1}
+                                value={selectedTransition.length}
+                                onChange={(e) => {
+                                    const length = e.target.valueAsNumber;
+                                    if (length > 0) {
+                                        selectedTransition.length = length;
+                                        updateTransitions();
+                                    }
+                                    console.log(length);
+                                    // FIXME thsi is broken
+                                }}
+                            ></input>
+                        </>
+                    )}
+                </div>
+                <Graph
+                    transitions={transitions}
+                    selected={selectedTransition}
+                    onSelect={(transition) => setSelectedTransition(transition)}
+                />
             </div>
         </div>
     );
 }
+
+const transformG = (g: number) => -g * 0.125 + 0.75;
+const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.75;
+
+const invTransformG = (y: number) => 6 - 8 * y;
+const invTransformRoll = (y: number) => 300 - 400 * y;
 
 function drawGraph(
     canvas: HTMLCanvasElement,
@@ -497,8 +548,6 @@ function drawGraph(
         timeOffset
     );
     ctx.setTransform(transform);
-    const transformG = (t: number) => -t * 0.125 + 0.75;
-    const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.75;
 
     // gridlines
     for (
@@ -556,12 +605,12 @@ function drawGraph(
     }
     // vert
     if (transitionsLength(transitions.vert) > 0) {
-        ctx.beginPath();
-
         let value = transitions.vertStart;
         let timeAccum = 0;
 
         for (const transition of transitions.vert) {
+            ctx.beginPath();
+
             ctx.moveTo(timeAccum, transformG(value));
 
             const step =
@@ -590,9 +639,9 @@ function drawGraph(
 
             timeAccum += transition.length;
 
+            ctx.save();
             ctx.lineWidth = transition === selectedTransition ? 4 : 2;
             ctx.strokeStyle = "blue";
-            ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.stroke();
             ctx.restore();
@@ -600,12 +649,11 @@ function drawGraph(
     }
     // lat
     if (transitionsLength(transitions.lat) > 0) {
-        ctx.beginPath();
-
         let value = transitions.latStart;
         let timeAccum = 0;
 
         for (const transition of transitions.lat) {
+            ctx.beginPath();
             ctx.moveTo(timeAccum, transformG(value));
 
             const step =
@@ -644,12 +692,12 @@ function drawGraph(
     }
     // roll
     if (transitionsLength(transitions.roll) > 0) {
-        ctx.beginPath();
-
         let value = transitions.rollStart;
         let timeAccum = 0;
 
         for (const transition of transitions.roll) {
+            ctx.beginPath();
+
             ctx.moveTo(timeAccum, transformG(value));
 
             const step =
@@ -699,7 +747,15 @@ function getGraphTransform(
         .translate(-timeOffset / width, 0);
 }
 
-function Graph({ transitions }: { transitions: Transitions }) {
+function Graph({
+    transitions,
+    selected,
+    onSelect,
+}: {
+    transitions: Transitions;
+    selected: Transition | undefined;
+    onSelect: (transition: Transition | undefined) => void;
+}) {
     // const vertPoints = [];
 
     // for (let t = 0; t < transitionsLength(transitions.vert); t += 0.01) {
@@ -737,8 +793,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
     const [zoomLevel, setZoomLevel] = useState(5);
     const timeOffset = useRef<number>(-32);
 
-    const dragging = useRef<boolean>(false);
-    const selectedTransitionRef = useRef<Transition | null>(null);
+    const dragging = useRef<number | null>(null);
 
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     if (canvasRef.current)
@@ -747,7 +802,7 @@ function Graph({ transitions }: { transitions: Transitions }) {
             transitions,
             zoomLevel,
             timeOffset.current!,
-            selectedTransitionRef.current ?? undefined
+            selected
         );
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -774,41 +829,89 @@ function Graph({ transitions }: { transitions: Transitions }) {
     return (
         <div
             ref={containerRef}
-            className="my-4 overflow-clip overscroll-none"
+            className="overflow-clip overscroll-none w-full"
             onMouseDown={() => {
-                dragging.current = true;
+                dragging.current = 0;
             }}
             onMouseUp={() => {
-                dragging.current = false;
+                dragging.current = null;
             }}
             onMouseMove={(ev) => {
-                if (dragging.current) {
+                if (dragging.current !== null) {
                     timeOffset.current -= ev.movementX * zoomLevel * 2;
+                    dragging.current -= ev.movementX * zoomLevel * 2;
                 }
             }}
         >
-            <div className="overflow-clip">
+            <div className="overflow-clip  w-full">
                 <canvas
                     className="w-full h-64"
                     ref={canvasRef}
-                    onClick={(ev) => {
-                        const x = ev.clientX - canvasRef.current!.offsetLeft;
-                        const y = ev.clientY - canvasRef.current!.offsetTop;
-                        console.log(
-                            invTransform(
-                                {
-                                    x: x * window.devicePixelRatio,
-                                    y: y * window.devicePixelRatio,
-                                },
-                                getGraphTransform(
-                                    canvasRef.current!.width,
-                                    canvasRef.current!.height,
-                                    zoomLevel,
-                                    timeOffset.current!
-                                )
+                    onMouseUp={(ev) => {
+                        if (
+                            dragging.current &&
+                            Math.abs(dragging.current) > 0.05
+                        )
+                            return;
+
+                        const rect = canvasRef.current!.getBoundingClientRect();
+                        const pxX = ev.clientX - rect.left;
+                        const pxY = ev.clientY - rect.top;
+                        const { x: t, y: y } = invTransform(
+                            {
+                                x: pxX * window.devicePixelRatio,
+                                y: pxY * window.devicePixelRatio,
+                            },
+                            getGraphTransform(
+                                canvasRef.current!.width,
+                                canvasRef.current!.height,
+                                zoomLevel,
+                                timeOffset.current!
                             )
                         );
-                        // todo: find nearest transition vertically
+                        const vert = transitionsEvaluate(
+                            transitions.vert,
+                            t,
+                            transitions.vertStart
+                        );
+                        const lat = transitionsEvaluate(
+                            transitions.lat,
+                            t,
+                            transitions.latStart
+                        );
+                        const roll = transitionsEvaluate(
+                            transitions.roll,
+                            t,
+                            transitions.rollStart
+                        );
+
+                        const vertY =
+                            vert !== undefined ? transformG(vert) : Infinity;
+                        const latY =
+                            lat !== undefined ? transformG(lat) : Infinity;
+                        const rollY =
+                            roll !== undefined ? transformRoll(roll) : Infinity;
+
+                        const vertYDiff = Math.abs(vertY - y);
+                        const latYDiff = Math.abs(latY - y);
+                        const rollYDiff = Math.abs(rollY - y);
+
+                        const closest = Math.min(
+                            vertYDiff,
+                            rollYDiff,
+                            latYDiff,
+                            10000
+                        );
+
+                        if (closest === vertYDiff) {
+                            onSelect(transitionsGetAtT(transitions.vert, t));
+                        } else if (closest === latYDiff) {
+                            onSelect(transitionsGetAtT(transitions.lat, t));
+                        } else if (closest === rollYDiff) {
+                            onSelect(transitionsGetAtT(transitions.roll, t));
+                        } else {
+                            onSelect(undefined);
+                        }
                     }}
                 ></canvas>
             </div>
