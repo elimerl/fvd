@@ -45,6 +45,10 @@ let scene: THREE.Scene;
 let spline: TrackSpline;
 
 let heartline: THREE.Line;
+let leftRail: THREE.Line;
+let rightRail: THREE.Line;
+
+const heartlineOffset = 1.1;
 
 const povState = {
     pos: 0,
@@ -157,15 +161,37 @@ function App() {
         forceUpdate();
 
         heartline.geometry.dispose();
-
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.points.map(
-                (v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2])
-            )
+            spline.points.map((v) => {
+                const [x, y, z] = v.pos;
+                return new THREE.Vector3(x, y, z);
+            })
         );
         heartline.geometry = heartlineGeometry;
 
-        // TODO change rails also
+        leftRail.geometry.dispose();
+        const leftRailGeometry = new THREE.BufferGeometry().setFromPoints(
+            spline.points.map((v) => {
+                const [x, y, z] = vsub(
+                    v.pos,
+                    qrotate(vec(-0.35, heartlineOffset, 0), v.rot)
+                );
+                return new THREE.Vector3(x, y, z);
+            })
+        );
+        leftRail.geometry = leftRailGeometry;
+
+        rightRail.geometry.dispose();
+        const rightRailGeometry = new THREE.BufferGeometry().setFromPoints(
+            spline.points.map((v) => {
+                const [x, y, z] = vsub(
+                    v.pos,
+                    qrotate(vec(0.35, heartlineOffset, 0), v.rot)
+                );
+                return new THREE.Vector3(x, y, z);
+            })
+        );
+        rightRail.geometry = rightRailGeometry;
     };
 
     useEffect(() => {
@@ -216,8 +242,6 @@ function App() {
             heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
-            const heartlineOffset = 1.1;
-
             const leftRailGeometry = new THREE.BufferGeometry().setFromPoints(
                 spline.points.map((v) => {
                     const [x, y, z] = vsub(
@@ -241,10 +265,10 @@ function App() {
                 color: new THREE.Color("blue"),
             });
 
-            const leftRail = new THREE.Line(leftRailGeometry, railMat);
+            leftRail = new THREE.Line(leftRailGeometry, railMat);
             scene.add(leftRail);
 
-            const rightRail = new THREE.Line(rightRailGeometry, railMat);
+            rightRail = new THREE.Line(rightRailGeometry, railMat);
             scene.add(rightRail);
         }
 
@@ -498,6 +522,7 @@ function App() {
                                 type="number"
                                 step={0.1}
                                 value={selectedTransition.length}
+                                onWheel={}
                                 onChange={(e) => {
                                     const length = e.target.valueAsNumber;
                                     if (length > 0) {
@@ -505,7 +530,6 @@ function App() {
                                         updateTransitions();
                                     }
                                     console.log(length);
-                                    // FIXME thsi is broken
                                 }}
                             ></input>
                         </>
@@ -822,7 +846,10 @@ function Graph({
             containerRef.current.addEventListener("wheel", cb, {
                 passive: false,
             });
-            return () => containerRef.current!.removeEventListener("wheel", cb);
+            return () => {
+                if (containerRef.current)
+                    containerRef.current!.removeEventListener("wheel", cb);
+            };
         }
     }, [containerRef.current]);
 
@@ -903,14 +930,40 @@ function Graph({
                             10000
                         );
 
-                        if (closest === vertYDiff) {
-                            onSelect(transitionsGetAtT(transitions.vert, t));
-                        } else if (closest === latYDiff) {
-                            onSelect(transitionsGetAtT(transitions.lat, t));
-                        } else if (closest === rollYDiff) {
-                            onSelect(transitionsGetAtT(transitions.roll, t));
-                        } else {
-                            onSelect(undefined);
+                        switch (closest) {
+                            case vertYDiff: {
+                                const newTransition = transitionsGetAtT(
+                                    transitions.vert,
+                                    t
+                                );
+                                if (selected !== newTransition) {
+                                    onSelect(newTransition);
+                                    break;
+                                }
+                            }
+                            case latYDiff: {
+                                const newTransition = transitionsGetAtT(
+                                    transitions.lat,
+                                    t
+                                );
+                                if (selected !== newTransition) {
+                                    onSelect(newTransition);
+                                    break;
+                                }
+                            }
+                            case rollYDiff: {
+                                const newTransition = transitionsGetAtT(
+                                    transitions.roll,
+                                    t
+                                );
+                                if (selected !== newTransition) {
+                                    onSelect(newTransition);
+                                    break;
+                                }
+                            }
+                            default:
+                                onSelect(undefined);
+                                break;
                         }
                     }}
                 ></canvas>
