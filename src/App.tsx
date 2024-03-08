@@ -45,6 +45,10 @@ let scene: THREE.Scene;
 let spline: TrackSpline;
 
 let heartline: THREE.Line;
+let leftRail: THREE.Line;
+let rightRail: THREE.Line;
+
+const heartlineOffset = 1.1;
 let povDirection: number = 0;
 
 const povState = {
@@ -158,15 +162,37 @@ function App() {
         forceUpdate();
 
         heartline.geometry.dispose();
-
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.points.map(
-                (v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2])
-            )
+            spline.points.map((v) => {
+                const [x, y, z] = v.pos;
+                return new THREE.Vector3(x, y, z);
+            })
         );
         heartline.geometry = heartlineGeometry;
 
-        // TODO change rails also
+        leftRail.geometry.dispose();
+        const leftRailGeometry = new THREE.BufferGeometry().setFromPoints(
+            spline.points.map((v) => {
+                const [x, y, z] = vsub(
+                    v.pos,
+                    qrotate(vec(-0.35, heartlineOffset, 0), v.rot)
+                );
+                return new THREE.Vector3(x, y, z);
+            })
+        );
+        leftRail.geometry = leftRailGeometry;
+
+        rightRail.geometry.dispose();
+        const rightRailGeometry = new THREE.BufferGeometry().setFromPoints(
+            spline.points.map((v) => {
+                const [x, y, z] = vsub(
+                    v.pos,
+                    qrotate(vec(0.35, heartlineOffset, 0), v.rot)
+                );
+                return new THREE.Vector3(x, y, z);
+            })
+        );
+        rightRail.geometry = rightRailGeometry;
     };
 
     useEffect(() => {
@@ -217,8 +243,6 @@ function App() {
             heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
-            const heartlineOffset = 1.1;
-
             const leftRailGeometry = new THREE.BufferGeometry().setFromPoints(
                 spline.points.map((v) => {
                     const [x, y, z] = vsub(
@@ -242,10 +266,10 @@ function App() {
                 color: new THREE.Color("blue"),
             });
 
-            const leftRail = new THREE.Line(leftRailGeometry, railMat);
+            leftRail = new THREE.Line(leftRailGeometry, railMat);
             scene.add(leftRail);
 
-            const rightRail = new THREE.Line(rightRailGeometry, railMat);
+            rightRail = new THREE.Line(rightRailGeometry, railMat);
             scene.add(rightRail);
         }
 
@@ -522,23 +546,20 @@ function App() {
                 <div className="w-1/6 m-0">
                     {selectedTransition && (
                         <>
-                            <label>
-                                Length
-                                <input
-                                    type="number"
-                                    step={0.1}
-                                    value={selectedTransition.length}
-                                    onChange={(e) => {
-                                        const length = e.target.valueAsNumber;
-                                        if (length > 0) {
-                                            selectedTransition.length = length;
-                                            updateTransitions();
-                                        }
-                                        console.log(length);
-                                        // FIXME thsi is broken
-                                    }}
-                                />
-                            </label>
+                            <input
+                                type="number"
+                                step={0.1}
+                                value={selectedTransition.length}
+                                onWheel={}
+                                onChange={(e) => {
+                                    const length = e.target.valueAsNumber;
+                                    if (length > 0) {
+                                        selectedTransition.length = length;
+                                        updateTransitions();
+                                    }
+                                    console.log(length);
+                                }}
+                            ></input>
                         </>
                     )}
                 </div>
@@ -872,7 +893,10 @@ function Graph({
             containerRef.current.addEventListener("wheel", cb, {
                 passive: false,
             });
-            return () => containerRef.current!.removeEventListener("wheel", cb);
+            return () => {
+                if (containerRef.current)
+                    containerRef.current!.removeEventListener("wheel", cb);
+            };
         }
     }, [containerRef.current]);
 
@@ -954,36 +978,33 @@ function Graph({
                         );
 
                         switch (closest) {
-                            //@ts-expect-error
                             case vertYDiff: {
-                                const transition = transitionsGetAtT(
+                                const newTransition = transitionsGetAtT(
                                     transitions.vert,
                                     t
                                 );
-                                if (transition !== selected) {
-                                    onSelect(transition);
+                                if (selected !== newTransition) {
+                                    onSelect(newTransition);
                                     break;
                                 }
                             }
-                            //@ts-expect-error
                             case latYDiff: {
-                                const transition = transitionsGetAtT(
+                                const newTransition = transitionsGetAtT(
                                     transitions.lat,
                                     t
                                 );
-                                if (transition !== selected) {
-                                    onSelect(transition);
+                                if (selected !== newTransition) {
+                                    onSelect(newTransition);
                                     break;
                                 }
                             }
-                            //@ts-expect-error
                             case rollYDiff: {
-                                const transition = transitionsGetAtT(
+                                const newTransition = transitionsGetAtT(
                                     transitions.roll,
                                     t
                                 );
-                                if (transition !== selected) {
-                                    onSelect(transition);
+                                if (selected !== newTransition) {
+                                    onSelect(newTransition);
                                     break;
                                 }
                             }
