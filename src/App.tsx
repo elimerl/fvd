@@ -45,6 +45,7 @@ let scene: THREE.Scene;
 let spline: TrackSpline;
 
 let heartline: THREE.Line;
+let povDirection: number = 0;
 
 const povState = {
     pos: 0,
@@ -249,7 +250,10 @@ function App() {
         }
 
         const start = spline.evaluate(povState.pos);
-        if (!start) throw new Error("no point");
+        if (!start) {
+            povState.pos = 0;
+            return;
+        }
         camera.position.set(start.pos[0], start.pos[1], start.pos[2]);
         camera.setRotationFromQuaternion(
             new THREE.Quaternion(
@@ -289,7 +293,12 @@ function App() {
             if (povState.pos + vel * dt >= spline.getLength()) {
                 povState.pos = 0;
             }
-            povState.pos += vel * dt;
+            povState.pos += vel * dt * povDirection;
+            if (povState.pos < 0) {
+                povState.pos = spline.getLength() - 0.5;
+            } else if (povState.pos > spline.getLength()) {
+                povState.pos = 0;
+            }
 
             lastFrameTime = frameTime;
             forceUpdate();
@@ -329,7 +338,10 @@ function App() {
         if (!lastPoint) lastPoint = spline.evaluate(povState.pos);
 
         const point = spline.evaluate(povState.pos);
-        if (!point || !lastPoint) throw new Error("no point");
+        if (!point || !lastPoint) {
+            povState.pos = 0;
+            return;
+        }
         debugInfo.point = point;
 
         const euler = new THREE.Euler().setFromQuaternion(
@@ -366,7 +378,23 @@ function App() {
     }
 
     return (
-        <div className="flex flex-col h-full w-screen">
+        <div
+            className="flex flex-col h-full w-screen"
+            onKeyDown={(ev) => {
+                if (ev.key === "w") {
+                    povDirection = 1;
+                }
+                if (ev.key === "s") {
+                    povDirection = -1;
+                }
+            }}
+            onKeyUp={(ev) => {
+                if (ev.key === "w" || ev.key === "s") {
+                    povDirection = 0;
+                }
+            }}
+            tabIndex={1000}
+        >
             <button
                 onClick={async () => {
                     const options = {
@@ -494,20 +522,23 @@ function App() {
                 <div className="w-1/6 m-0">
                     {selectedTransition && (
                         <>
-                            <input
-                                type="number"
-                                step={0.1}
-                                value={selectedTransition.length}
-                                onChange={(e) => {
-                                    const length = e.target.valueAsNumber;
-                                    if (length > 0) {
-                                        selectedTransition.length = length;
-                                        updateTransitions();
-                                    }
-                                    console.log(length);
-                                    // FIXME thsi is broken
-                                }}
-                            ></input>
+                            <label>
+                                Length
+                                <input
+                                    type="number"
+                                    step={0.1}
+                                    value={selectedTransition.length}
+                                    onChange={(e) => {
+                                        const length = e.target.valueAsNumber;
+                                        if (length > 0) {
+                                            selectedTransition.length = length;
+                                            updateTransitions();
+                                        }
+                                        console.log(length);
+                                        // FIXME thsi is broken
+                                    }}
+                                />
+                            </label>
                         </>
                     )}
                 </div>
@@ -747,6 +778,26 @@ function getGraphTransform(
         .translate(-timeOffset / width, 0);
 }
 
+function getScrollLineHeight() {
+    var r;
+    var iframe = document.createElement("iframe");
+    iframe.src = "#";
+    document.body.appendChild(iframe);
+    var iwin = iframe.contentWindow!;
+    var idoc = iwin.document;
+    idoc.open();
+    idoc.write(
+        "<!DOCTYPE html><html><head></head><body><span>a</span></body></html>"
+    );
+    idoc.close();
+    var span = idoc.body.firstElementChild as HTMLElement;
+    r = span!.offsetHeight;
+    document.body.removeChild(iframe);
+    return r;
+}
+
+const lineHeight = getScrollLineHeight();
+
 function Graph({
     transitions,
     selected,
@@ -809,11 +860,10 @@ function Graph({
     useEffect(() => {
         if (containerRef.current) {
             const cb = (e: WheelEvent) => {
-                if (e.deltaMode !== 0) {
-                    throw new Error("Wheel event not in pixels");
-                }
+                const deltaY =
+                    e.deltaMode === 0 ? e.deltaY : e.deltaY * lineHeight;
                 setZoomLevel((z) => {
-                    return _.clamp(z + e.deltaY * 0.01, 0.5, 30);
+                    return _.clamp(z + deltaY * 0.005, 0.5, 30);
                 });
                 e.preventDefault();
                 e.stopPropagation();
@@ -903,14 +953,43 @@ function Graph({
                             10000
                         );
 
-                        if (closest === vertYDiff) {
-                            onSelect(transitionsGetAtT(transitions.vert, t));
-                        } else if (closest === latYDiff) {
-                            onSelect(transitionsGetAtT(transitions.lat, t));
-                        } else if (closest === rollYDiff) {
-                            onSelect(transitionsGetAtT(transitions.roll, t));
-                        } else {
-                            onSelect(undefined);
+                        switch (closest) {
+                            //@ts-expect-error
+                            case vertYDiff: {
+                                const transition = transitionsGetAtT(
+                                    transitions.vert,
+                                    t
+                                );
+                                if (transition !== selected) {
+                                    onSelect(transition);
+                                    break;
+                                }
+                            }
+                            //@ts-expect-error
+                            case latYDiff: {
+                                const transition = transitionsGetAtT(
+                                    transitions.lat,
+                                    t
+                                );
+                                if (transition !== selected) {
+                                    onSelect(transition);
+                                    break;
+                                }
+                            }
+                            //@ts-expect-error
+                            case rollYDiff: {
+                                const transition = transitionsGetAtT(
+                                    transitions.roll,
+                                    t
+                                );
+                                if (transition !== selected) {
+                                    onSelect(transition);
+                                    break;
+                                }
+                            }
+                            default:
+                                onSelect(undefined);
+                                break;
                         }
                     }}
                 ></canvas>
@@ -935,11 +1014,11 @@ function NumberDisplay({
     parentheses?: boolean;
 }) {
     return (
-        <div className="inline-flex m-0 text-base">
+        <div className="inline-flex m-0 text-sm">
             {parentheses && "("}
             <span>{label ? label + ": " : "\u00A0"}</span>
 
-            <div className="w-20 text-right font-mono">
+            <div className="min-w-24 text-right font-mono">
                 {(!plusPositive || value <= 0 ? "" : "+") +
                     value.toFixed(decimalPoints ?? 2)}
                 {unit}
