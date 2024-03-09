@@ -549,15 +549,29 @@ function App() {
                             <input
                                 type="number"
                                 step={0.1}
-                                value={selectedTransition.length}
-                                onWheel={}
-                                onChange={(e) => {
-                                    const length = e.target.valueAsNumber;
-                                    if (length > 0) {
+                                value={parseFloat(
+                                    selectedTransition.length.toFixed(2)
+                                )}
+                                onWheel={(e) => {
+                                    const deltaY =
+                                        e.deltaMode === 0
+                                            ? e.deltaY
+                                            : e.deltaY * lineHeight;
+
+                                    const length =
+                                        selectedTransition.length -
+                                        Math.round(deltaY / 10) * 0.1;
+                                    if (length > 0.1) {
                                         selectedTransition.length = length;
                                         updateTransitions();
                                     }
-                                    console.log(length);
+                                }}
+                                onChange={(e) => {
+                                    const length = e.target.valueAsNumber;
+                                    if (length > 0.1) {
+                                        selectedTransition.length = length;
+                                        updateTransitions();
+                                    }
                                 }}
                             ></input>
                         </>
@@ -799,26 +813,6 @@ function getGraphTransform(
         .translate(-timeOffset / width, 0);
 }
 
-function getScrollLineHeight() {
-    var r;
-    var iframe = document.createElement("iframe");
-    iframe.src = "#";
-    document.body.appendChild(iframe);
-    var iwin = iframe.contentWindow!;
-    var idoc = iwin.document;
-    idoc.open();
-    idoc.write(
-        "<!DOCTYPE html><html><head></head><body><span>a</span></body></html>"
-    );
-    idoc.close();
-    var span = idoc.body.firstElementChild as HTMLElement;
-    r = span!.offsetHeight;
-    document.body.removeChild(iframe);
-    return r;
-}
-
-const lineHeight = getScrollLineHeight();
-
 function Graph({
     transitions,
     selected,
@@ -828,40 +822,6 @@ function Graph({
     selected: Transition | undefined;
     onSelect: (transition: Transition | undefined) => void;
 }) {
-    // const vertPoints = [];
-
-    // for (let t = 0; t < transitionsLength(transitions.vert); t += 0.01) {
-    //     vertPoints.push(
-    //         `${t * 10},${
-    //             -transitionsEvaluate(
-    //                 transitions.vert,
-    //                 t,
-    //                 transitions.vertStart
-    //             )! *
-    //                 10 +
-    //             75
-    //         }`
-    //     );
-    // }
-
-    // const latPoints = [];
-    // for (let t = 0; t < transitionsLength(transitions.lat); t += 0.01) {
-    //     latPoints.push(
-    //         `${t * 10},${
-    //             -transitionsEvaluate(
-    //                 transitions.lat,
-    //                 t,
-    //                 transitions.latStart
-    //             )! *
-    //                 10 +
-    //             75
-    //         }`
-    //     );
-    // }
-
-    // const svgRef = useRef<SVGSVGElement>(null);
-    // const graphSvgRef = useRef<SVGSVGElement>(null);
-
     const [zoomLevel, setZoomLevel] = useState(5);
     const timeOffset = useRef<number>(-32);
 
@@ -917,7 +877,7 @@ function Graph({
                 }
             }}
         >
-            <div className="overflow-clip  w-full">
+            <div className="overflow-clip w-full">
                 <canvas
                     className="w-full h-64"
                     ref={canvasRef}
@@ -1068,17 +1028,6 @@ function svgUnscale(el: SVGElement) {
 }
 
 function transform({ x, y }: { x: number; y: number }, transform: DOMMatrix) {
-    return {
-        x: x * transform.a + y * transform.c + transform.e,
-        y: x * transform.b + y * transform.d + transform.f,
-    };
-}
-
-function invTransform(
-    { x, y }: { x: number; y: number },
-    transformOrig: DOMMatrix
-) {
-    const transform = transformOrig.inverse();
     return {
         x: x * transform.a + y * transform.c + transform.e,
         y: x * transform.b + y * transform.d + transform.f,

@@ -1,8 +1,8 @@
 import { RIGHT, UP, metersToFeet } from "./constants";
 import {
+    type quaternion,
+    type vec3,
     qrotate,
-    quaternion,
-    vec3,
     vsub,
     vlength,
     qslerp,
@@ -34,7 +34,7 @@ export class TrackSpline {
         return length;
     }
 
-    evaluate(distance: number): TrackPoint | null {
+    evaluate(distance: number): TrackPoint | undefined {
         let totalDistance = 0;
 
         for (let i = 1; i < this.points.length; i++) {
@@ -56,7 +56,7 @@ export class TrackSpline {
             totalDistance += segmentLength;
         }
 
-        return null;
+        return undefined;
     }
 
     exportToNl2Elem(): string {
