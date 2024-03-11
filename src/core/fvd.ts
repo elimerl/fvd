@@ -1,20 +1,20 @@
 import { G, UP, FORWARD, GRAVITY, RIGHT, DOWN } from "./constants";
 import {
-    project as vproject,
-    quaternion,
+    type quaternion,
+    type vec3,
+    vproject as vproject,
     quatidentity,
     vadd,
     vmul,
     vsub,
     qrotate,
-    normalize,
-    cross,
+    vnormalize,
+    vcross,
     vlengthsquared,
     vlength,
     qaxisangle,
     qmul,
     qnormalize,
-    vec3,
 } from "./math";
 import { TrackSpline } from "./TrackSpline";
 import { Transitions } from "./Transitions";
@@ -76,8 +76,8 @@ export function fvd(
             const centripetal_accel = vsub(remainder_accel, forward_accel);
 
             if (vlengthsquared(centripetal_accel) > EPSILON) {
-                const axis = normalize(
-                    cross(qrotate(FORWARD, direction), centripetal_accel)
+                const axis = vnormalize(
+                    vcross(qrotate(FORWARD, direction), centripetal_accel)
                 );
                 const radius =
                     (velocity * velocity) / vlength(centripetal_accel);
@@ -87,7 +87,7 @@ export function fvd(
             }
 
             const rel_rot = qaxisangle(
-                normalize(qrotate(FORWARD, direction)),
+                vnormalize(qrotate(FORWARD, direction)),
                 roll * (Math.PI / 180) * DT
             );
             new_dir = qmul(rel_rot, new_dir);

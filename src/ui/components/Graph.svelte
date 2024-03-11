@@ -8,12 +8,16 @@
         evalCurve,
         evalTransition,
         transitionsLength,
+        TransitionCurve,
     } from "../../core/Transitions";
     import * as _ from "lodash-es";
     import { scrollLineHeight } from "../util";
+    import { keyState } from "../input";
 
     export let transitions: Transitions;
-    export let selected: Transition | undefined;
+    export let selected:
+        | { i: number; arr: "vert" | "lat" | "roll" }
+        | undefined;
 
     let container: HTMLDivElement;
     let canvas: HTMLCanvasElement;
@@ -69,25 +73,50 @@
 
         const closest = Math.min(vertYDiff, rollYDiff, latYDiff, 10000);
 
+        const selectedTransition = selected
+            ? transitions[selected.arr][selected.i]
+            : undefined;
         switch (closest) {
             case vertYDiff: {
                 const newTransition = transitionsGetAtT(transitions.vert, t);
-                if (selected !== newTransition) {
-                    selected = newTransition;
+                if (selectedTransition !== newTransition) {
+                    if (!newTransition) {
+                        selected = undefined;
+                    } else {
+                        selected = {
+                            i: transitions.vert.indexOf(newTransition),
+                            arr: "vert",
+                        };
+                    }
+                    break;
+                }
+            }
+
+            case rollYDiff: {
+                const newTransition = transitionsGetAtT(transitions.roll, t);
+                if (selectedTransition !== newTransition) {
+                    if (!newTransition) {
+                        selected = undefined;
+                    } else {
+                        selected = {
+                            i: transitions.roll.indexOf(newTransition),
+                            arr: "roll",
+                        };
+                    }
                     break;
                 }
             }
             case latYDiff: {
                 const newTransition = transitionsGetAtT(transitions.lat, t);
-                if (selected !== newTransition) {
-                    selected = newTransition;
-                    break;
-                }
-            }
-            case rollYDiff: {
-                const newTransition = transitionsGetAtT(transitions.roll, t);
-                if (selected !== newTransition) {
-                    selected = newTransition;
+                if (selectedTransition !== newTransition) {
+                    if (!newTransition) {
+                        selected = undefined;
+                    } else {
+                        selected = {
+                            i: transitions.lat.indexOf(newTransition),
+                            arr: "lat",
+                        };
+                    }
                     break;
                 }
             }
@@ -168,7 +197,8 @@
             ctx.strokeStyle = "grey";
             ctx.beginPath();
             ctx.moveTo(
-                timeOffset / canvas.width + 0.018 * zoomLevel,
+                timeOffset / canvas.width +
+                    ((32 * window.devicePixelRatio) / canvas.width) * zoomLevel,
                 transformG(g),
             );
             ctx.lineTo(timeOffset / canvas.width + zoomLevel, transformG(g));
@@ -192,16 +222,16 @@
         }
 
         function drawTransitions(
-            transitions: Transition[],
+            transitionList: Transition[],
             startValue: number,
             color: string,
             transformFunc: (value: number) => number,
         ) {
-            if (transitionsLength(transitions) > 0) {
+            if (transitionsLength(transitionList) > 0) {
                 let value = startValue;
                 let timeAccum = 0;
 
-                for (const transition of transitions) {
+                for (const transition of transitionList) {
                     ctx.beginPath();
                     ctx.moveTo(timeAccum, transformFunc(value));
 
@@ -233,7 +263,11 @@
                     timeAccum += transition.length;
 
                     ctx.save();
-                    ctx.lineWidth = transition === selected ? 4 : 2;
+                    ctx.lineWidth =
+                        selected &&
+                        transition === transitions[selected.arr][selected.i]
+                            ? 4
+                            : 2;
                     ctx.strokeStyle = color;
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
                     ctx.stroke();
@@ -262,16 +296,44 @@
             "red",
             transformRoll,
         );
-
-        console.log((performance.now() - start).toFixed(1) + "ms");
     }
+
+    let frame = 0;
 
     function frameHandler() {
+        if (!canvas) return;
         drawGraph();
-        requestAnimationFrame(frameHandler);
-    }
 
-    let frame = requestAnimationFrame(frameHandler);
+        if (keyState.thisFrame.has("KeyE") && selected) {
+            const newTransition: Transition = {
+                value: 0,
+                length: 1,
+                curve:
+                    selected.arr === "vert"
+                        ? TransitionCurve.Cubic
+                        : TransitionCurve.Plateau,
+                tension: 0,
+            };
+            transitions[selected.arr].splice(selected.i + 1, 0, newTransition);
+            transitions = transitions;
+            selected = {
+                arr: selected.arr,
+                i: selected.i + 1,
+            };
+        }
+
+        if (keyState.thisFrame.has("Backspace")) {
+            if (selected) {
+                transitions[selected.arr].splice(selected.i, 1);
+                transitions = transitions;
+                selected = undefined;
+            }
+        }
+
+        keyState.thisFrame.clear();
+
+        frame = requestAnimationFrame(frameHandler);
+    }
 
     onMount(() => {
         frame = requestAnimationFrame(frameHandler);
@@ -283,22 +345,38 @@
 <div
     bind:this={container}
     class="overflow-clip overscroll-none w-full"
-    on:mousedown={() => {
-        dragging = 0;
+    on:mousedown={(ev) => {
+        if (ev.button === 0) {
+            dragging = 0;
+        }
+
+        if (ev.button === 2) {
+            ev.preventDefault();
+        }
     }}
-    on:mouseup={() => {
-        dragging = undefined;
+    on:mouseup={(ev) => {
+        if (ev.button === 0) {
+            dragging = undefined;
+        }
+        if (ev.button === 2) {
+            ev.preventDefault();
+        }
     }}
     on:mousemove={(ev) => {
         if (dragging !== undefined) {
-            timeOffset -= ev.movementX * zoomLevel * 2;
-            dragging -= ev.movementX * zoomLevel * 2;
+            timeOffset -= ev.movementX * zoomLevel * window.devicePixelRatio;
+            timeOffset = _.clamp(timeOffset, 0, Infinity);
+            dragging -= ev.movementX * zoomLevel * window.devicePixelRatio;
         }
     }}
     on:wheel={(ev) => {
         const deltaY =
             ev.deltaMode === 0 ? ev.deltaY : ev.deltaY * scrollLineHeight;
-        zoomLevel = _.clamp(zoomLevel + deltaY * 0.005, 0.5, 30);
+        zoomLevel = _.clamp(
+            zoomLevel + deltaY * 0.005 * window.devicePixelRatio,
+            0.5,
+            30,
+        );
         ev.preventDefault();
         ev.stopPropagation();
         return false;

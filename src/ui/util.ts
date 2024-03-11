@@ -69,3 +69,7 @@ export function testTransitions(): Transitions {
     });
     return transitions;
 }
+
+export function notNull<T>(a: T | undefined | null): T {
+    return a!;
+}

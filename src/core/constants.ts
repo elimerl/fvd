@@ -20,3 +20,17 @@ export function metersPerSecondToMph(v: number) {
 export function metersPerSecondToKph(v: number) {
     return 3.6 * v;
 }
+
+export function degToRad(deg: number) {
+    return deg * (Math.PI / 180);
+}
+
+export function radToDeg(rad: number) {
+    return rad * (180 / Math.PI);
+}
+
+export enum UnitSystem {
+    Metric = "metric",
+    MetricKph = "metric-kph",
+    Imperial = "imperial",
+}

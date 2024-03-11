@@ -4,7 +4,16 @@ export enum TransitionCurve {
     Quadratic = "quadratic",
     Cubic = "cubic",
     Plateau = "plateau",
+    QuarticBump = "quartic-bump",
 }
+
+export const curveTypes = [
+    TransitionCurve.Linear,
+    TransitionCurve.Quadratic,
+    TransitionCurve.Cubic,
+    TransitionCurve.Plateau,
+    TransitionCurve.QuarticBump,
+];
 
 export function fixAngleRange(angle: number) {
     const full = Math.floor(angle / 360);
@@ -37,6 +46,8 @@ export function evalCurve(curve: TransitionCurve, t: number) {
             return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
         case TransitionCurve.Plateau:
             return 1 - Math.exp(-15 * Math.pow(1 - Math.abs(2 * t - 1), 3));
+        case TransitionCurve.QuarticBump:
+            return t * t * (16 + t * (-32 + t * 16));
     }
 }
 // export function evalCurveDerivative(curve: TransitionCurve, t: number) {
@@ -156,6 +167,12 @@ export class Transitions {
         readonly latStart: number,
         readonly rollStart: number
     ) {}
+
+    static fromJSON(json: string): Transitions {
+        const parse = JSON.parse(json);
+
+        return Object.assign(new Transitions(0, 0, 0), parse);
+    }
 
     length(): number {
         return Math.min(

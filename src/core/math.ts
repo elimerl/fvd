@@ -1,3 +1,5 @@
+import * as _ from "lodash-es";
+
 export function lerp(v0: number, v1: number, t: number): number {
     return (1 - t) * v0 + t * v1;
 }
@@ -23,11 +25,11 @@ export function vdiv(a: vec3, scalar: number): vec3 {
     return [a[0] / scalar, a[1] / scalar, a[2] / scalar];
 }
 
-export function dot(a: vec3, b: vec3): number {
+export function vdot(a: vec3, b: vec3): number {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-export function cross(a: vec3, b: vec3): vec3 {
+export function vcross(a: vec3, b: vec3): vec3 {
     return [
         a[1] * b[2] - a[2] * b[1],
         a[2] * b[0] - a[0] * b[2],
@@ -51,14 +53,14 @@ export function vlerp(v0: vec3, v1: vec3, t: number): vec3 {
     ];
 }
 
-export function normalize(a: vec3): vec3 {
+export function vnormalize(a: vec3): vec3 {
     const magnitude = vlength(a);
     return vdiv(a, magnitude);
 }
 
-export function project(a: vec3, b: vec3): vec3 {
-    const bNormalized = normalize(b);
-    const scalar = dot(a, bNormalized);
+export function vproject(a: vec3, b: vec3): vec3 {
+    const bNormalized = vnormalize(b);
+    const scalar = vdot(a, bNormalized);
     return vmul(bNormalized, scalar);
 }
 
