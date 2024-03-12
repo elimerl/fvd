@@ -1,10 +1,12 @@
+import mitt from "mitt";
+
 export const keyState = {
     down: new Set<string>(),
-    thisFrame: new Set<string>(),
     ctrl: false,
     shift: false,
     alt: false,
 };
+
 export function keydownHandler(ev: KeyboardEvent) {
     if (
         ev.code !== "ControlLeft" &&
@@ -15,7 +17,6 @@ export function keydownHandler(ev: KeyboardEvent) {
         ev.code !== "AltRight"
     ) {
         keyState.down.add(ev.code);
-        keyState.thisFrame.add(ev.code);
     }
     keyState.ctrl = ev.ctrlKey;
     keyState.shift = ev.shiftKey;

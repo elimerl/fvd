@@ -8,14 +8,22 @@
     export let min: number = -Infinity;
     export let max: number = Infinity;
 
+    value = _.clamp(value, min, max);
+
     $: step = Math.pow(10, -fractionalDigits);
     const inputOnWheel = (ev: WheelEvent) => {
         ev.preventDefault();
         const dy = Math.sign(ev.deltaY);
-        value -= dy * step;
+        value -= dy * step * (ev.ctrlKey ? 0.1 : 1) * (ev.shiftKey ? 10 : 1);
         value = _.round(value, fractionalDigits);
         value = _.clamp(value, min, max);
         // todo add shift and ctrl modifiers to change the step size
+    };
+
+    const inputOnChange = (ev: Event) => {
+        value = parseFloat((ev.target as HTMLInputElement).value);
+        value = _.round(value, fractionalDigits);
+        value = _.clamp(value, min, max);
     };
 </script>
 
@@ -25,7 +33,8 @@
     {step}
     {min}
     {max}
-    bind:value
+    value={value.toFixed(fractionalDigits)}
+    on:input={inputOnChange}
     on:wheel={inputOnWheel}
     alt=""
 />

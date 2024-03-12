@@ -47,13 +47,13 @@
             1,
             10,
             new THREE.Color("black"),
-            200,
+            300,
             "xzy",
         );
         scene.add(grid);
 
         const { heartlineGeometry, leftRailGeometry, rightRailGeometry } =
-            trackGeometry();
+            trackGeometry(spline);
 
         const heartlineMat = new THREE.LineBasicMaterial({
             color: new THREE.Color("red"),
@@ -75,13 +75,12 @@
     });
 
     $: {
-        console.log(spline);
         if (leftRail && rightRail && heartline) {
             leftRail.geometry.dispose();
             rightRail.geometry.dispose();
             heartline.geometry.dispose();
             const { heartlineGeometry, leftRailGeometry, rightRailGeometry } =
-                trackGeometry();
+                trackGeometry(spline);
             heartline.geometry = heartlineGeometry;
             leftRail.geometry = leftRailGeometry;
             rightRail.geometry = rightRailGeometry;
@@ -89,12 +88,13 @@
     }
 
     let lastTime = 0;
-    function trackGeometry() {
+    function trackGeometry(spline: TrackSpline) {
+        const railSpacing = 1.2;
         const leftRailGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.points.map((v) => {
                 const [x, y, z] = vsub(
                     v.pos,
-                    qrotate(vec(-0.35, heartlineOffset, 0), v.rot),
+                    qrotate(vec(-railSpacing / 2, heartlineOffset, 0), v.rot),
                 );
                 return new THREE.Vector3(x, y, z);
             }),
@@ -103,7 +103,7 @@
             spline.points.map((v) => {
                 const [x, y, z] = vsub(
                     v.pos,
-                    qrotate(vec(0.35, heartlineOffset, 0), v.rot),
+                    qrotate(vec(railSpacing / 2, heartlineOffset, 0), v.rot),
                 );
                 return new THREE.Vector3(x, y, z);
             }),
@@ -131,11 +131,15 @@
             pov.pos -= dt * spline.evaluate(pov.pos)!.velocity * speed;
         }
         fixPos();
-        const start = spline.evaluate(pov.pos);
+        let start = spline.evaluate(pov.pos);
         if (!start) {
             pov.pos = 0;
-            return;
+            start = spline.evaluate(pov.pos)!;
+            if (!start) {
+                throw new Error("no spline points");
+            }
         }
+
         camera.position.set(start.pos[0], start.pos[1], start.pos[2]);
         camera.setRotationFromQuaternion(
             new THREE.Quaternion(

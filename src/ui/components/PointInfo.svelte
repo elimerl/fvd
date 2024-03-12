@@ -1,8 +1,15 @@
 <script lang="ts">
     import { Euler, Quaternion } from "three";
-    import type { TrackSpline } from "../../core/TrackSpline";
-    import { radToDeg, type UnitSystem } from "../../core/constants";
-    import { type quaternion } from "../../core/math";
+    import type { TrackPoint, TrackSpline } from "../../core/TrackSpline";
+    import {
+        FORWARD,
+        radToDeg,
+        RIGHT,
+        UP,
+        type UnitSystem,
+        degDiff,
+    } from "../../core/constants";
+    import { qrotate, type quaternion } from "../../core/math";
     import { notNull } from "../util";
     import NumberDisplay from "./NumberDisplay.svelte";
     import UnitNumberDisplay from "./UnitNumberDisplay.svelte";
@@ -19,31 +26,54 @@
     $: point = spline.evaluate(pov.pos);
 
     // fix thios
-    // function euler(quat: quaternion) {
-    //     const euler = new Euler().setFromQuaternion(
-    //         new Quaternion(quat[1], quat[2], quat[3], quat[0]),
-    //     );
 
-    //     return [-radToDeg(euler.x), -radToDeg(euler.y), -radToDeg(euler.z)];
-    // }
-
-    // $: [pitch, yaw, roll] = point ? euler(point.rot) : [0, 0, 0];
-
-    // let [pitchPerS, yawPerS, rollPerS] = [0, 0, 0];
     // $: {
     //     if (point) {
-    //         const DP = pov.pos - 0.01 < 0 ? 0 : -0.01;
-    //         const [lastYaw, lastPitch, lastRoll] = euler(
-    //             spline.evaluate(pov.pos + DP)!.rot,
+    //         const dir = qrotate(FORWARD, point.rot);
+    //         const yaw = radToDeg(Math.atan2(-dir[0], -dir[2]));
+    //         const pitch = radToDeg(
+    //             Math.atan2(
+    //                 dir[1],
+    //                 Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2]),
+    //             ),
     //         );
+    //         const rightDir = qrotate(RIGHT, point.rot);
 
-    //         [pitchPerS, yawPerS, rollPerS] = [
-    //             -(pitch - lastYaw) * (point.velocity / DP),
-    //             -(yaw - lastPitch) * (point.velocity / DP),
-    //             -(roll - lastRoll) * (point.velocity / DP),
-    //         ];
+    //         const roll = radToDeg(Math.atan2(-rightDir[1], rightDir[0]));
+
+    //         console.log(roll);
     //     }
     // }
+    function euler(p: TrackPoint): [number, number, number] {
+        const dir = qrotate(FORWARD, p.rot);
+        const yaw = radToDeg(Math.atan2(-dir[0], -dir[2]));
+        const pitch = radToDeg(
+            Math.atan2(dir[1], Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2])),
+        );
+
+        const upDir = qrotate(UP, p.rot);
+        const rightDir = qrotate(RIGHT, p.rot);
+
+        const roll = radToDeg(Math.atan(rightDir[1] / -upDir[1]));
+        return [yaw, pitch, roll];
+    }
+
+    $: [yaw, pitch, roll] = point ? euler(point) : [0, 0, 0];
+
+    let [yawPerS, pitchPerS, rollPerS] = [0, 0, 0];
+    $: {
+        if (point) {
+            const DP = pov.pos - 0.01 < 0 ? 0 : -0.01;
+            const [lastYaw, lastPitch, lastRoll] = euler(
+                spline.evaluate(pov.pos + DP)!,
+            );
+            [yawPerS, pitchPerS, rollPerS] = [
+                (degDiff(yaw, lastYaw) * point.velocity) / DP,
+                (degDiff(pitch, lastPitch) * point.velocity) / DP,
+                (degDiff(roll, lastRoll) * point.velocity) / DP,
+            ];
+        }
+    }
 </script>
 
 {#if point}
@@ -81,7 +111,7 @@
                 {unitSystem}
             />
         </div>
-        <!-- <div class="flex gap-x-4">
+        <div class="flex gap-x-4">
             <NumberDisplay label="yaw" value={yaw} unit="°" />
             <NumberDisplay
                 label="yaw/s"
@@ -103,7 +133,7 @@
                 unit="°/s"
                 fractionalDigits={1}
             />
-        </div> -->
+        </div>
         <div class="flex gap-x-4">
             <NumberDisplay
                 label="y-accel"

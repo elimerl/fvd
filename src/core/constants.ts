@@ -28,7 +28,16 @@ export function degToRad(deg: number) {
 export function radToDeg(rad: number) {
     return rad * (180 / Math.PI);
 }
-
+export function degDiff(deg1: number, deg2: number) {
+    let diff = deg2 - deg1;
+    while (diff < -180) {
+        diff += 360;
+    }
+    while (diff > 180) {
+        diff -= 360;
+    }
+    return diff;
+}
 export enum UnitSystem {
     Metric = "metric",
     MetricKph = "metric-kph",

@@ -238,7 +238,7 @@
                     const step =
                         Math.abs(transition.value) < 0.01
                             ? transition.length
-                            : 0.01 * (zoomLevel / 3);
+                            : 0.01 * (zoomLevel / 10);
                     for (
                         let x = timeAccum;
                         x <= transition.length + timeAccum;
@@ -304,7 +304,26 @@
         if (!canvas) return;
         drawGraph();
 
-        if (keyState.thisFrame.has("KeyE") && selected) {
+        frame = requestAnimationFrame(frameHandler);
+    }
+
+    onMount(() => {
+        frame = requestAnimationFrame(frameHandler);
+
+        return () => cancelAnimationFrame(frame);
+    });
+
+    function keyDown(ev: KeyboardEvent) {
+        console.log(ev);
+        if (ev.code === "Backspace" && selected) {
+            if (transitions[selected.arr].length > 1) {
+                transitions[selected.arr].splice(selected.i, 1);
+                transitions = transitions;
+                selected = undefined;
+            }
+        }
+
+        if (ev.code === "KeyE" && selected) {
             const newTransition: Transition = {
                 value: 0,
                 length: 1,
@@ -322,32 +341,34 @@
             };
         }
 
-        if (keyState.thisFrame.has("Backspace")) {
-            if (selected) {
-                transitions[selected.arr].splice(selected.i, 1);
-                transitions = transitions;
-                selected = undefined;
-            }
+        if (ev.code === "KeyQ" && selected) {
+            const newTransition: Transition = {
+                value: 0,
+                length: 1,
+                curve:
+                    selected.arr === "vert"
+                        ? TransitionCurve.Cubic
+                        : TransitionCurve.Plateau,
+                tension: 0,
+            };
+            transitions[selected.arr].splice(selected.i, 0, newTransition);
+            transitions = transitions;
+            selected = {
+                arr: selected.arr,
+                i: selected.i,
+            };
         }
-
-        keyState.thisFrame.clear();
-
-        frame = requestAnimationFrame(frameHandler);
     }
-
-    onMount(() => {
-        frame = requestAnimationFrame(frameHandler);
-
-        return () => cancelAnimationFrame(frame);
-    });
 </script>
 
 <div
     bind:this={container}
+    on:keydown={keyDown}
     class="overflow-clip overscroll-none w-full"
     on:mousedown={(ev) => {
         if (ev.button === 0) {
             dragging = 0;
+            canvas.focus();
         }
 
         if (ev.button === 2) {
@@ -384,8 +405,9 @@
 >
     <div class="overflow-clip w-full">
         <canvas
+            tabindex="0"
             bind:this={canvas}
-            class="w-full h-64"
+            class="w-full h-64 border-none outline-none"
             on:mouseup={canvasMouseUp}
         />
     </div>
