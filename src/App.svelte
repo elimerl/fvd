@@ -121,11 +121,32 @@
     </select>
 
     <button
+        class="border p-1"
         on:click={() => {
             if (confirm("This cannot be undone")) {
                 transitions = new Transitions(1, 0, 0);
             }
         }}>Reset</button
+    >
+
+    <button
+        class="border p-1"
+        on:click={() => {
+            var element = document.createElement("a");
+            element.setAttribute(
+                "href",
+                "data:text/plain;charset=utf-8," +
+                    encodeURIComponent(spline.exportToNl2Elem()),
+            );
+            element.setAttribute("download", "fvd.nl2elem");
+
+            element.style.display = "none";
+            document.body.appendChild(element);
+
+            element.click();
+
+            document.body.removeChild(element);
+        }}>Download nl2elem</button
     >
 
     <div class="w-full h-2/3">

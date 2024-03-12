@@ -21,7 +21,17 @@
     };
 
     const inputOnChange = (ev: Event) => {
+        if (!/^[0-9\.]*$/.test((ev.target as HTMLInputElement).value)) {
+            (ev.target as HTMLInputElement).value =
+                value.toFixed(fractionalDigits);
+            ev.preventDefault();
+            return;
+        }
+
         value = parseFloat((ev.target as HTMLInputElement).value);
+        if (isNaN(value)) {
+            value = 0;
+        }
         value = _.round(value, fractionalDigits);
         value = _.clamp(value, min, max);
     };

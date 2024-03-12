@@ -314,7 +314,6 @@
     });
 
     function keyDown(ev: KeyboardEvent) {
-        console.log(ev);
         if (ev.code === "Backspace" && selected) {
             if (transitions[selected.arr].length > 1) {
                 transitions[selected.arr].splice(selected.i, 1);
