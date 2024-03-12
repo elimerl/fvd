@@ -63,14 +63,14 @@
     let [yawPerS, pitchPerS, rollPerS] = [0, 0, 0];
     $: {
         if (point) {
-            const DP = pov.pos - 0.01 < 0 ? 0 : -0.01;
+            const DP = pov.pos - 0.1 < 0 ? 0 : -0.1;
             const [lastYaw, lastPitch, lastRoll] = euler(
                 spline.evaluate(pov.pos + DP)!,
             );
             [yawPerS, pitchPerS, rollPerS] = [
-                (degDiff(yaw, lastYaw) * point.velocity) / DP,
-                (degDiff(pitch, lastPitch) * point.velocity) / DP,
-                (degDiff(roll, lastRoll) * point.velocity) / DP,
+                ((lastYaw - yaw) * point.velocity) / DP,
+                ((lastPitch - pitch) * point.velocity) / DP,
+                ((lastRoll - roll) * point.velocity) / DP,
             ];
         }
     }
@@ -149,7 +149,7 @@
                 value={transitionsEvaluate(
                     transitions.lat,
                     point.time,
-                    transitions.vertStart,
+                    transitions.latStart,
                 ) ?? NaN}
                 unit="g"
             />

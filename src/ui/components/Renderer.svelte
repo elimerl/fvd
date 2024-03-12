@@ -183,4 +183,4 @@
     }
 </script>
 
-<canvas bind:this={canvasThree} class="w-full h-[65vh]" />
+<canvas bind:this={canvasThree} class="w-full h-full" />

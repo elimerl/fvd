@@ -22,9 +22,9 @@
     import { UnitSystem } from "./core/constants";
     import MenuBar from "./ui/components/MenuBar.svelte";
     import { onMount } from "svelte";
-    import { perform, undo, redo } from "./ui/undo";
 
     import * as _ from "lodash-es";
+    import { defaultSettings, type AppSettings } from "./ui/settings";
 
     //@ts-expect-error
     if (!window.chrome) {
@@ -65,6 +65,12 @@
         );
     }
 
+    let settings: AppSettings = defaultSettings();
+
+    $: {
+        if (loaded) localStorage.setItem("settings", JSON.stringify(settings));
+    }
+
     onMount(() => {
         const stored = localStorage.getItem("transitions");
         if (stored) {
@@ -72,18 +78,21 @@
             transitions = Transitions.fromJSON(stored);
         }
 
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === "z" && e.ctrlKey) {
-                e.preventDefault();
-                transitions = undo(transitions);
-                console.log(transitions);
-            }
+        settings = localStorage.getItem("settings")
+            ? JSON.parse(localStorage.getItem("settings")!)
+            : defaultSettings();
 
-            if (e.key === "y" && e.ctrlKey) {
-                e.preventDefault();
-                transitions = redo(transitions);
-                console.log(transitions);
-            }
+        const handler = (e: KeyboardEvent) => {
+            // if (e.key === "z" && e.ctrlKey) {
+            //     e.preventDefault();
+            //     transitions = undo(transitions);
+            //     console.log(transitions);
+            // }
+            // if (e.key === "y" && e.ctrlKey) {
+            //     e.preventDefault();
+            //     transitions = redo(transitions);
+            //     console.log(transitions);
+            // }
         };
 
         document.addEventListener("keydown", handler);
@@ -104,7 +113,13 @@
         keyState.alt = false;
     }}
 />
-<div class="p-4">
+<div class="p-4 h-screen">
+    <select bind:value={settings.unitSystem}>
+        <option value={UnitSystem.Metric}>Metric (m, m/s)</option>
+        <option value={UnitSystem.MetricKph}>Metric (m, km/h)</option>
+        <option value={UnitSystem.Imperial}>Imperial (ft, mph)</option>
+    </select>
+
     <button
         on:click={() => {
             if (confirm("This cannot be undone")) {
@@ -113,13 +128,15 @@
         }}>Reset</button
     >
 
-    <Renderer {spline} bind:pov />
+    <div class="w-full h-2/3">
+        <Renderer {spline} bind:pov />
+    </div>
     <div class="flex gap-x-2">
         <PointInfo
             {spline}
             {transitions}
             {pov}
-            unitSystem={UnitSystem.Imperial}
+            unitSystem={settings.unitSystem}
         />
     </div>
     <Graph bind:transitions bind:selected />
@@ -133,33 +150,31 @@
             >
             <button
                 on:click={() => {
-                    perform(transitions, () => {
-                        if (selectedTransition && selected) {
-                            const otherLength = Math.min(
-                                selected.arr !== "vert"
-                                    ? _.sumBy(transitions.vert, (v) => v.length)
-                                    : Infinity,
-                                selected.arr !== "lat"
-                                    ? _.sumBy(transitions.lat, (v) => v.length)
-                                    : Infinity,
-                                selected.arr !== "roll"
-                                    ? _.sumBy(transitions.roll, (v) => v.length)
-                                    : Infinity,
-                            );
+                    if (selectedTransition && selected) {
+                        const otherLength = Math.min(
+                            selected.arr !== "vert"
+                                ? _.sumBy(transitions.vert, (v) => v.length)
+                                : Infinity,
+                            selected.arr !== "lat"
+                                ? _.sumBy(transitions.lat, (v) => v.length)
+                                : Infinity,
+                            selected.arr !== "roll"
+                                ? _.sumBy(transitions.roll, (v) => v.length)
+                                : Infinity,
+                        );
 
-                            selectedTransition.length = Math.max(
-                                otherLength -
-                                    transitionsLength(
-                                        transitions[selected.arr].slice(
-                                            0,
-                                            selected.i,
-                                        ),
+                        selectedTransition.length = Math.max(
+                            otherLength -
+                                transitionsLength(
+                                    transitions[selected.arr].slice(
+                                        0,
+                                        selected.i,
                                     ),
-                                0.1,
-                            );
-                            transitions = transitions;
-                        }
-                    });
+                                ),
+                            0.1,
+                        );
+                        transitions = transitions;
+                    }
                 }}
                 class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 bg-gray-200"
                 >Set length to max</button
