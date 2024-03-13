@@ -26,16 +26,32 @@
     import * as _ from "lodash-es";
     import { defaultSettings, type AppSettings } from "./ui/settings";
 
-    //@ts-expect-error
-    if (!window.chrome) {
-        alert(
-            "Warning: elifvd only works fully in Chrome or Edge. You can try it in other browsers, but file access might not work.",
-        );
-    }
-
     let pov = { pos: 0 };
 
-    let transitions = new Transitions(1, 0, 0);
+    function loadLocalStorage<T>(
+        key: string,
+        load: (v: any) => T,
+        defaultValue: () => T,
+    ) {
+        let value = localStorage.getItem(key);
+        if (value) {
+            return load(JSON.parse(value));
+        } else {
+            let result = defaultValue();
+            console.log(result);
+            return result;
+        }
+    }
+
+    function saveLocalStorage<T>(key: string, value: T) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    let transitions: Transitions = loadLocalStorage(
+        "transitions",
+        (v) => Transitions.fromJSON(v),
+        () => new Transitions(1, 0, 0),
+    );
     let selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined =
         undefined;
 
@@ -51,37 +67,29 @@
 
     $: spline = fvd(transitions, vec(0, 67, 0), 2.5, defaultFvdConfig());
 
-    let loaded = false;
     $: {
-        if (loaded)
-            localStorage.setItem("transitions", JSON.stringify(transitions));
+        saveLocalStorage("transitions", transitions);
     }
 
     $: {
-        // REMOVE THIS LATER
+        // REMOVE THIS ONCE DYNAMIC ADDED
         transitions.lat[0].length = Math.max(
             _.sumBy(transitions.vert, (v) => v.length),
             _.sumBy(transitions.roll, (v) => v.length),
         );
     }
 
-    let settings: AppSettings = defaultSettings();
+    let settings: AppSettings = loadLocalStorage(
+        "settings",
+        (v) => v as AppSettings,
+        defaultSettings,
+    );
 
     $: {
-        if (loaded) localStorage.setItem("settings", JSON.stringify(settings));
+        saveLocalStorage("settings", settings);
     }
 
     onMount(() => {
-        const stored = localStorage.getItem("transitions");
-        if (stored) {
-            loaded = true;
-            transitions = Transitions.fromJSON(stored);
-        }
-
-        settings = localStorage.getItem("settings")
-            ? JSON.parse(localStorage.getItem("settings")!)
-            : defaultSettings();
-
         const handler = (e: KeyboardEvent) => {
             // if (e.key === "z" && e.ctrlKey) {
             //     e.preventDefault();

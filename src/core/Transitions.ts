@@ -168,9 +168,7 @@ export class Transitions {
         readonly rollStart: number
     ) {}
 
-    static fromJSON(json: string): Transitions {
-        const parse = JSON.parse(json);
-
+    static fromJSON(parse: any): Transitions {
         return Object.assign(new Transitions(0, 0, 0), parse);
     }
 

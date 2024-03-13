@@ -46,9 +46,9 @@
     // }
     function euler(p: TrackPoint): [number, number, number] {
         const dir = qrotate(FORWARD, p.rot);
-        const yaw = radToDeg(Math.atan2(-dir[0], -dir[2]));
+        const yaw = radToDeg(Math.atan(-dir[0] / -dir[2]));
         const pitch = radToDeg(
-            Math.atan2(dir[1], Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2])),
+            Math.atan(dir[1] / Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2])),
         );
 
         const upDir = qrotate(UP, p.rot);
