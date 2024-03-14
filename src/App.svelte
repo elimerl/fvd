@@ -14,7 +14,7 @@
     import { deltaY, notNull, testTransitions } from "./ui/util";
     import NumberScroll from "./ui/components/NumberScroll.svelte";
     import Renderer from "./ui/components/Renderer.svelte";
-    import { defaultFvdConfig, fvd } from "./core/fvd";
+    import { fvd } from "./core/fvd";
     import { vec } from "./core/math";
     import { keyState, keydownHandler, keyupHandler } from "./ui/input";
 
@@ -25,6 +25,7 @@
 
     import * as _ from "lodash-es";
     import { defaultSettings, type AppSettings } from "./ui/settings";
+    import { Track } from "./core/Track";
 
     let pov = { pos: 0 };
 
@@ -50,7 +51,7 @@
     let transitions: Transitions = loadLocalStorage(
         "transitions",
         (v) => Transitions.fromJSON(v),
-        () => new Transitions(1, 0, 0),
+        () => new Transitions(),
     );
     let selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined =
         undefined;
@@ -65,7 +66,9 @@
     }
     $: selectedTransition = getSelected(transitions, selected);
 
-    $: spline = fvd(transitions, vec(0, 67, 0), 2.5, defaultFvdConfig());
+    const track = new Track();
+    $: spline = track.getSpline();
+    $: console.log(track.forces(spline, 0.1));
 
     $: {
         saveLocalStorage("transitions", transitions);
@@ -132,12 +135,12 @@
         class="border p-1"
         on:click={() => {
             if (confirm("This cannot be undone")) {
-                transitions = new Transitions(1, 0, 0);
+                transitions = new Transitions();
             }
         }}>Reset</button
     >
 
-    <button
+    <!-- <button
         class="border p-1"
         on:click={() => {
             var element = document.createElement("a");
@@ -155,7 +158,7 @@
 
             document.body.removeChild(element);
         }}>Download nl2elem</button
-    >
+    > -->
 
     <div class="w-full h-2/3">
         <Renderer {spline} bind:pov />

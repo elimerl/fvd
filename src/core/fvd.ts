@@ -16,7 +16,8 @@ import {
     qmul,
     qnormalize,
 } from "./math";
-import { TrackSpline } from "./TrackSpline";
+import type { Forces, TrackConfig } from "./Track";
+import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import { Transitions } from "./Transitions";
 
 // const G = 9.80665;
@@ -28,34 +29,23 @@ import { Transitions } from "./Transitions";
 const EPSILON = 0.0001;
 const DT = 0.01; // Assuming a fixed time step, you can adjust this as needed
 
-export type FVDConfig = {
-    parameter: number;
-    resistance: number;
-
-    heartlineHeight: number;
-};
-
-export function defaultFvdConfig(): FVDConfig {
-    return { parameter: 0.03, resistance: 1e-5, heartlineHeight: 1.1 };
-}
-
 export function fvd(
     transitions: Transitions,
-    start: vec3,
-    startVelocity: number,
-    config: FVDConfig
+    start: TrackPoint,
+    config: TrackConfig,
+    startForces: Forces
 ): TrackSpline {
     const spline = new TrackSpline();
     const pointEnergies: number[] = [];
-    let velocity = startVelocity;
-    let pos = start;
+    let velocity = start.velocity;
+    let pos = start.pos;
     let traveled = 0;
-    let direction: quaternion = quatidentity;
+    let direction: quaternion = start.rot;
     let time = 0;
 
     while (time < transitions.length()) {
         const deltaLength = DT * velocity;
-        const transition = transitions.evaluate(time);
+        const transition = transitions.evaluate(time, startForces);
 
         if (transition) {
             const { vert, lat, roll } = transition;
@@ -140,7 +130,12 @@ export function fvd(
                         G)
         );
 
-        spline.points.push({ pos, rot: direction, velocity, time });
+        spline.points.push({
+            pos,
+            rot: direction,
+            velocity,
+            time: time + start.time,
+        });
 
         time += DT;
         traveled += deltaLength;

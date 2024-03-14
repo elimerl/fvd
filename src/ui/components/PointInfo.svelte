@@ -17,6 +17,7 @@
         transitionsEvaluate,
         type Transitions,
     } from "../../core/Transitions";
+    import { euler } from "../../core/Track";
 
     export let spline: TrackSpline;
     export let transitions: Transitions;
@@ -44,19 +45,6 @@
     //         console.log(roll);
     //     }
     // }
-    function euler(p: TrackPoint): [number, number, number] {
-        const dir = qrotate(FORWARD, p.rot);
-        const yaw = radToDeg(Math.atan(-dir[0] / -dir[2]));
-        const pitch = radToDeg(
-            Math.atan(dir[1] / Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2])),
-        );
-
-        const upDir = qrotate(UP, p.rot);
-        const rightDir = qrotate(RIGHT, p.rot);
-
-        const roll = radToDeg(Math.atan(rightDir[1] / -upDir[1]));
-        return [yaw, pitch, roll];
-    }
 
     $: [yaw, pitch, roll] = point ? euler(point) : [0, 0, 0];
 

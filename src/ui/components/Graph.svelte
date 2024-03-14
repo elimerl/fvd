@@ -322,24 +322,6 @@
             }
         }
 
-        if (ev.code === "KeyE" && selected) {
-            const newTransition: Transition = {
-                value: 0,
-                length: 1,
-                curve:
-                    selected.arr === "vert"
-                        ? TransitionCurve.Cubic
-                        : TransitionCurve.Plateau,
-                tension: 0,
-            };
-            transitions[selected.arr].splice(selected.i + 1, 0, newTransition);
-            transitions = transitions;
-            selected = {
-                arr: selected.arr,
-                i: selected.i + 1,
-            };
-        }
-
         if (ev.code === "KeyQ" && selected) {
             const newTransition: Transition = {
                 value: 0,
@@ -358,7 +340,35 @@
             };
         }
     }
+
+    function addTransition() {
+        if (selected) {
+            const newTransition: Transition = {
+                value: 0,
+                length: 1,
+                curve:
+                    selected.arr === "vert"
+                        ? TransitionCurve.Cubic
+                        : TransitionCurve.Plateau,
+                tension: 0,
+            };
+            transitions[selected.arr].splice(selected.i + 1, 0, newTransition);
+            transitions = transitions;
+            selected = {
+                arr: selected.arr,
+                i: selected.i + 1,
+            };
+        }
+    }
 </script>
+
+<svelte:body
+    on:keydown={(ev) => {
+        if (ev.code === "KeyE") {
+            addTransition();
+        }
+    }}
+/>
 
 <div
     bind:this={container}

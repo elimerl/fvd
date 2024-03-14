@@ -1,4 +1,5 @@
 import _ from "lodash-es";
+import type { Forces } from "./Track";
 export enum TransitionCurve {
     Linear = "linear",
     Quadratic = "quadratic",
@@ -162,14 +163,10 @@ export class Transitions {
         },
     ];
 
-    constructor(
-        readonly vertStart: number,
-        readonly latStart: number,
-        readonly rollStart: number
-    ) {}
+    constructor() {}
 
     static fromJSON(parse: any): Transitions {
-        return Object.assign(new Transitions(0, 0, 0), parse);
+        return Object.assign(new Transitions(), parse);
     }
 
     length(): number {
@@ -181,14 +178,15 @@ export class Transitions {
     }
 
     evaluate(
-        t: number
+        t: number,
+        startForces: Forces
     ): { vert: number; lat: number; roll: number } | undefined {
         if (t < 0) {
             return undefined;
         }
-        const vertValue = transitionsEvaluate(this.vert, t, this.vertStart);
-        const latValue = transitionsEvaluate(this.lat, t, this.latStart);
-        const rollValue = transitionsEvaluate(this.roll, t, this.rollStart);
+        const vertValue = transitionsEvaluate(this.vert, t, startForces.vert);
+        const latValue = transitionsEvaluate(this.lat, t, startForces.lat);
+        const rollValue = transitionsEvaluate(this.roll, t, startForces.roll);
         if (
             vertValue === undefined ||
             latValue === undefined ||
