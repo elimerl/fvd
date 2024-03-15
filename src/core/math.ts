@@ -1,8 +1,17 @@
 import * as _ from "lodash-es";
+import { degToRad } from "./constants";
 
 export function lerp(v0: number, v1: number, t: number): number {
     return (1 - t) * v0 + t * v1;
 }
+
+// curvature crap
+
+export function degPerMToRadius(degPerM: number): number {
+    if (Math.abs(degPerM) < 0.001) return Infinity;
+    return 1 / degToRad(degPerM);
+}
+
 export type vec3 = [number, number, number];
 
 export function vec(x: number, y: number, z: number): vec3 {

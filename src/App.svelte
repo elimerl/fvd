@@ -25,7 +25,7 @@
 
     import * as _ from "lodash-es";
     import { defaultSettings, type AppSettings } from "./ui/settings";
-    import { Track } from "./core/Track";
+    import { Track, forces } from "./core/Track";
 
     let pov = { pos: 0 };
 
@@ -67,8 +67,13 @@
     $: selectedTransition = getSelected(transitions, selected);
 
     const track = new Track();
+    track.sections.push({
+        type: "force",
+        fixedSpeed: undefined,
+        transitions: testTransitions(),
+    });
     $: spline = track.getSpline();
-    $: console.log(track.forces(spline, 0.1));
+    $: console.log("FORCE", forces(spline, 3.5));
 
     $: {
         saveLocalStorage("transitions", transitions);

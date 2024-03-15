@@ -1,6 +1,6 @@
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import type { Transitions } from "./Transitions";
-import { FORWARD, RIGHT, UP, radToDeg } from "./constants";
+import { FORWARD, RIGHT, UP, degToRad, radToDeg } from "./constants";
 import { fvd } from "./fvd";
 import {
     qrotate,
@@ -10,6 +10,8 @@ import {
     type vec3,
     vsub,
     vlength,
+    vec,
+    degPerMToRadius,
 } from "./math";
 
 export type TrackSection =
@@ -30,22 +32,51 @@ export interface Forces {
     roll: number;
 }
 
-function forces(spline: TrackSpline, pos: number): Forces | undefined {
+export function forces(spline: TrackSpline, pos: number): Forces | undefined {
     const point1 = spline.evaluate(pos);
     const point2 = spline.evaluate(pos + 0.01);
 
     if (!point1 || !point2) return undefined;
 
-    const [yaw,pitch,roll] = euler(point1)
-    const forceVec = [0, -1, 0];
-    const temp = cos(Math.abs(getPitch())*F_PI/180.f);
-    if(fabs(fAngleFromLast) < std::numeric_limits<float>::epsilon()) {
-        forceVec = glm::vec3(0.f, 1.f, 0.f);
-    } else {
-        float normalDAngle = F_PI/180.f*(- fPitchFromLast * cos(fRoll*F_PI/180.) - temp*fYawFromLast*sin(fRoll*F_PI/180.));
-        float lateralDAngle = F_PI/180.f*(fPitchFromLast * sin(fRoll*F_PI/180.) - temp*fYawFromLast*cos(fRoll*F_PI/180.));
-        forceVec = glm::vec3(0.f, 1.f, 0.f) + lateralDAngle*fVel*F_HZ/F_G * vLat + normalDAngle*fHeartDistFromLast*F_HZ*F_HZ/F_G * vNorm;
-    }
+    const dist = vlength(vsub(point2.pos, point1.pos));
+
+    const [yaw, pitch, roll] = euler(point1);
+    const [yaw2, pitch2, roll2] = euler(point2);
+
+    const pitchDelta = pitch2 - pitch;
+    const yawDelta = yaw2 - yaw;
+
+    const temp = Math.cos(radToDeg(Math.abs(pitch)));
+
+    const normalDAngle = radToDeg(
+        -pitchDelta * Math.cos(degToRad(roll)) -
+            temp * yawDelta * Math.sin(degToRad(roll))
+    );
+
+    console.log(normalDAngle / dist);
+
+    const lateralDAngle = radToDeg(
+        pitchDelta * Math.sin(degToRad(roll)) -
+            temp * yawDelta * Math.cos(degToRad(roll))
+    );
+
+    const lat = qrotate(RIGHT, point1.rot);
+    const vert = qrotate(RIGHT, point1.rot);
+
+    const normalDPerM = normalDAngle / dist;
+    const lateralDPerM = normalDAngle / dist;
+
+    const vel = point1.velocity;
+
+    // console.log(normalDPerM, (vel * vel) / degPerMToRadius(normalDPerM));
+
+    const forceVec = vadd(
+        vec(0, 1, 0),
+        vadd(
+            vmul(vert, (vel * vel) / degPerMToRadius(normalDPerM)),
+            vmul(lat, (vel * vel) / degPerMToRadius(lateralDPerM))
+        )
+    );
 
     return { vert: 1, lat: 0, roll: 0 };
 }
@@ -107,11 +138,10 @@ export class Track {
                     )
                 );
             }
-
-            forces(
+            startForces = forces(
                 splines[splines.length - 1],
                 splines[splines.length - 1].getLength() - 0.02
-            );
+            )!;
         });
 
         return splines;
@@ -124,22 +154,22 @@ export class Track {
         config: TrackConfig
     ): TrackSpline {
         let spline = new TrackSpline();
-        let pos = start.pos;
-        let rot = start.rot;
-        let velocity = start.velocity;
 
         if (section.type === "straight") {
             const dp = 0.01;
+            let pos = start.pos;
+            let velocity = section.fixedSpeed;
+            if (!section.fixedSpeed)
+                throw new Error("TODO friction on straight track");
 
             for (let d = 0; d <= section.length; d += dp) {
-                pos = vadd(pos, qrotate(vmul(FORWARD, dp), rot));
-                if (!section.fixedSpeed)
-                    throw new Error("TODO friction on straight track");
+                pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
+                velocity = section.fixedSpeed;
                 spline.points.push({
                     pos,
-                    rot,
-                    velocity: section.fixedSpeed,
-                    time: 0,
+                    rot: start.rot,
+                    velocity,
+                    time: d / velocity + start.time,
                 });
             }
         } else if (section.type === "force") {
@@ -168,14 +198,14 @@ export function defaultTrackConfig(): TrackConfig {
 
 export function euler(p: TrackPoint): [number, number, number] {
     const dir = qrotate(FORWARD, p.rot);
-    const yaw = radToDeg(Math.atan(-dir[0] / -dir[2]));
+    const yaw = radToDeg(Math.atan2(-dir[0], -dir[2]));
     const pitch = radToDeg(
-        Math.atan(dir[1] / Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2]))
+        Math.atan2(dir[1], Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2]))
     );
 
     const upDir = qrotate(UP, p.rot);
     const rightDir = qrotate(RIGHT, p.rot);
 
-    const roll = radToDeg(Math.atan(rightDir[1] / -upDir[1]));
+    const roll = radToDeg(Math.atan2(rightDir[1], -upDir[1]));
     return [yaw, pitch, roll];
 }

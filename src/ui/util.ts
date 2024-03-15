@@ -25,7 +25,7 @@ export function deltaY(e: WheelEvent) {
 }
 
 export function testTransitions(): Transitions {
-    const transitions = new Transitions(1, 0, 0);
+    const transitions = new Transitions();
     transitions.lat[0].length = 30;
     transitions.roll[0].length = 6.8;
     transitions.roll[0].curve = TransitionCurve.Plateau;

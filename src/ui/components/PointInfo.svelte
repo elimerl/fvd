@@ -17,7 +17,7 @@
         transitionsEvaluate,
         type Transitions,
     } from "../../core/Transitions";
-    import { euler } from "../../core/Track";
+    import { euler, forces } from "../../core/Track";
 
     export let spline: TrackSpline;
     export let transitions: Transitions;
@@ -125,11 +125,7 @@
         <div class="flex gap-x-4">
             <NumberDisplay
                 label="y-accel"
-                value={transitionsEvaluate(
-                    transitions.vert,
-                    point.time,
-                    transitions.vertStart,
-                ) ?? NaN}
+                value={forces(spline, pov.pos).vert}
                 unit="g"
             />
             <NumberDisplay

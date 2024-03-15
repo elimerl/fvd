@@ -1,5 +1,3 @@
-import mitt from "mitt";
-
 export const keyState = {
     down: new Set<string>(),
     ctrl: false,
