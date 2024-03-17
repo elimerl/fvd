@@ -40,7 +40,7 @@ export class TrackSpline {
         for (let i = 1; i < this.points.length; i++) {
             const prevPoint = this.points[i - 1];
             const currPoint = this.points[i];
-            const segmentLength = vlength(vsub(currPoint.pos, prevPoint.pos)); // You might want to adjust how you calculate segment length
+            const segmentLength = vlength(vsub(currPoint.pos, prevPoint.pos));
             if (totalDistance + segmentLength >= distance) {
                 const t = (distance - totalDistance) / segmentLength;
                 const interpolatedPos = vlerp(prevPoint.pos, currPoint.pos, t);
@@ -51,6 +51,25 @@ export class TrackSpline {
                     velocity: lerp(prevPoint.velocity, currPoint.velocity, t),
                     time: lerp(prevPoint.time, currPoint.time, t),
                 };
+            }
+
+            totalDistance += segmentLength;
+        }
+
+        return undefined;
+    }
+
+    evaluateNoInterpolation(
+        distance: number
+    ): [TrackPoint, TrackPoint] | undefined {
+        let totalDistance = 0;
+
+        for (let i = 1; i < this.points.length; i++) {
+            const prevPoint = this.points[i - 1];
+            const currPoint = this.points[i];
+            const segmentLength = vlength(vsub(currPoint.pos, prevPoint.pos));
+            if (totalDistance + segmentLength >= distance) {
+                return [prevPoint, currPoint];
             }
 
             totalDistance += segmentLength;

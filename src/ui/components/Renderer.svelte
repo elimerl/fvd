@@ -24,54 +24,56 @@
     let frame = 0;
 
     onMount(() => {
-        renderer = new THREE.WebGLRenderer({
-            antialias: true,
-            canvas: canvasThree,
-            powerPreference: "high-performance",
-        });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 0.5;
+        if (!renderer) {
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                canvas: canvasThree,
+                powerPreference: "high-performance",
+            });
+            renderer.setPixelRatio(window.devicePixelRatio ?? 1);
+            // renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 0.5;
 
-        camera = new THREE.PerspectiveCamera(80, 2, 0.1, 1000);
-        camera.lookAt(new THREE.Vector3());
+            camera = new THREE.PerspectiveCamera(80, 2, 0.1, 1000);
+            camera.lookAt(new THREE.Vector3());
 
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color("white");
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color("white");
 
-        const light = new THREE.DirectionalLight(0xffffff, 1);
-        light.position.set(0, 1, 0);
-        light.castShadow = true;
+            const light = new THREE.DirectionalLight(0xffffff, 1);
+            light.position.set(0, 1, 0);
+            light.castShadow = true;
 
-        const grid = new InfiniteGridHelper(
-            1,
-            10,
-            new THREE.Color("black"),
-            300,
-            "xzy",
-        );
-        scene.add(grid);
+            const grid = new InfiniteGridHelper(
+                1,
+                10,
+                new THREE.Color("black"),
+                500,
+                "xzy",
+            );
+            scene.add(grid);
 
-        const { heartlineGeometry, leftRailGeometry, rightRailGeometry } =
-            trackGeometry(spline);
+            const { heartlineGeometry, leftRailGeometry, rightRailGeometry } =
+                trackGeometry(spline);
 
-        const heartlineMat = new THREE.LineBasicMaterial({
-            color: new THREE.Color("red"),
-        });
-        heartline = new THREE.Line(heartlineGeometry, heartlineMat);
-        scene.add(heartline);
+            const heartlineMat = new THREE.LineBasicMaterial({
+                color: new THREE.Color("red"),
+            });
+            heartline = new THREE.Line(heartlineGeometry, heartlineMat);
+            scene.add(heartline);
 
-        const railMat = new THREE.LineBasicMaterial({
-            color: new THREE.Color("blue"),
-        });
+            const railMat = new THREE.LineBasicMaterial({
+                color: new THREE.Color("blue"),
+            });
 
-        leftRail = new THREE.Line(leftRailGeometry, railMat);
-        scene.add(leftRail);
+            leftRail = new THREE.Line(leftRailGeometry, railMat);
+            scene.add(leftRail);
 
-        rightRail = new THREE.Line(rightRailGeometry, railMat);
-        scene.add(rightRail);
+            rightRail = new THREE.Line(rightRailGeometry, railMat);
+            scene.add(rightRail);
 
-        frame = requestAnimationFrame(render);
+            frame = requestAnimationFrame(render);
+        }
     });
 
     $: {
@@ -183,4 +185,8 @@
     }
 </script>
 
-<canvas bind:this={canvasThree} class="w-full h-full" />
+<canvas
+    bind:this={canvasThree}
+    class="w-full h-full"
+    style="image-rendering: pixelated;"
+/>

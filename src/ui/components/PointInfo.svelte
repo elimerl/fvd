@@ -62,6 +62,8 @@
             ];
         }
     }
+
+    $: force = forces(spline, pov.pos) ?? { vert: 0, lat: 0, roll: 0 };
 </script>
 
 {#if point}
@@ -123,18 +125,13 @@
             />
         </div>
         <div class="flex gap-x-4">
+            <NumberDisplay label="y-accel" value={force.vert} unit="g" />
+            <NumberDisplay label="x-accel" value={force.lat} unit="g" />
+
             <NumberDisplay
                 label="y-accel"
-                value={forces(spline, pov.pos).vert}
-                unit="g"
-            />
-            <NumberDisplay
-                label="x-accel"
-                value={transitionsEvaluate(
-                    transitions.lat,
-                    point.time,
-                    transitions.latStart,
-                ) ?? NaN}
+                value={transitionsEvaluate(transitions.vert, point.time, 1) ??
+                    0}
                 unit="g"
             />
         </div>

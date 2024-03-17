@@ -1,17 +1,23 @@
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import type { Transitions } from "./Transitions";
-import { FORWARD, RIGHT, UP, degToRad, radToDeg } from "./constants";
+import { FORWARD, G, RIGHT, UP, degToRad, radToDeg } from "./constants";
 import { fvd } from "./fvd";
 import {
     qrotate,
-    quatidentity,
     vadd,
     vmul,
-    type vec3,
     vsub,
     vlength,
+    qidentity,
+    vcross,
+    vproject,
+    qtwist,
+    qangle,
+    qinverse,
+    qmul,
     vec,
-    degPerMToRadius,
+    vdot,
+    qtoaxisangle,
 } from "./math";
 
 export type TrackSection =
@@ -33,52 +39,68 @@ export interface Forces {
 }
 
 export function forces(spline: TrackSpline, pos: number): Forces | undefined {
-    const point1 = spline.evaluate(pos);
-    const point2 = spline.evaluate(pos + 0.01);
+    const points = spline.evaluateNoInterpolation(pos);
 
-    if (!point1 || !point2) return undefined;
+    if (!points) return undefined;
 
-    const dist = vlength(vsub(point2.pos, point1.pos));
+    const [lastPoint, point] = points;
 
-    const [yaw, pitch, roll] = euler(point1);
-    const [yaw2, pitch2, roll2] = euler(point2);
+    const dist = vlength(vsub(point.pos, lastPoint.pos));
 
-    const pitchDelta = pitch2 - pitch;
-    const yawDelta = yaw2 - yaw;
+    const [lastYaw, lastPitch, lastRoll] = euler(lastPoint);
+    // const rotChange = qmul(point1.rot, qinverse(point2.rot));
 
-    const temp = Math.cos(radToDeg(Math.abs(pitch)));
+    // const vertTwist = qtwist(rotChange, qrotate(RIGHT, point1.rot));
+    // const vertCurvature = qangle(vertTwist) / dist;
 
-    const normalDAngle = radToDeg(
-        -pitchDelta * Math.cos(degToRad(roll)) -
-            temp * yawDelta * Math.sin(degToRad(roll))
-    );
+    // let vertRadius = vertCurvature < 0.01 ? Infinity : 1 / vertCurvature;
+    // if (vertTwist[1] < 0) {
+    //     vertRadius = -vertRadius;
+    // }
 
-    console.log(normalDAngle / dist);
+    // const latTwist = qtwist(rotChange, qrotate(UP, point1.rot));
+    // // console.log(latTwist, vertTwist);
+    // const latCurvature = qangle(latTwist) / dist;
 
-    const lateralDAngle = radToDeg(
-        pitchDelta * Math.sin(degToRad(roll)) -
-            temp * yawDelta * Math.cos(degToRad(roll))
-    );
+    // let latRadius = latCurvature < 0.01 ? Infinity : 1 / latCurvature;
 
-    const lat = qrotate(RIGHT, point1.rot);
-    const vert = qrotate(RIGHT, point1.rot);
+    // if (latTwist[1] < 0) {
+    //     latRadius = -latRadius;
+    // }
 
-    const normalDPerM = normalDAngle / dist;
-    const lateralDPerM = normalDAngle / dist;
+    const [yaw, pitch, roll] = euler(point);
 
-    const vel = point1.velocity;
+    const pitchFromLast = degToRad(pitch - lastPitch);
+    const yawFromLast = degToRad(yaw - lastYaw);
 
-    // console.log(normalDPerM, (vel * vel) / degPerMToRadius(normalDPerM));
+    const temp = Math.cos(degToRad(Math.abs(pitch)));
+
+    const normalDAngle =
+        -pitchFromLast * Math.cos(degToRad(roll)) -
+        temp * yawFromLast * Math.sin(degToRad(roll));
+    const lateralDAngle =
+        pitchFromLast * Math.sin(degToRad(roll)) -
+        temp * -yawFromLast * Math.cos(degToRad(roll));
 
     const forceVec = vadd(
         vec(0, 1, 0),
         vadd(
-            vmul(vert, (vel * vel) / degPerMToRadius(normalDPerM)),
-            vmul(lat, (vel * vel) / degPerMToRadius(lateralDPerM))
+            vmul(
+                qrotate(UP, point.rot),
+                (point.velocity * point.velocity) / (dist / normalDAngle) / G
+            ),
+            vmul(
+                qrotate(RIGHT, point.rot),
+                (point.velocity * point.velocity) / (dist / lateralDAngle) / G
+            )
         )
     );
 
-    return { vert: 1, lat: 0, roll: 0 };
+    return {
+        vert: vdot(forceVec, qrotate(UP, lastPoint.rot)),
+        lat: vdot(forceVec, qrotate(RIGHT, lastPoint.rot)),
+        roll: 0,
+    };
 }
 
 export class Track {
@@ -88,7 +110,7 @@ export class Track {
     anchor: TrackPoint = {
         pos: [0, 10, 0],
         velocity: 10,
-        rot: quatidentity,
+        rot: qidentity(),
         time: 0,
     };
     config: TrackConfig = defaultTrackConfig();
@@ -99,7 +121,6 @@ export class Track {
         const splines = this.makeSplines();
         const points = splines.map((v) => v.points).flat(); // there might be a duplicate points bug here, look into that
 
-        console.log(splines);
         const spline = new TrackSpline();
         spline.points = points;
         return spline;
@@ -182,6 +203,10 @@ export class Track {
         }
 
         return spline;
+    }
+
+    exportToNl2Elem(): string {
+        return this.getSpline().exportToNl2Elem();
     }
 }
 

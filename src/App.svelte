@@ -11,7 +11,7 @@
     } from "./core/Transitions";
     import Graph from "./ui/components/Graph.svelte";
     import NumberDisplay from "./ui/components/NumberDisplay.svelte";
-    import { deltaY, notNull, testTransitions } from "./ui/util";
+    import { deltaY, notNull, testTransitions, time } from "./ui/util";
     import NumberScroll from "./ui/components/NumberScroll.svelte";
     import Renderer from "./ui/components/Renderer.svelte";
     import { fvd } from "./core/fvd";
@@ -39,7 +39,6 @@
             return load(JSON.parse(value));
         } else {
             let result = defaultValue();
-            console.log(result);
             return result;
         }
     }
@@ -72,8 +71,7 @@
         fixedSpeed: undefined,
         transitions: testTransitions(),
     });
-    $: spline = track.getSpline();
-    $: console.log("FORCE", forces(spline, 3.5));
+    $: spline = time(() => track.getSpline());
 
     $: {
         saveLocalStorage("transitions", transitions);
@@ -145,7 +143,7 @@
         }}>Reset</button
     >
 
-    <!-- <button
+    <button
         class="border p-1"
         on:click={() => {
             var element = document.createElement("a");
@@ -163,7 +161,7 @@
 
             document.body.removeChild(element);
         }}>Download nl2elem</button
-    > -->
+    >
 
     <div class="w-full h-2/3">
         <Renderer {spline} bind:pov />

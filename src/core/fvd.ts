@@ -1,9 +1,8 @@
-import { G, UP, FORWARD, GRAVITY, RIGHT, DOWN } from "./constants";
+import { G, UP, FORWARD, GRAVITY, RIGHT, DOWN, degToRad } from "./constants";
 import {
     type quaternion,
     type vec3,
     vproject as vproject,
-    quatidentity,
     vadd,
     vmul,
     vsub,
@@ -15,6 +14,8 @@ import {
     qaxisangle,
     qmul,
     qnormalize,
+    vec,
+    vdot,
 } from "./math";
 import type { Forces, TrackConfig } from "./Track";
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
@@ -27,7 +28,7 @@ import { Transitions } from "./Transitions";
 // const GRAVITY = new THREE.Vector3(0, -G, 0);
 
 const EPSILON = 0.0001;
-const DT = 0.01; // Assuming a fixed time step, you can adjust this as needed
+const DT = 0.001; // Assuming a fixed time step, you can adjust this as needed
 
 export function fvd(
     transitions: Transitions,
@@ -48,39 +49,81 @@ export function fvd(
         const transition = transitions.evaluate(time, startForces);
 
         if (transition) {
-            const { vert, lat, roll } = transition;
+            const { vert, lat, roll: rollSpeed } = transition;
 
             // velocity = fixed_speed !== undefined ? fixed_speed : velocity;
 
             let new_dir = direction;
 
-            const linear_accel = vadd(
-                vmul(qrotate(UP, direction), -vert * G),
-                vmul(qrotate(RIGHT, direction), -lat * G)
-            );
-            const remainder_accel = vsub(GRAVITY, linear_accel);
-            const forward_accel = vproject(
-                remainder_accel,
-                qrotate(FORWARD, direction)
-            );
-            const centripetal_accel = vsub(remainder_accel, forward_accel);
+            // const linear_accel = vadd(
+            //     vmul(qrotate(UP, direction), -vert * G),
+            //     vmul(qrotate(RIGHT, direction), -lat * G)
+            // );
+            // const remainder_accel = vsub(GRAVITY, linear_accel);
+            // const forward_accel = vproject(
+            //     remainder_accel,
+            //     qrotate(FORWARD, direction)
+            // );
+            // const centripetal_accel = vsub(remainder_accel, forward_accel);
 
-            if (vlengthsquared(centripetal_accel) > EPSILON) {
-                const axis = vnormalize(
-                    vcross(qrotate(FORWARD, direction), centripetal_accel)
+            // if (vlengthsquared(centripetal_accel) > EPSILON) {
+            //     const axis = vnormalize(
+            //         vcross(qrotate(FORWARD, direction), centripetal_accel)
+            //     );
+            //     const radius =
+            //         (velocity * velocity) / vlength(centripetal_accel);
+            //     const angle = deltaLength / radius;
+            //     const rel_rot = qaxisangle(axis, angle);
+            //     new_dir = qmul(rel_rot, new_dir);
+            // }
+
+            // const rel_rot = qaxisangle(
+            //     vnormalize(qrotate(FORWARD, direction)),
+            //     roll * (Math.PI / 180) * DT
+            // );
+
+            if (rollSpeed > 0.01) {
+                new_dir = qmul(
+                    qaxisangle(
+                        qrotate(FORWARD, new_dir),
+                        degToRad(rollSpeed) * DT
+                    ),
+                    new_dir
                 );
-                const radius =
-                    (velocity * velocity) / vlength(centripetal_accel);
-                const angle = deltaLength / radius;
-                const rel_rot = qaxisangle(axis, angle);
-                new_dir = qmul(rel_rot, new_dir);
             }
-
-            const rel_rot = qaxisangle(
-                vnormalize(qrotate(FORWARD, direction)),
-                roll * (Math.PI / 180) * DT
+            console.log(vert);
+            const forceVec = vadd(
+                vec(0, 1, 0),
+                vadd(
+                    vmul(vnormalize(qrotate(UP, new_dir)), -vert),
+                    vmul(vnormalize(qrotate(RIGHT, new_dir)), -lat)
+                )
             );
-            new_dir = qmul(rel_rot, new_dir);
+
+            const normalForce =
+                -vdot(forceVec, vnormalize(qrotate(UP, new_dir))) * G;
+            const lateralForce =
+                -vdot(forceVec, vnormalize(qrotate(RIGHT, new_dir))) * G;
+
+            console.log(
+                (normalForce / G).toFixed(1),
+                (lateralForce / G).toFixed(1),
+                vert.toFixed(1),
+                lat.toFixed(1)
+            );
+
+            const vel = velocity;
+
+            new_dir = qmul(
+                qmul(
+                    qaxisangle(
+                        qrotate(RIGHT, new_dir),
+                        (normalForce / vel) * DT
+                    ),
+                    qaxisangle(qrotate(UP, new_dir), -(lateralForce / vel) * DT)
+                ),
+                new_dir
+            );
 
             direction = qnormalize(new_dir);
 

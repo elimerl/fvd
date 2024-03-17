@@ -26,10 +26,16 @@ export function deltaY(e: WheelEvent) {
 
 export function testTransitions(): Transitions {
     const transitions = new Transitions();
-    transitions.lat[0].length = 30;
-    transitions.roll[0].length = 6.8;
+    transitions.lat.push({
+        length: 30,
+        curve: TransitionCurve.Linear,
+        tension: 0,
+        value: 0,
+    });
+
+    transitions.roll[0].length = 6.3;
     transitions.roll[0].curve = TransitionCurve.Plateau;
-    transitions.roll[0].value = 0;
+    transitions.roll[0].value = 1000;
 
     transitions.roll.push({
         length: 3,
@@ -73,4 +79,12 @@ export function testTransitions(): Transitions {
 
 export function notNull<T>(a: T | undefined | null): T {
     return a!;
+}
+
+export function time<T>(f: () => T): T {
+    const startTime = performance.now();
+
+    const v = f();
+    console.log(`took ${(performance.now() - startTime).toFixed(3)}ms`);
+    return v;
 }

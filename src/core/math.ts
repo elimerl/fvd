@@ -74,7 +74,9 @@ export function vproject(a: vec3, b: vec3): vec3 {
 }
 
 export type quaternion = [number, number, number, number];
-export const quatidentity: quaternion = [1, 0, 0, 0];
+export function qidentity(): quaternion {
+    return [1, 0, 0, 0];
+}
 
 export function qmul(a: quaternion, b: quaternion): quaternion {
     const [a0, a1, a2, a3] = a;
@@ -99,6 +101,22 @@ export function qrotate(v: vec3, q: quaternion): vec3 {
     return [final[1], final[2], final[3]];
 }
 
+export function qinverse(q: quaternion): quaternion {
+    const magSqr = q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3];
+    return [q[0] / magSqr, -q[1] / magSqr, -q[2] / magSqr, -q[3] / magSqr];
+}
+
+export function qtwist(q: quaternion, ax: vec3): quaternion {
+    const r = vec(q[1], q[2], q[3]);
+
+    if (vlengthsquared(r) < Number.EPSILON) {
+        return qaxisangle(ax, 0);
+    } else {
+        const p = vproject(r, ax);
+        return qnormalize([q[0], p[0], p[1], p[2]]);
+    }
+}
+
 export function qaxisangle(axis: vec3, angle: number): quaternion {
     const halfAngle = angle / 2;
     const sinHalfAngle = Math.sin(halfAngle);
@@ -108,6 +126,19 @@ export function qaxisangle(axis: vec3, angle: number): quaternion {
         axis[1] * sinHalfAngle,
         axis[2] * sinHalfAngle,
     ];
+}
+
+export function qtoaxisangle(q: quaternion): { axis: vec3; angle: number } {
+    const theta = Math.acos(q[0]) * 2;
+
+    if (Math.abs(theta) < 0.0001) {
+        return { axis: [1, 0, 0], angle: 0 };
+    } else {
+        return {
+            axis: vmul([q[1], q[2], q[3]], 1 / Math.sin(theta / 2)),
+            angle: theta,
+        };
+    }
 }
 
 export function qnormalize(a: quaternion): quaternion {
@@ -125,6 +156,10 @@ export function qnormalize(a: quaternion): quaternion {
             z * invMagnitude,
         ];
     }
+}
+
+export function qangle(q: quaternion): number {
+    return 2 * Math.acos(q[0]);
 }
 
 export function qslerp(q0: quaternion, q1: quaternion, t: number): quaternion {
