@@ -6,6 +6,7 @@
     import { qrotate, vec, vsub } from "../../core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
+    import { models, toBufferGeometry } from "../../models/model";
 
     export let spline: TrackSpline;
     export let heartlineOffset: number = 1.1;
@@ -18,7 +19,7 @@
     let scene: THREE.Scene;
 
     let heartline: THREE.Line;
-    let leftRail: THREE.Line;
+    let rails: THREE.Mesh;
     let rightRail: THREE.Line;
 
     let frame = 0;
@@ -40,9 +41,9 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color("white");
 
-            const light = new THREE.DirectionalLight(0xffffff, 1);
-            light.position.set(0, 1, 0);
-            light.castShadow = true;
+            const light = new THREE.AmbientLight("white", 1);
+
+            scene.add(light);
 
             const grid = new InfiniteGridHelper(
                 1,
@@ -53,8 +54,7 @@
             );
             scene.add(grid);
 
-            const { heartlineGeometry, leftRailGeometry, rightRailGeometry } =
-                trackGeometry(spline);
+            const { heartlineGeometry, railGeometry } = trackGeometry(spline);
 
             const heartlineMat = new THREE.LineBasicMaterial({
                 color: new THREE.Color("red"),
@@ -62,60 +62,48 @@
             heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
-            const railMat = new THREE.LineBasicMaterial({
+            const railMat = new THREE.MeshStandardMaterial({
                 color: new THREE.Color("blue"),
             });
 
-            leftRail = new THREE.Line(leftRailGeometry, railMat);
-            scene.add(leftRail);
-
-            rightRail = new THREE.Line(rightRailGeometry, railMat);
-            scene.add(rightRail);
+            rails = new THREE.Mesh(railGeometry, railMat);
+            scene.add(rails);
 
             frame = requestAnimationFrame(render);
+
+            return () => cancelAnimationFrame(frame);
         }
     });
 
     $: {
-        if (leftRail && rightRail && heartline) {
-            leftRail.geometry.dispose();
-            rightRail.geometry.dispose();
+        if (rails && rightRail && heartline) {
+            rails.geometry.dispose();
             heartline.geometry.dispose();
-            const { heartlineGeometry, leftRailGeometry, rightRailGeometry } =
-                trackGeometry(spline);
+            const { heartlineGeometry, railGeometry } = trackGeometry(spline);
             heartline.geometry = heartlineGeometry;
-            leftRail.geometry = leftRailGeometry;
-            rightRail.geometry = rightRailGeometry;
+            rails.geometry = railGeometry;
         }
     }
 
     let lastTime = 0;
     function trackGeometry(spline: TrackSpline) {
-        const railSpacing = 1.2;
-        const leftRailGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.points.map((v) => {
-                const [x, y, z] = vsub(
-                    v.pos,
-                    qrotate(vec(-railSpacing / 2, heartlineOffset, 0), v.rot),
-                );
-                return new THREE.Vector3(x, y, z);
-            }),
+        const railGeometry = toBufferGeometry(
+            models
+                .get("B&M Family Launch")!
+                .makeRailMeshes(spline, heartlineOffset),
         );
-        const rightRailGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.points.map((v) => {
-                const [x, y, z] = vsub(
-                    v.pos,
-                    qrotate(vec(railSpacing / 2, heartlineOffset, 0), v.rot),
-                );
-                return new THREE.Vector3(x, y, z);
-            }),
-        );
+
+        console.log(railGeometry);
+
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.points.map(
                 (v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2]),
             ),
         );
-        return { heartlineGeometry, leftRailGeometry, rightRailGeometry };
+        return {
+            heartlineGeometry,
+            railGeometry,
+        };
     }
 
     function render(time: number) {
@@ -142,7 +130,9 @@
             }
         }
 
-        camera.position.set(start.pos[0], start.pos[1], start.pos[2]);
+        const camPos = start.pos;
+
+        camera.position.set(camPos[0], camPos[1], camPos[2]);
         camera.setRotationFromQuaternion(
             new THREE.Quaternion(
                 start.rot[1],

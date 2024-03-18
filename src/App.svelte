@@ -174,67 +174,69 @@
             unitSystem={settings.unitSystem}
         />
     </div>
-    <Graph bind:transitions bind:selected />
-    {#if selectedTransition && selected}
-        <div>
-            <label
-                ><span class="mr-2">Length:</span><NumberScroll
+    <div class="h-1/3 w-full flex flex-row">
+        <div class="w-1/4 h-full grid grid-cols-2">
+            {#if selectedTransition && selected}
+                <label>Length:</label>
+                <NumberScroll
                     bind:value={selectedTransition.length}
                     min={0.1}
-                /></label
-            >
-            <button
-                on:click={() => {
-                    if (selectedTransition && selected) {
-                        const otherLength = Math.min(
-                            selected.arr !== "vert"
-                                ? _.sumBy(transitions.vert, (v) => v.length)
-                                : Infinity,
-                            selected.arr !== "lat"
-                                ? _.sumBy(transitions.lat, (v) => v.length)
-                                : Infinity,
-                            selected.arr !== "roll"
-                                ? _.sumBy(transitions.roll, (v) => v.length)
-                                : Infinity,
-                        );
+                />
+                <!-- <button
+                    on:click={() => {
+                        if (selectedTransition && selected) {
+                            const otherLength = Math.min(
+                                selected.arr !== "vert"
+                                    ? _.sumBy(transitions.vert, (v) => v.length)
+                                    : Infinity,
+                                selected.arr !== "lat"
+                                    ? _.sumBy(transitions.lat, (v) => v.length)
+                                    : Infinity,
+                                selected.arr !== "roll"
+                                    ? _.sumBy(transitions.roll, (v) => v.length)
+                                    : Infinity,
+                            );
 
-                        selectedTransition.length = Math.max(
-                            otherLength -
-                                transitionsLength(
-                                    transitions[selected.arr].slice(
-                                        0,
-                                        selected.i,
+                            selectedTransition.length = Math.max(
+                                otherLength -
+                                    transitionsLength(
+                                        transitions[selected.arr].slice(
+                                            0,
+                                            selected.i,
+                                        ),
                                     ),
-                                ),
-                            0.1,
-                        );
-                        transitions = transitions;
-                    }
-                }}
-                class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 bg-gray-200"
-                >Set length to max</button
-            >
-            <label
-                ><span class="mr-2">Value:</span><NumberScroll
-                    bind:value={selectedTransition.value}
-                    fractionalDigits={selected.arr === "roll" ? 0 : 1}
-                /></label
-            >
-            <label
-                ><span class="mr-2">Curve:</span><select
-                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400"
-                    bind:value={selectedTransition.curve}
+                                0.1,
+                            );
+                            transitions = transitions;
+                        }
+                    }}
+                    class="px-1 py-0.5 rounded-md border border-gray-400 bg-gray-200"
+                    >Set length to max</button
+                > -->
+                <label
+                    ><span class="mr-2">Value:</span><NumberScroll
+                        bind:value={selectedTransition.value}
+                        fractionalDigits={selected.arr === "roll" ? 0 : 1}
+                    /></label
                 >
-                    {#each curveTypes as curve}
-                        <option value={curve}>{curve}</option>
-                    {/each}
-                </select>
-            </label>
-            <label
-                ><span class="mr-2">Tension:</span><NumberScroll
-                    bind:value={selectedTransition.tension}
-                /></label
-            >
+                <label
+                    ><span class="mr-2">Curve:</span><select
+                        class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400"
+                        bind:value={selectedTransition.curve}
+                    >
+                        {#each curveTypes as curve}
+                            <option value={curve}>{curve}</option>
+                        {/each}
+                    </select>
+                </label>
+                <label
+                    ><span class="mr-2">Tension:</span><NumberScroll
+                        bind:value={selectedTransition.tension}
+                    /></label
+                >
+            {:else}
+                no transition selected{/if}
         </div>
-    {/if}
+        <Graph bind:transitions bind:selected />
+    </div>
 </div>

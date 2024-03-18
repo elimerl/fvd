@@ -35,7 +35,7 @@ export function testTransitions(): Transitions {
 
     transitions.roll[0].length = 6.3;
     transitions.roll[0].curve = TransitionCurve.Plateau;
-    transitions.roll[0].value = 1000;
+    transitions.roll[0].value = 0;
 
     transitions.roll.push({
         length: 3,

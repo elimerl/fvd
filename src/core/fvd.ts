@@ -28,7 +28,7 @@ import { Transitions } from "./Transitions";
 // const GRAVITY = new THREE.Vector3(0, -G, 0);
 
 const EPSILON = 0.0001;
-const DT = 0.001; // Assuming a fixed time step, you can adjust this as needed
+const DT = 0.01; // Assuming a fixed time step, you can adjust this as needed
 
 export function fvd(
     transitions: Transitions,
@@ -91,7 +91,6 @@ export function fvd(
                     new_dir
                 );
             }
-            console.log(vert);
             const forceVec = vadd(
                 vec(0, 1, 0),
                 vadd(
@@ -104,13 +103,6 @@ export function fvd(
                 -vdot(forceVec, vnormalize(qrotate(UP, new_dir))) * G;
             const lateralForce =
                 -vdot(forceVec, vnormalize(qrotate(RIGHT, new_dir))) * G;
-
-            console.log(
-                (normalForce / G).toFixed(1),
-                (lateralForce / G).toFixed(1),
-                vert.toFixed(1),
-                lat.toFixed(1)
-            );
 
             const vel = velocity;
 

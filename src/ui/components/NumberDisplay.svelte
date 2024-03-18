@@ -8,7 +8,7 @@
     export let fractionalDigits: number = 2;
 </script>
 
-<div class="inline-flex m-0 text-base">
+<div class="inline-flex m-0">
     {#if parentheses}({/if}
     <span>{label ? label + ": " : "\u00A0"}</span>
 

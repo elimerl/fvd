@@ -39,7 +39,7 @@
 
 <input
     type="text"
-    class="px-1 m-0.5 rounded-md border border-gray-400"
+    class="px-1 m-0.5 rounded-md border border-gray-400 text-right"
     step={step / 10}
     min={-1000}
     {max}

@@ -67,7 +67,7 @@
 </script>
 
 {#if point}
-    <div class="flex flex-col">
+    <div class="flex flex-col text-sm">
         <div class="flex gap-x-4">
             <NumberDisplay label="time" value={point.time} unit="s" />
             <UnitNumberDisplay
