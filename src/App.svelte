@@ -11,7 +11,7 @@
     } from "./core/Transitions";
     import Graph from "./ui/components/Graph.svelte";
     import NumberDisplay from "./ui/components/NumberDisplay.svelte";
-    import { deltaY, notNull, testTransitions } from "./ui/util";
+    import { deltaY, notNull, testTransitions, time } from "./ui/util";
     import NumberScroll from "./ui/components/NumberScroll.svelte";
     import Renderer from "./ui/components/Renderer.svelte";
     import { fvd } from "./core/fvd";
@@ -25,7 +25,7 @@
 
     import * as _ from "lodash-es";
     import { defaultSettings, type AppSettings } from "./ui/settings";
-    import { Track } from "./core/Track";
+    import { Track, forces } from "./core/Track";
 
     let pov = { pos: 0 };
 
@@ -39,7 +39,6 @@
             return load(JSON.parse(value));
         } else {
             let result = defaultValue();
-            console.log(result);
             return result;
         }
     }
@@ -67,8 +66,12 @@
     $: selectedTransition = getSelected(transitions, selected);
 
     const track = new Track();
-    $: spline = track.getSpline();
-    $: console.log(track.forces(spline, 0.1));
+    track.sections.push({
+        type: "force",
+        fixedSpeed: undefined,
+        transitions: testTransitions(),
+    });
+    $: spline = time(() => track.getSpline());
 
     $: {
         saveLocalStorage("transitions", transitions);
@@ -140,7 +143,7 @@
         }}>Reset</button
     >
 
-    <!-- <button
+    <button
         class="border p-1"
         on:click={() => {
             var element = document.createElement("a");
@@ -158,7 +161,7 @@
 
             document.body.removeChild(element);
         }}>Download nl2elem</button
-    > -->
+    >
 
     <div class="w-full h-2/3">
         <Renderer {spline} bind:pov />
@@ -171,67 +174,69 @@
             unitSystem={settings.unitSystem}
         />
     </div>
-    <Graph bind:transitions bind:selected />
-    {#if selectedTransition && selected}
-        <div>
-            <label
-                ><span class="mr-2">Length:</span><NumberScroll
+    <div class="h-1/3 w-full flex flex-row">
+        <div class="w-1/4 h-full grid grid-cols-2">
+            {#if selectedTransition && selected}
+                <label>Length:</label>
+                <NumberScroll
                     bind:value={selectedTransition.length}
                     min={0.1}
-                /></label
-            >
-            <button
-                on:click={() => {
-                    if (selectedTransition && selected) {
-                        const otherLength = Math.min(
-                            selected.arr !== "vert"
-                                ? _.sumBy(transitions.vert, (v) => v.length)
-                                : Infinity,
-                            selected.arr !== "lat"
-                                ? _.sumBy(transitions.lat, (v) => v.length)
-                                : Infinity,
-                            selected.arr !== "roll"
-                                ? _.sumBy(transitions.roll, (v) => v.length)
-                                : Infinity,
-                        );
+                />
+                <!-- <button
+                    on:click={() => {
+                        if (selectedTransition && selected) {
+                            const otherLength = Math.min(
+                                selected.arr !== "vert"
+                                    ? _.sumBy(transitions.vert, (v) => v.length)
+                                    : Infinity,
+                                selected.arr !== "lat"
+                                    ? _.sumBy(transitions.lat, (v) => v.length)
+                                    : Infinity,
+                                selected.arr !== "roll"
+                                    ? _.sumBy(transitions.roll, (v) => v.length)
+                                    : Infinity,
+                            );
 
-                        selectedTransition.length = Math.max(
-                            otherLength -
-                                transitionsLength(
-                                    transitions[selected.arr].slice(
-                                        0,
-                                        selected.i,
+                            selectedTransition.length = Math.max(
+                                otherLength -
+                                    transitionsLength(
+                                        transitions[selected.arr].slice(
+                                            0,
+                                            selected.i,
+                                        ),
                                     ),
-                                ),
-                            0.1,
-                        );
-                        transitions = transitions;
-                    }
-                }}
-                class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 bg-gray-200"
-                >Set length to max</button
-            >
-            <label
-                ><span class="mr-2">Value:</span><NumberScroll
-                    bind:value={selectedTransition.value}
-                    fractionalDigits={selected.arr === "roll" ? 0 : 1}
-                /></label
-            >
-            <label
-                ><span class="mr-2">Curve:</span><select
-                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400"
-                    bind:value={selectedTransition.curve}
+                                0.1,
+                            );
+                            transitions = transitions;
+                        }
+                    }}
+                    class="px-1 py-0.5 rounded-md border border-gray-400 bg-gray-200"
+                    >Set length to max</button
+                > -->
+                <label
+                    ><span class="mr-2">Value:</span><NumberScroll
+                        bind:value={selectedTransition.value}
+                        fractionalDigits={selected.arr === "roll" ? 0 : 1}
+                    /></label
                 >
-                    {#each curveTypes as curve}
-                        <option value={curve}>{curve}</option>
-                    {/each}
-                </select>
-            </label>
-            <label
-                ><span class="mr-2">Tension:</span><NumberScroll
-                    bind:value={selectedTransition.tension}
-                /></label
-            >
+                <label
+                    ><span class="mr-2">Curve:</span><select
+                        class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400"
+                        bind:value={selectedTransition.curve}
+                    >
+                        {#each curveTypes as curve}
+                            <option value={curve}>{curve}</option>
+                        {/each}
+                    </select>
+                </label>
+                <label
+                    ><span class="mr-2">Tension:</span><NumberScroll
+                        bind:value={selectedTransition.tension}
+                    /></label
+                >
+            {:else}
+                no transition selected{/if}
         </div>
-    {/if}
+        <Graph bind:transitions bind:selected />
+    </div>
 </div>

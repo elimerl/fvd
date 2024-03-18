@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="32"
+   height="32"
+   viewBox="0 0 32 32"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   sodipodi:docname="favicon.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+   <sodipodi:namedview
+      id="namedview1"
+      pagecolor="#ffffff"
+      bordercolor="#111111"
+      borderopacity="1"
+      inkscape:showpageshadow="0"
+      inkscape:pageopacity="0"
+      inkscape:pagecheckerboard="1"
+      inkscape:deskcolor="#d1d1d1"
+      inkscape:document-units="mm"
+      inkscape:lockguides="true"
+      inkscape:zoom="19.02887"
+      inkscape:cx="13.190483"
+      inkscape:cy="21.808967"
+      inkscape:window-width="1728"
+      inkscape:window-height="1051"
+      inkscape:window-x="0"
+      inkscape:window-y="38"
+      inkscape:window-maximized="0"
+      inkscape:current-layer="layer1" />
+   <defs
+      id="defs1">
+      <inkscape:path-effect
+         effect="fillet_chamfer"
+         id="path-effect4"
+         is_visible="true"
+         lpeversion="1"
+         nodesatellites_param="F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1 @ F,0,0,1,0,0,0,1"
+         radius="0"
+         unit="px"
+         method="auto"
+         mode="F"
+         chamfer_steps="1"
+         flexible="false"
+         use_knot_distance="true"
+         apply_no_radius="true"
+         apply_with_radius="true"
+         only_selected="false"
+         hide_knots="false" />
+      <rect
+         x="0"
+         y="0"
+         width="32"
+         height="32"
+         id="rect3" />
+      <rect
+         x="0"
+         y="0"
+         width="32"
+         height="32"
+         id="rect2" />
+      <rect
+         x="1.9969656"
+         y="5.8332417"
+         width="25.960553"
+         height="23.595725"
+         id="rect1" />
+   </defs>
+   <g
+      inkscape:label="Layer 1"
+      inkscape:groupmode="layer"
+      id="layer1">
+      <text
+         xml:space="preserve"
+         id="text1"
+         style="line-height:0;font-family:Overpass;-inkscape-font-specification:Overpass;text-align:center;white-space:pre;shape-inside:url(#rect1);shape-padding:3.73117;fill:#000000"
+         transform="translate(2.7716532,2.7716532)" />
+      <text
+         xml:space="preserve"
+         id="text2"
+         style="font-size:9.33333px;line-height:0;font-family:Overpass;-inkscape-font-specification:Overpass;text-align:center;white-space:pre;shape-inside:url(#rect2);fill:#000000"
+         transform="translate(2.7716532,2.7716532)" />
+      <path
+         style="fill:#50c26f;fill-opacity:1;stroke-width:1.05562"
+         id="rect4"
+         width="27.875591"
+         height="27.980694"
+         x="2.0622044"
+         y="2.0096531"
+         inkscape:path-effect="#path-effect4"
+         sodipodi:type="rect"
+         d="M 5.5831702,2.0096531 H 26.41683 c 1.950615,0 3.520966,1.5703507 3.520966,3.5209658 V 26.469381 c 0,1.950615 -1.570351,3.520966 -3.520966,3.520966 H 5.5831702 c -1.9506151,0 -3.5209658,-1.570351 -3.5209658,-3.520966 V 5.5306189 c 0,-1.9506151 1.5703507,-3.5209658 3.5209658,-3.5209658 z"
+         ry="3.5209658"
+         rx="0"
+         transform="matrix(1.0739789,0,0,1.0718228,-1.1836624,-1.1491648)" />
+      <text
+         xml:space="preserve"
+         id="text3"
+         style="font-size:12px;line-height:0;font-family:Overpass;-inkscape-font-specification:Overpass;text-align:center;letter-spacing:-0.2px;white-space:pre;shape-inside:url(#rect3);fill:#000000"
+         transform="translate(-0.13333425,17.06667)"><tspan
+         x="1.1080025"
+         y="3"
+         id="tspan2"><tspan
+           style="font-weight:bold;-inkscape-font-specification:'Overpass Bold'"
+           id="tspan1">EFVD</tspan></tspan></text>
+   </g>
+</svg>

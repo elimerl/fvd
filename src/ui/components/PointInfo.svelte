@@ -17,7 +17,7 @@
         transitionsEvaluate,
         type Transitions,
     } from "../../core/Transitions";
-    import { euler } from "../../core/Track";
+    import { euler, forces } from "../../core/Track";
 
     export let spline: TrackSpline;
     export let transitions: Transitions;
@@ -62,10 +62,12 @@
             ];
         }
     }
+
+    $: force = forces(spline, pov.pos) ?? { vert: 0, lat: 0, roll: 0 };
 </script>
 
 {#if point}
-    <div class="flex flex-col">
+    <div class="flex flex-col text-sm">
         <div class="flex gap-x-4">
             <NumberDisplay label="time" value={point.time} unit="s" />
             <UnitNumberDisplay
@@ -123,22 +125,13 @@
             />
         </div>
         <div class="flex gap-x-4">
+            <NumberDisplay label="y-accel" value={force.vert} unit="g" />
+            <NumberDisplay label="x-accel" value={force.lat} unit="g" />
+
             <NumberDisplay
                 label="y-accel"
-                value={transitionsEvaluate(
-                    transitions.vert,
-                    point.time,
-                    transitions.vertStart,
-                ) ?? NaN}
-                unit="g"
-            />
-            <NumberDisplay
-                label="x-accel"
-                value={transitionsEvaluate(
-                    transitions.lat,
-                    point.time,
-                    transitions.latStart,
-                ) ?? NaN}
+                value={transitionsEvaluate(transitions.vert, point.time, 1) ??
+                    0}
                 unit="g"
             />
         </div>

@@ -1,15 +1,23 @@
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import type { Transitions } from "./Transitions";
-import { FORWARD, RIGHT, UP, radToDeg } from "./constants";
+import { FORWARD, G, RIGHT, UP, degToRad, radToDeg } from "./constants";
 import { fvd } from "./fvd";
 import {
     qrotate,
-    quatidentity,
     vadd,
     vmul,
-    type vec3,
     vsub,
     vlength,
+    qidentity,
+    vcross,
+    vproject,
+    qtwist,
+    qangle,
+    qinverse,
+    qmul,
+    vec,
+    vdot,
+    qtoaxisangle,
 } from "./math";
 
 export type TrackSection =
@@ -30,24 +38,69 @@ export interface Forces {
     roll: number;
 }
 
-function forces(spline: TrackSpline, pos: number): Forces | undefined {
-    const point1 = spline.evaluate(pos);
-    const point2 = spline.evaluate(pos + 0.01);
+export function forces(spline: TrackSpline, pos: number): Forces | undefined {
+    const points = spline.evaluateNoInterpolation(pos);
 
-    if (!point1 || !point2) return undefined;
+    if (!points) return undefined;
 
-    const [yaw,pitch,roll] = euler(point1)
-    const forceVec = [0, -1, 0];
-    const temp = cos(Math.abs(getPitch())*F_PI/180.f);
-    if(fabs(fAngleFromLast) < std::numeric_limits<float>::epsilon()) {
-        forceVec = glm::vec3(0.f, 1.f, 0.f);
-    } else {
-        float normalDAngle = F_PI/180.f*(- fPitchFromLast * cos(fRoll*F_PI/180.) - temp*fYawFromLast*sin(fRoll*F_PI/180.));
-        float lateralDAngle = F_PI/180.f*(fPitchFromLast * sin(fRoll*F_PI/180.) - temp*fYawFromLast*cos(fRoll*F_PI/180.));
-        forceVec = glm::vec3(0.f, 1.f, 0.f) + lateralDAngle*fVel*F_HZ/F_G * vLat + normalDAngle*fHeartDistFromLast*F_HZ*F_HZ/F_G * vNorm;
-    }
+    const [lastPoint, point] = points;
 
-    return { vert: 1, lat: 0, roll: 0 };
+    const dist = vlength(vsub(point.pos, lastPoint.pos));
+
+    const [lastYaw, lastPitch, lastRoll] = euler(lastPoint);
+    // const rotChange = qmul(point1.rot, qinverse(point2.rot));
+
+    // const vertTwist = qtwist(rotChange, qrotate(RIGHT, point1.rot));
+    // const vertCurvature = qangle(vertTwist) / dist;
+
+    // let vertRadius = vertCurvature < 0.01 ? Infinity : 1 / vertCurvature;
+    // if (vertTwist[1] < 0) {
+    //     vertRadius = -vertRadius;
+    // }
+
+    // const latTwist = qtwist(rotChange, qrotate(UP, point1.rot));
+    // // console.log(latTwist, vertTwist);
+    // const latCurvature = qangle(latTwist) / dist;
+
+    // let latRadius = latCurvature < 0.01 ? Infinity : 1 / latCurvature;
+
+    // if (latTwist[1] < 0) {
+    //     latRadius = -latRadius;
+    // }
+
+    const [yaw, pitch, roll] = euler(point);
+
+    const pitchFromLast = degToRad(pitch - lastPitch);
+    const yawFromLast = degToRad(yaw - lastYaw);
+
+    const temp = Math.cos(degToRad(Math.abs(pitch)));
+
+    const normalDAngle =
+        -pitchFromLast * Math.cos(degToRad(roll)) -
+        temp * yawFromLast * Math.sin(degToRad(roll));
+    const lateralDAngle =
+        pitchFromLast * Math.sin(degToRad(roll)) -
+        temp * -yawFromLast * Math.cos(degToRad(roll));
+
+    const forceVec = vadd(
+        vec(0, 1, 0),
+        vadd(
+            vmul(
+                qrotate(UP, point.rot),
+                (point.velocity * point.velocity) / (dist / normalDAngle) / G
+            ),
+            vmul(
+                qrotate(RIGHT, point.rot),
+                (point.velocity * point.velocity) / (dist / lateralDAngle) / G
+            )
+        )
+    );
+
+    return {
+        vert: vdot(forceVec, qrotate(UP, lastPoint.rot)),
+        lat: vdot(forceVec, qrotate(RIGHT, lastPoint.rot)),
+        roll: 0,
+    };
 }
 
 export class Track {
@@ -57,7 +110,7 @@ export class Track {
     anchor: TrackPoint = {
         pos: [0, 10, 0],
         velocity: 10,
-        rot: quatidentity,
+        rot: qidentity(),
         time: 0,
     };
     config: TrackConfig = defaultTrackConfig();
@@ -68,7 +121,6 @@ export class Track {
         const splines = this.makeSplines();
         const points = splines.map((v) => v.points).flat(); // there might be a duplicate points bug here, look into that
 
-        console.log(splines);
         const spline = new TrackSpline();
         spline.points = points;
         return spline;
@@ -107,11 +159,10 @@ export class Track {
                     )
                 );
             }
-
-            forces(
+            startForces = forces(
                 splines[splines.length - 1],
                 splines[splines.length - 1].getLength() - 0.02
-            );
+            )!;
         });
 
         return splines;
@@ -124,22 +175,22 @@ export class Track {
         config: TrackConfig
     ): TrackSpline {
         let spline = new TrackSpline();
-        let pos = start.pos;
-        let rot = start.rot;
-        let velocity = start.velocity;
 
         if (section.type === "straight") {
             const dp = 0.01;
+            let pos = start.pos;
+            let velocity = section.fixedSpeed;
+            if (!section.fixedSpeed)
+                throw new Error("TODO friction on straight track");
 
             for (let d = 0; d <= section.length; d += dp) {
-                pos = vadd(pos, qrotate(vmul(FORWARD, dp), rot));
-                if (!section.fixedSpeed)
-                    throw new Error("TODO friction on straight track");
+                pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
+                velocity = section.fixedSpeed;
                 spline.points.push({
                     pos,
-                    rot,
-                    velocity: section.fixedSpeed,
-                    time: 0,
+                    rot: start.rot,
+                    velocity,
+                    time: d / velocity + start.time,
                 });
             }
         } else if (section.type === "force") {
@@ -152,6 +203,10 @@ export class Track {
         }
 
         return spline;
+    }
+
+    exportToNl2Elem(): string {
+        return this.getSpline().exportToNl2Elem();
     }
 }
 
@@ -168,14 +223,14 @@ export function defaultTrackConfig(): TrackConfig {
 
 export function euler(p: TrackPoint): [number, number, number] {
     const dir = qrotate(FORWARD, p.rot);
-    const yaw = radToDeg(Math.atan(-dir[0] / -dir[2]));
+    const yaw = radToDeg(Math.atan2(-dir[0], -dir[2]));
     const pitch = radToDeg(
-        Math.atan(dir[1] / Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2]))
+        Math.atan2(dir[1], Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2]))
     );
 
     const upDir = qrotate(UP, p.rot);
     const rightDir = qrotate(RIGHT, p.rot);
 
-    const roll = radToDeg(Math.atan(rightDir[1] / -upDir[1]));
+    const roll = radToDeg(Math.atan2(rightDir[1], -upDir[1]));
     return [yaw, pitch, roll];
 }

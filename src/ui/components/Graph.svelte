@@ -373,7 +373,7 @@
 <div
     bind:this={container}
     on:keydown={keyDown}
-    class="overflow-clip overscroll-none w-full"
+    class="overflow-clip overscroll-none w-full h-full"
     on:mousedown={(ev) => {
         if (ev.button === 0) {
             dragging = 0;
@@ -412,11 +412,11 @@
         return false;
     }}
 >
-    <div class="overflow-clip w-full">
+    <div class="overflow-clip w-full h-full">
         <canvas
             tabindex="0"
             bind:this={canvas}
-            class="w-full h-64 border-none outline-none"
+            class="w-full h-full border-none outline-none"
             on:mouseup={canvasMouseUp}
         />
     </div>

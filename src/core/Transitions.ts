@@ -80,6 +80,8 @@ export function timewarp(t: number, tension: number) {
     }
 }
 
+// Rewrite  all of this to use a sorted BTree, very good implementation in https://github.com/qwertie/btree-typescript
+
 export function transitionsLength(transitions: Transition[]) {
     let length = 0;
 

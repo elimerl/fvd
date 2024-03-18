@@ -1,0 +1,17 @@
+[
+	{
+		"name": "B&M Family Launch",
+		"railGauge": 1.0,
+		"railGeometry": {
+			"type": "cylinder",
+			"radius": 0.14
+		},
+		"spineGeometry": {
+			"vertices": []
+		},
+		"crossTieGeometry": {
+			"vertices": [],
+			"indices": []
+		}
+	}
+]
