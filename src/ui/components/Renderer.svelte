@@ -20,7 +20,7 @@
 
     let heartline: THREE.Line;
     let rails: THREE.Mesh;
-    let rightRail: THREE.Line;
+    let spine: THREE.Mesh;
 
     let frame = 0;
 
@@ -62,26 +62,36 @@
             heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
-            const railMat = new THREE.MeshStandardMaterial({
+            const trackMat = new THREE.MeshStandardMaterial({
                 color: new THREE.Color("blue"),
+                wireframe: true,
             });
 
-            rails = new THREE.Mesh(railGeometry, railMat);
+            rails = new THREE.Mesh(railGeometry, trackMat);
             scene.add(rails);
+
+            spine = new THREE.Mesh(railGeometry, trackMat);
+            scene.add(spine);
 
             frame = requestAnimationFrame(render);
 
-            return () => cancelAnimationFrame(frame);
+            console.log("start");
+            return () => {
+                cancelAnimationFrame(frame);
+                console.log("end");
+            };
         }
     });
 
     $: {
-        if (rails && rightRail && heartline) {
+        if (rails && heartline) {
             rails.geometry.dispose();
             heartline.geometry.dispose();
-            const { heartlineGeometry, railGeometry } = trackGeometry(spline);
+            const { heartlineGeometry, railGeometry, spineGeometry } =
+                trackGeometry(spline);
             heartline.geometry = heartlineGeometry;
             rails.geometry = railGeometry;
+            spine.geometry = spineGeometry;
         }
     }
 
@@ -90,10 +100,14 @@
         const railGeometry = toBufferGeometry(
             models
                 .get("B&M Family Launch")!
-                .makeRailMeshes(spline, heartlineOffset),
+                .makeRailsMesh(spline, heartlineOffset),
         );
 
-        console.log(railGeometry);
+        const spineGeometry = toBufferGeometry(
+            models
+                .get("B&M Family Launch")!
+                .makeSpineMesh(spline, heartlineOffset),
+        );
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.points.map(
@@ -103,6 +117,7 @@
         return {
             heartlineGeometry,
             railGeometry,
+            spineGeometry,
         };
     }
 

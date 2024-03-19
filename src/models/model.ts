@@ -1,7 +1,6 @@
 import { BufferAttribute, BufferGeometry } from "three";
 import { vsub, type vec3, vec, qrotate, vadd } from "../core/math";
 
-import modelsJSON from "./models.json";
 import type { TrackSpline } from "../core/TrackSpline";
 
 export type Geometry = {
@@ -32,15 +31,18 @@ export class TrackModelType {
     name: string;
     railGauge: number;
     railGeometry: RailGeometry;
+    spineGeometry: { vertices: vec3[] };
 
     constructor(info: {
         name: string;
         railGauge: number;
         railGeometry: RailGeometry;
+        spineGeometry: { vertices: vec3[] };
     }) {
         this.name = info.name;
         this.railGauge = info.railGauge;
         this.railGeometry = info.railGeometry;
+        this.spineGeometry = info.spineGeometry;
     }
 
     static fromJSON(json: any): TrackModelType {
@@ -48,10 +50,63 @@ export class TrackModelType {
             name: json.name,
             railGauge: json.railGauge,
             railGeometry: json.railGeometry,
+            spineGeometry: json.spineGeometry,
         });
     }
 
-    makeRailMeshes(
+    makeSpineMesh(spline: TrackSpline, heartlineHeight: number): Geometry {
+        const vertices: vec3[] = [];
+        const indices: number[] = [];
+        const indexArray = [];
+
+        for (let i = 0; i < spline.points.length; i++) {
+            const indexRow: number[] = [];
+            const trackPoint = vsub(
+                spline.points[i].pos,
+                qrotate(vec(0, heartlineHeight, 0), spline.points[i].rot)
+            );
+
+            for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
+                let baseVertex = this.spineGeometry.vertices[j];
+                baseVertex = vec(baseVertex[2], baseVertex[1], baseVertex[0]);
+                const point = vadd(
+                    trackPoint,
+                    qrotate(baseVertex, spline.points[i].rot)
+                );
+
+                const vertex: vec3 = [point[0], point[1], point[2]];
+                vertices.push(vertex);
+
+                indexRow.push(vertices.length - 1);
+            }
+
+            indexArray.push(indexRow);
+
+            if (1 < i && i < spline.points.length - 1) {
+                for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
+                    const a = indexArray[i][j];
+                    const b = indexArray[i - 1][j];
+                    const c =
+                        indexArray[i - 1][
+                            (j + 1) % this.spineGeometry.vertices.length
+                        ];
+                    const d =
+                        indexArray[i][
+                            (j + 1) % this.spineGeometry.vertices.length
+                        ];
+
+                    indices.push(a, b, d);
+                    indices.push(b, c, d);
+                }
+            }
+
+            // TODO: add end faces
+        }
+
+        return { vertices, indices };
+    }
+
+    makeRailsMesh(
         spline: TrackSpline,
         heartlineHeight: number,
         vertexCount: number = 6
@@ -141,15 +196,18 @@ export class TrackModelType {
                         indices.push(b, c, d);
                     }
                 }
+
+                // TODO: add end faces
             }
         }
     }
 }
 
-const modelsArray = modelsJSON.map((model) => TrackModelType.fromJSON(model));
-
+const modelsJSON = import.meta.glob("./*.json", { eager: true });
+console.log(modelsJSON);
 export const models = new Map<string, TrackModelType>();
 
-for (const model of modelsArray) {
+for (const modelJSON of Object.values(modelsJSON)) {
+    const model = TrackModelType.fromJSON(modelJSON);
     models.set(model.name, model);
 }

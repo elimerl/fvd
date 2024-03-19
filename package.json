@@ -17,7 +17,9 @@
         "three": "^0.161.0"
     },
     "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^3.0.2",
+        "@sveltejs/kit": "^2.5.4",
+        "@sveltejs/vite-plugin-svelte": "^3.0.0",
+        "@sveltejs/adapter-auto": "^3.1.1",
         "@tsconfig/svelte": "^5.0.2",
         "@types/lodash-es": "^4.17.12",
         "@types/three": "^0.161.2",

@@ -148,7 +148,7 @@
             .translate(-timeOffset / width, 0);
     }
 
-    function drawGraph() {
+    function drawGraph(transitions: Transitions) {
         const start = performance.now();
         canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
         canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
@@ -300,18 +300,7 @@
 
     let frame = 0;
 
-    function frameHandler() {
-        if (!canvas) return;
-        drawGraph();
-
-        frame = requestAnimationFrame(frameHandler);
-    }
-
-    onMount(() => {
-        frame = requestAnimationFrame(frameHandler);
-
-        return () => cancelAnimationFrame(frame);
-    });
+    $: drawGraph(transitions);
 
     function keyDown(ev: KeyboardEvent) {
         if (ev.code === "Backspace" && selected) {

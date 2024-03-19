@@ -1,7 +1,8 @@
-import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+import adapter from "@sveltejs/adapter-auto";
 
-export default {
-    preprocess: vitePreprocess(),
+/** @type {import('@sveltejs/kit').Config} */
+const config = {
+    kit: { adapter: adapter() },
 
     // Disable accessibility warnings
     onwarn: (warning, handler) => {
@@ -9,3 +10,5 @@ export default {
         handler(warning);
     },
 };
+
+export default config;

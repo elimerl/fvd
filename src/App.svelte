@@ -5,27 +5,21 @@
     import {
         Transitions,
         type Transition,
-        TransitionCurve,
         curveTypes,
-        transitionsLength,
     } from "./core/Transitions";
     import Graph from "./ui/components/Graph.svelte";
-    import NumberDisplay from "./ui/components/NumberDisplay.svelte";
-    import { deltaY, notNull, testTransitions, time } from "./ui/util";
+    import { testTransitions, time } from "./ui/util";
     import NumberScroll from "./ui/components/NumberScroll.svelte";
     import Renderer from "./ui/components/Renderer.svelte";
-    import { fvd } from "./core/fvd";
-    import { vec } from "./core/math";
     import { keyState, keydownHandler, keyupHandler } from "./ui/input";
 
     import PointInfo from "./ui/components/PointInfo.svelte";
     import { UnitSystem } from "./core/constants";
-    import MenuBar from "./ui/components/MenuBar.svelte";
     import { onMount } from "svelte";
 
     import * as _ from "lodash-es";
     import { defaultSettings, type AppSettings } from "./ui/settings";
-    import { Track, forces } from "./core/Track";
+    import { Track } from "./core/Track";
 
     let pov = { pos: 0 };
 

@@ -80,7 +80,7 @@ export class TrackSpline {
 
     exportToNl2Elem(): string {
         const exportPoints: TrackPoint[] = [];
-        let intervalAccum = 1000000;
+        let intervalAccum = Infinity;
         let lastPoint = this.points[0];
 
         this.points.forEach((p) => {

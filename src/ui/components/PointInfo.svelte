@@ -127,13 +127,6 @@
         <div class="flex gap-x-4">
             <NumberDisplay label="y-accel" value={force.vert} unit="g" />
             <NumberDisplay label="x-accel" value={force.lat} unit="g" />
-
-            <NumberDisplay
-                label="y-accel"
-                value={transitionsEvaluate(transitions.vert, point.time, 1) ??
-                    0}
-                unit="g"
-            />
         </div>
     </div>
 {/if}
