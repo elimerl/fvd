@@ -1,26 +1,11 @@
 <script lang="ts">
-    import { Euler, Quaternion } from "three";
-    import type { TrackPoint, TrackSpline } from "../../core/TrackSpline";
-    import {
-        FORWARD,
-        radToDeg,
-        RIGHT,
-        UP,
-        type UnitSystem,
-        degDiff,
-    } from "../../core/constants";
-    import { qrotate, type quaternion } from "../../core/math";
-    import { notNull } from "../util";
+    import type { TrackSpline } from "../../core/TrackSpline";
+    import { type UnitSystem } from "../../core/constants";
     import NumberDisplay from "./NumberDisplay.svelte";
     import UnitNumberDisplay from "./UnitNumberDisplay.svelte";
-    import {
-        transitionsEvaluate,
-        type Transitions,
-    } from "../../core/Transitions";
     import { euler, forces } from "../../core/Track";
 
     export let spline: TrackSpline;
-    export let transitions: Transitions;
     export let unitSystem: UnitSystem;
     export let pov: { pos: number } = { pos: 0 };
 

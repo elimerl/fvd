@@ -18,7 +18,7 @@ export interface TrackPoint {
 }
 
 // export point interval in meters
-const INTERVAL = 0.75;
+const EXPORT_INTERVAL = 0.75;
 export class TrackSpline {
     points: TrackPoint[] = [];
 
@@ -78,8 +78,8 @@ export class TrackSpline {
         return undefined;
     }
 
-    exportToNl2Elem(): string {
-        const exportPoints: TrackPoint[] = [];
+    intervalPoints(interval: number): TrackPoint[] {
+        const points: TrackPoint[] = [];
         let intervalAccum = Infinity;
         let lastPoint = this.points[0];
 
@@ -87,15 +87,21 @@ export class TrackSpline {
             const distance = vlength(vsub(p.pos, lastPoint.pos));
             intervalAccum += distance;
 
-            if (intervalAccum > INTERVAL) {
+            if (intervalAccum > interval) {
                 intervalAccum = 0;
-                exportPoints.push({
+                points.push({
                     ...p,
                 });
             }
 
             lastPoint = p;
         });
+
+        return points;
+    }
+
+    exportToNl2Elem(): string {
+        const exportPoints = this.intervalPoints(EXPORT_INTERVAL);
 
         let output = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><root><element><description>fvd.elidavies.com exported data</description>`;
 
@@ -119,7 +125,7 @@ export class TrackSpline {
             });
         }
 
-        lastPoint = exportPoints[0];
+        let lastPoint = exportPoints[0];
         let currentLength = 0;
 
         exportPoints.forEach((p) => {

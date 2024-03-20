@@ -33,7 +33,7 @@ export function testTransitions(): Transitions {
         value: 0,
     });
 
-    transitions.roll[0].length = 6.3;
+    transitions.roll[0].length = 6.8;
     transitions.roll[0].curve = TransitionCurve.Plateau;
     transitions.roll[0].value = 0;
 
@@ -64,7 +64,7 @@ export function testTransitions(): Transitions {
     });
     transitions.vert.push({
         curve: TransitionCurve.Cubic,
-        length: 3.5,
+        length: 4.1,
         tension: 0,
         value: 0,
     });

@@ -1,5 +1,5 @@
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
-import type { Transitions } from "./Transitions";
+import { Transitions } from "./Transitions";
 import { FORWARD, G, RIGHT, UP, degToRad, radToDeg } from "./constants";
 import { fvd } from "./fvd";
 import {
@@ -107,23 +107,59 @@ export class Track {
     sections: TrackSection[] = [
         { type: "straight", length: 10, fixedSpeed: 5 },
     ];
-    anchor: TrackPoint = {
-        pos: [0, 10, 0],
-        velocity: 10,
-        rot: qidentity(),
-        time: 0,
-    };
+
     config: TrackConfig = defaultTrackConfig();
 
-    constructor() {}
+    static fromJSON(json: any): Track {
+        const track = new Track();
+        track.sections = json.sections;
+        track.sections = track.sections.map((section) => {
+            if (section.type === "straight") {
+                return {
+                    type: "straight",
+                    length: section.length,
+                    fixedSpeed: section.fixedSpeed,
+                };
+            } else if (section.type === "force") {
+                return {
+                    type: "force",
+                    fixedSpeed: section.fixedSpeed,
+                    transitions: Transitions.fromJSON(section.transitions),
+                };
+            } else {
+                throw new Error("Invalid section type");
+            }
+        });
+        track.config = json.config;
+        track.anchor = json.anchor;
+        return track;
+    }
 
-    getSpline(): TrackSpline {
+    constructor(
+        public anchor: TrackPoint = {
+            pos: [0, 10, 0],
+            velocity: 10,
+            rot: qidentity(),
+            time: 0,
+        }
+    ) {}
+
+    getSpline(): { spline: TrackSpline; sectionStartPos: number[] } {
         const splines = this.makeSplines();
+
+        const sectionStartPos = [];
+        let lenAccum = 0;
+        splines.forEach((v) => {
+            sectionStartPos.push(lenAccum);
+            lenAccum += v.getLength();
+        });
+        sectionStartPos.push(lenAccum);
+
         const points = splines.map((v) => v.points).flat(); // there might be a duplicate points bug here, look into that
 
         const spline = new TrackSpline();
         spline.points = points;
-        return spline;
+        return { spline, sectionStartPos };
     }
 
     private makeSplines(): TrackSpline[] {
@@ -176,6 +212,8 @@ export class Track {
     ): TrackSpline {
         let spline = new TrackSpline();
 
+        console.log(start);
+
         if (section.type === "straight") {
             const dp = 0.01;
             let pos = start.pos;
@@ -206,7 +244,7 @@ export class Track {
     }
 
     exportToNl2Elem(): string {
-        return this.getSpline().exportToNl2Elem();
+        return this.getSpline().spline.exportToNl2Elem();
     }
 }
 

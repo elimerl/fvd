@@ -1,7 +1,14 @@
-import { BufferAttribute, BufferGeometry } from "three";
+import {
+    BufferAttribute,
+    BufferGeometry,
+    Object3D,
+    Mesh as ThreeMesh,
+} from "three";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { vsub, type vec3, vec, qrotate, vadd } from "../core/math";
 
 import type { TrackSpline } from "../core/TrackSpline";
+import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export type Geometry = {
     vertices: vec3[];
@@ -27,30 +34,43 @@ export type RailGeometry = {
 // model info: gauge is from center of rail to center of other rail
 // all distances in meters
 
+const RAIL_INTERVAL = 0.1;
+
 export class TrackModelType {
     name: string;
     railGauge: number;
     railGeometry: RailGeometry;
-    spineGeometry: { vertices: vec3[] };
+    readonly spineGeometry: { vertices: vec3[] };
+    spineInterval: number | null;
+    crossTieInterval: number | null;
+    readonly crossTieGeometry: { vertices: vec3[]; indices: number[] };
 
     constructor(info: {
         name: string;
         railGauge: number;
         railGeometry: RailGeometry;
+        spineInterval: number | null;
+        crossTieInterval: number | null;
         spineGeometry: { vertices: vec3[] };
+        crossTieGeometry: { vertices: vec3[]; indices: number[] };
     }) {
         this.name = info.name;
         this.railGauge = info.railGauge;
         this.railGeometry = info.railGeometry;
+        this.spineInterval = info.spineInterval;
+        this.crossTieInterval = info.crossTieInterval;
         this.spineGeometry = info.spineGeometry;
+        this.crossTieGeometry = info.crossTieGeometry;
+
+        this.fixGeometryOrder();
     }
 
-    static fromJSON(json: any): TrackModelType {
-        return new TrackModelType({
-            name: json.name,
-            railGauge: json.railGauge,
-            railGeometry: json.railGeometry,
-            spineGeometry: json.spineGeometry,
+    private fixGeometryOrder() {
+        this.spineGeometry.vertices.sort((a, b) => {
+            const angleA = Math.atan2(a[1], a[2]);
+            const angleB = Math.atan2(b[1], b[2]);
+
+            return angleA - angleB;
         });
     }
 
@@ -59,11 +79,16 @@ export class TrackModelType {
         const indices: number[] = [];
         const indexArray = [];
 
-        for (let i = 0; i < spline.points.length; i++) {
+        const points =
+            this.spineInterval !== null
+                ? spline.intervalPoints(this.spineInterval)
+                : spline.points;
+
+        for (let i = 0; i < points.length; i++) {
             const indexRow: number[] = [];
             const trackPoint = vsub(
-                spline.points[i].pos,
-                qrotate(vec(0, heartlineHeight, 0), spline.points[i].rot)
+                points[i].pos,
+                qrotate(vec(0, heartlineHeight, 0), points[i].rot)
             );
 
             for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
@@ -71,7 +96,7 @@ export class TrackModelType {
                 baseVertex = vec(baseVertex[2], baseVertex[1], baseVertex[0]);
                 const point = vadd(
                     trackPoint,
-                    qrotate(baseVertex, spline.points[i].rot)
+                    qrotate(baseVertex, points[i].rot)
                 );
 
                 const vertex: vec3 = [point[0], point[1], point[2]];
@@ -82,25 +107,23 @@ export class TrackModelType {
 
             indexArray.push(indexRow);
 
-            if (1 < i && i < spline.points.length - 1) {
-                for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
-                    const a = indexArray[i][j];
-                    const b = indexArray[i - 1][j];
-                    const c =
-                        indexArray[i - 1][
-                            (j + 1) % this.spineGeometry.vertices.length
-                        ];
-                    const d =
-                        indexArray[i][
-                            (j + 1) % this.spineGeometry.vertices.length
-                        ];
-
-                    indices.push(a, b, d);
-                    indices.push(b, c, d);
-                }
-            }
-
             // TODO: add end faces
+        }
+
+        for (let i = 0; i < indexArray.length - 1; i++) {
+            for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
+                const a = indexArray[i][j];
+                const b = indexArray[i + 1][j];
+                const c =
+                    indexArray[i + 1][
+                        (j + 1) % this.spineGeometry.vertices.length
+                    ];
+                const d =
+                    indexArray[i][(j + 1) % this.spineGeometry.vertices.length];
+
+                indices.push(c, b, a);
+                indices.push(d, c, a);
+            }
         }
 
         return { vertices, indices };
@@ -147,7 +170,40 @@ export class TrackModelType {
             1
         );
 
+        this.makeCrossTies(spline, heartlineHeight, vertices, indices);
+
         return { vertices, indices };
+    }
+    private makeCrossTies(
+        spline: TrackSpline,
+        heartlineHeight: number,
+        vertices: vec3[],
+        indices: number[]
+    ) {
+        const interval = this.crossTieInterval ?? this.spineInterval;
+        if (interval === null) throw new Error("no cross tie interval");
+
+        const points = spline.intervalPoints(interval);
+
+        for (let i = 0; i < points.length; i++) {
+            const trackPoint = vsub(
+                points[i].pos,
+                qrotate(vec(0, heartlineHeight, 0), points[i].rot)
+            );
+
+            indices.push(
+                ...this.crossTieGeometry.indices.map((v) => v + vertices.length)
+            );
+
+            for (let j = 0; j < this.crossTieGeometry.vertices.length; j++) {
+                const baseVertex = this.crossTieGeometry.vertices[j];
+                const point = vadd(
+                    trackPoint,
+                    qrotate(baseVertex, points[i].rot)
+                );
+                vertices.push(point);
+            }
+        }
     }
 
     private makeRail(
@@ -159,14 +215,15 @@ export class TrackModelType {
         side: -1 | 1
     ) {
         const indexArray = [];
+        const points = spline.intervalPoints(RAIL_INTERVAL);
 
-        for (let i = 0; i < spline.points.length; i++) {
+        for (let i = 0; i < points.length; i++) {
             {
                 const trackPoint = vsub(
-                    spline.points[i].pos,
+                    points[i].pos,
                     qrotate(
                         vec((this.railGauge / 2) * side, heartlineHeight, 0),
-                        spline.points[i].rot
+                        points[i].rot
                     )
                 );
                 const indexRow = [];
@@ -174,7 +231,7 @@ export class TrackModelType {
                     const baseVertex = baseVertices[j];
                     const point = vadd(
                         trackPoint,
-                        qrotate(baseVertex, spline.points[i].rot)
+                        qrotate(baseVertex, points[i].rot)
                     );
 
                     const vertex: vec3 = [point[0], point[1], point[2]];
@@ -184,7 +241,7 @@ export class TrackModelType {
                 }
 
                 indexArray.push(indexRow);
-                if (1 < i && i < spline.points.length - 1) {
+                if (1 < i && i < points.length - 1) {
                     for (let j = 0; j < baseVertices.length; j++) {
                         const a = indexArray[i][j];
                         const b = indexArray[i - 1][j];
@@ -203,11 +260,70 @@ export class TrackModelType {
     }
 }
 
-const modelsJSON = import.meta.glob("./*.json", { eager: true });
-console.log(modelsJSON);
-export const models = new Map<string, TrackModelType>();
+export async function loadModels() {
+    const modelsJSON = import.meta.glob("./*.json", { eager: true });
+    const models = new Map<string, TrackModelType>();
 
-for (const modelJSON of Object.values(modelsJSON)) {
-    const model = TrackModelType.fromJSON(modelJSON);
-    models.set(model.name, model);
+    const findMeshChild = (obj: Object3D) => {
+        let v: ThreeMesh | undefined;
+        obj.traverse(function (child) {
+            if (child instanceof ThreeMesh) {
+                v = child;
+            }
+        });
+        return v;
+    };
+
+    for (const json of Object.values(modelsJSON)) {
+        const modelJSON = json as any;
+        const spineObj = findMeshChild(
+            new OBJLoader().parse(
+                await fetch(`/models/b&m_family/${modelJSON.spineObj}`).then(
+                    (r) => r.text()
+                )
+            )
+        );
+        const crossTieObj = findMeshChild(
+            new OBJLoader().parse(
+                await fetch(`/models/b&m_family/${modelJSON.crossTieObj}`).then(
+                    (r) => r.text()
+                )
+            )
+        );
+        const fixedCrossTieGeometry = BufferGeometryUtils.mergeVertices(
+            crossTieObj.geometry,
+            0.0001
+        );
+        const model = new TrackModelType({
+            name: modelJSON.name,
+            crossTieInterval: modelJSON.crossTieInterval,
+            spineInterval: modelJSON.spineInterval,
+            railGauge: modelJSON.railGauge,
+            railGeometry: modelJSON.railGeometry,
+            spineGeometry: {
+                vertices: float32ArrayToVec3Array(
+                    spineObj.geometry.attributes.position.array as Float32Array
+                ),
+            },
+            crossTieGeometry: {
+                vertices: float32ArrayToVec3Array(
+                    fixedCrossTieGeometry.attributes.position
+                        .array as Float32Array
+                ),
+                indices: Array.from(fixedCrossTieGeometry.index!.array),
+            },
+        });
+
+        models.set(model.name, model);
+    }
+
+    return models;
+}
+
+function float32ArrayToVec3Array(array: Float32Array): vec3[] {
+    const result: vec3[] = [];
+    for (let i = 0; i < array.length; i += 3) {
+        result.push([array[i], array[i + 1], array[i + 2]]);
+    }
+    return result;
 }

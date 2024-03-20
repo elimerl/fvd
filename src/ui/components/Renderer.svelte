@@ -2,15 +2,18 @@
     import { onMount } from "svelte";
     import type { TrackSpline } from "../../core/TrackSpline";
     import * as THREE from "three";
-    import { InfiniteGridHelper } from "../../InfiniteGridHelper";
-    import { qrotate, vec, vsub } from "../../core/math";
+    import { InfiniteGridHelper } from "../InfiniteGridHelper";
+    import { qrotate, vadd, vec, vsub } from "../../core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
-    import { models, toBufferGeometry } from "../../models/model";
+    import { toBufferGeometry, TrackModelType } from "../../models/model";
+    import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
 
     export let spline: TrackSpline;
     export let heartlineOffset: number = 1.1;
     export let pov: { pos: number } = { pos: 0 };
+
+    export let models: Map<string, TrackModelType>;
 
     let canvasThree: HTMLCanvasElement;
 
@@ -30,8 +33,11 @@
                 antialias: true,
                 canvas: canvasThree,
                 powerPreference: "high-performance",
+                precision: "highp",
             });
             renderer.setPixelRatio(window.devicePixelRatio ?? 1);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             // renderer.toneMapping = THREE.ACESFilmicToneMapping;
             renderer.toneMappingExposure = 0.5;
 
@@ -41,9 +47,19 @@
             scene = new THREE.Scene();
             scene.background = new THREE.Color("white");
 
-            const light = new THREE.AmbientLight("white", 1);
+            const ambientLight = new THREE.AmbientLight("white", 0.5);
 
-            scene.add(light);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight("white", 2);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.1;
+            sunLight.shadow.camera.far = 100;
+
+            sunLight.position.set(1, 3, 2);
+            scene.add(sunLight);
 
             const grid = new InfiniteGridHelper(
                 1,
@@ -54,7 +70,22 @@
             );
             scene.add(grid);
 
-            const { heartlineGeometry, railGeometry } = trackGeometry(spline);
+            // ground
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(1000, 1000, 1, 1),
+                new THREE.MeshStandardMaterial({
+                    color: "green",
+                    side: THREE.DoubleSide,
+                }),
+            );
+            ground.rotateX(-Math.PI / 2);
+            ground.position.set(0, -0.1, 0);
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // track
+            const { heartlineGeometry, railGeometry, spineGeometry } =
+                trackGeometry(spline);
 
             const heartlineMat = new THREE.LineBasicMaterial({
                 color: new THREE.Color("red"),
@@ -62,23 +93,34 @@
             heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
-            const trackMat = new THREE.MeshStandardMaterial({
+            const railMat = new THREE.MeshStandardMaterial({
                 color: new THREE.Color("blue"),
-                wireframe: true,
+                roughness: 0.6,
+                metalness: 0.2,
             });
 
-            rails = new THREE.Mesh(railGeometry, trackMat);
+            rails = new THREE.Mesh(railGeometry, railMat);
+            rails.castShadow = true;
+            rails.receiveShadow = true;
             scene.add(rails);
 
-            spine = new THREE.Mesh(railGeometry, trackMat);
+            const spineMat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color("blue"),
+                roughness: 0.6,
+                metalness: 0.2,
+                flatShading: true,
+                // wireframe: true,
+            });
+
+            spine = new THREE.Mesh(spineGeometry, spineMat);
+            spine.castShadow = true;
+            spine.receiveShadow = true;
             scene.add(spine);
 
             frame = requestAnimationFrame(render);
 
-            console.log("start");
             return () => {
                 cancelAnimationFrame(frame);
-                console.log("end");
             };
         }
     });
@@ -103,11 +145,15 @@
                 .makeRailsMesh(spline, heartlineOffset),
         );
 
+        railGeometry.computeVertexNormals();
+
         const spineGeometry = toBufferGeometry(
             models
                 .get("B&M Family Launch")!
                 .makeSpineMesh(spline, heartlineOffset),
         );
+
+        spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.points.map(
@@ -145,7 +191,7 @@
             }
         }
 
-        const camPos = start.pos;
+        const camPos = vadd(start.pos, qrotate(vec(0, 0, 0), start.rot));
 
         camera.position.set(camPos[0], camPos[1], camPos[2]);
         camera.setRotationFromQuaternion(
@@ -192,6 +238,9 @@
 
 <canvas
     bind:this={canvasThree}
+    on:resize={() => {
+        resizeCanvas(renderer, camera);
+    }}
     class="w-full h-full"
     style="image-rendering: pixelated;"
 />

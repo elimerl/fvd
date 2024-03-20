@@ -13,11 +13,14 @@
     import * as _ from "lodash-es";
     import { scrollLineHeight } from "../util";
     import { keyState } from "../input";
+    import type { Forces } from "../../core/Track";
 
     export let transitions: Transitions;
     export let selected:
         | { i: number; arr: "vert" | "lat" | "roll" }
         | undefined;
+
+    export let startForces: Forces;
 
     let container: HTMLDivElement;
     let canvas: HTMLCanvasElement;
@@ -47,21 +50,9 @@
                 timeOffset!,
             ),
         );
-        const vert = transitionsEvaluate(
-            transitions.vert,
-            t,
-            transitions.vertStart,
-        );
-        const lat = transitionsEvaluate(
-            transitions.lat,
-            t,
-            transitions.latStart,
-        );
-        const roll = transitionsEvaluate(
-            transitions.roll,
-            t,
-            transitions.rollStart,
-        );
+        const vert = transitionsEvaluate(transitions.vert, t, startForces.vert);
+        const lat = transitionsEvaluate(transitions.lat, t, startForces.lat);
+        const roll = transitionsEvaluate(transitions.roll, t, startForces.roll);
 
         const vertY = vert !== undefined ? transformG(vert) : Infinity;
         const latY = lat !== undefined ? transformG(lat) : Infinity;
@@ -148,7 +139,12 @@
             .translate(-timeOffset / width, 0);
     }
 
-    function drawGraph(transitions: Transitions) {
+    function drawGraph(
+        transitions: Transitions,
+        zoomLevel: number,
+        timeOffset: number,
+        selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined,
+    ) {
         const start = performance.now();
         canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
         canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
@@ -276,23 +272,13 @@
             }
         }
 
-        drawTransitions(
-            transitions.vert,
-            transitions.vertStart,
-            "blue",
-            transformG,
-        );
+        drawTransitions(transitions.vert, startForces.vert, "blue", transformG);
 
-        drawTransitions(
-            transitions.lat,
-            transitions.latStart,
-            "green",
-            transformG,
-        );
+        drawTransitions(transitions.lat, startForces.lat, "green", transformG);
 
         drawTransitions(
             transitions.roll,
-            transitions.rollStart,
+            startForces.roll,
             "red",
             transformRoll,
         );
@@ -300,7 +286,11 @@
 
     let frame = 0;
 
-    $: drawGraph(transitions);
+    $: if (canvas) drawGraph(transitions, zoomLevel, timeOffset, selected);
+
+    onMount(() => {
+        if (canvas) drawGraph(transitions, zoomLevel, timeOffset, selected);
+    });
 
     function keyDown(ev: KeyboardEvent) {
         if (ev.code === "Backspace" && selected) {
