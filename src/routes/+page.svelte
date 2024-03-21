@@ -162,7 +162,7 @@
                 <div class="flex flex-col border border-gray-200 h-full">
                     {#each track.sections as section, i}
                         <button
-                            class={"p-1 border text-left" +
+                            class={"p-1 border text-left " +
                                 (i === selectedSectionIdx
                                     ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
                                     : "dark:bg-slate-800 dark:text-white")}
