@@ -1,11 +1,11 @@
 import {
+    type Object3D,
     BufferAttribute,
     BufferGeometry,
-    Object3D,
     Mesh as ThreeMesh,
 } from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { vsub, type vec3, vec, qrotate, vadd } from "../core/math";
+import { vsub, type vec3, vec, qrotate, vadd, vmul } from "../core/math";
 
 import type { TrackPoint, TrackSpline } from "../core/TrackSpline";
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
@@ -103,7 +103,14 @@ export class TrackModelType {
                 baseVertex = vec(baseVertex[2], baseVertex[1], baseVertex[0]);
                 const point = vadd(
                     trackPoint,
-                    qrotate(baseVertex, points[i].rot)
+                    qrotate(
+                        [
+                            baseVertex[0] * Math.sign(this.heartlineHeight),
+                            baseVertex[1] * Math.sign(this.heartlineHeight),
+                            baseVertex[2],
+                        ],
+                        points[i].rot
+                    )
                 );
 
                 const vertex: vec3 = [point[0], point[1], point[2]];
@@ -189,7 +196,14 @@ export class TrackModelType {
                 const baseVertex = this.crossTieGeometry.vertices[j];
                 const point = vadd(
                     trackPoint,
-                    qrotate(baseVertex, points[i].rot)
+                    qrotate(
+                        [
+                            baseVertex[0] * Math.sign(this.heartlineHeight),
+                            baseVertex[1] * Math.sign(this.heartlineHeight),
+                            baseVertex[2],
+                        ],
+                        points[i].rot
+                    )
                 );
                 vertices.push(point);
             }

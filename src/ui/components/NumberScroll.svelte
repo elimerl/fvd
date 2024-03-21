@@ -17,6 +17,7 @@
     $: digits = fractionalDigits + 1;
     $: step = Math.pow(10, -fractionalDigits);
     const inputOnWheel = (ev: WheelEvent) => {
+        if (disabled) return;
         ev.preventDefault();
         const dy = Math.sign(ev.deltaY === 0 ? ev.deltaX : ev.deltaY);
         value -= dy * step * (ev.ctrlKey ? 0.1 : 1) * (ev.shiftKey ? 10 : 1);
@@ -25,13 +26,17 @@
     };
 
     const inputOnChange = (ev: Event) => {
+        if (disabled) return;
+
         if (!/^[-\+0-9\.]*$/.test((ev.target as HTMLInputElement).value)) {
             (ev.target as HTMLInputElement).value = value.toFixed(digits);
             ev.preventDefault();
             return;
         }
 
-        value = parseFloat((ev.target as HTMLInputElement).value);
+        value = parseFloat(
+            (ev.target as HTMLInputElement).value.replace(unit, ""),
+        );
         if (isNaN(value)) {
             value = 0;
         }

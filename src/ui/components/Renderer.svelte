@@ -3,7 +3,7 @@
     import type { TrackSpline } from "../../core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qrotate, vadd, vec, vsub } from "../../core/math";
+    import { qrotate, vadd, vec } from "../../core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
     import {
@@ -11,15 +11,7 @@
         TrackModelType,
         type Geometry,
     } from "../../coaster_types/model";
-    import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
-    import {
-        RenderPass,
-        EffectComposer,
-        OutputPass,
-        SSAOPass,
-        TAARenderPass,
-        SMAAPass,
-    } from "three/examples/jsm/Addons.js";
+
     import { time } from "../util";
 
     import ModelWorker from "../modelWorker?worker";
@@ -41,6 +33,8 @@
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
+    let lastGeometryUpdate: number = 0;
+
     onMount(() => {
         modelWorker.postMessage({
             type: "load",
@@ -49,23 +43,38 @@
 
         modelWorker.onmessage = (event) => {
             console.log(event);
-            rails.geometry.dispose();
-            heartline.geometry.dispose();
-            spine.geometry.dispose();
-            const { heartlineGeometry, railGeometry, spineGeometry } = time(
-                () =>
-                    trackGeometry(
-                        spline,
-                        event.data.railsMesh,
-                        event.data.spineMesh,
-                    ),
-                "makeGeometry",
-            );
-            heartline.geometry = heartlineGeometry;
-            rails.geometry = railGeometry;
-            spine.geometry = spineGeometry;
+            const gu = lastGeometryUpdate;
 
-            heartline = heartline;
+            const applyGeometry = () => {
+                if (gu !== lastGeometryUpdate) {
+                    return;
+                }
+                lastGeometryUpdate = performance.now();
+                rails.geometry.dispose();
+                heartline.geometry.dispose();
+                spine.geometry.dispose();
+                const { heartlineGeometry, railGeometry, spineGeometry } = time(
+                    () =>
+                        trackGeometry(
+                            spline,
+                            event.data.railsMesh,
+                            event.data.spineMesh,
+                        ),
+                    "makeGeometry",
+                );
+                heartline.geometry = heartlineGeometry;
+                rails.geometry = railGeometry;
+                spine.geometry = spineGeometry;
+
+                heartline = heartline;
+            };
+
+            if (performance.now() - lastGeometryUpdate < 100) {
+                console.log("waiting");
+                setTimeout(() => applyGeometry(), 100);
+            } else {
+                applyGeometry();
+            }
         };
 
         if (!renderer) {
@@ -111,7 +120,7 @@
 
             // ground
             const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(1000, 1000, 1, 1),
+                new THREE.PlaneGeometry(1024, 1024, 1, 1),
                 new THREE.MeshStandardMaterial({
                     color: "#0ea800",
                     side: THREE.DoubleSide,
@@ -216,11 +225,10 @@
         spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.points.map(
-                (v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2]),
-            ),
+            spline
+                .intervalPoints(0.1)
+                .map((v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2])),
         );
-
         return {
             heartlineGeometry,
             railGeometry,

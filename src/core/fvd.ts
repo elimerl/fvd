@@ -82,7 +82,7 @@ export function fvd(
             //     roll * (Math.PI / 180) * DT
             // );
 
-            if (rollSpeed > 0.01) {
+            if (Math.abs(rollSpeed) > 0.01) {
                 new_dir = qmul(
                     qaxisangle(
                         qrotate(FORWARD, new_dir),

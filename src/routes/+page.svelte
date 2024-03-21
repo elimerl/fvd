@@ -88,7 +88,7 @@
         ? getSelected(transitions, selected)
         : undefined;
 
-    $: ({ spline, sectionStartPos } = time(() => track.getSpline(), ""));
+    $: ({ spline, sectionStartPos } = time(() => track.getSpline(), "spline"));
 
     $: {
         saveLocalStorage("track", track);
@@ -130,7 +130,10 @@
     // $: {
     //     transitions[selected.arr][selected.i] = selectedTransition;
     // }
-    $: if (transitions) transitions.updateDynamicLengths();
+    $: if (transitions) {
+        transitions.updateDynamicLengths();
+        selected = selected;
+    }
 
     $: {
         if (settings.darkMode) {
@@ -159,10 +162,10 @@
                 <div class="flex flex-col border border-gray-200 h-full">
                     {#each track.sections as section, i}
                         <button
-                            class={"p-1 border text-left dark:bg-slate-800 dark:text-white" +
+                            class={"p-1 border text-left" +
                                 (i === selectedSectionIdx
-                                    ? " bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                                    : "")}
+                                    ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
+                                    : "dark:bg-slate-800 dark:text-white")}
                             on:click={() => {
                                 selectedSectionIdx = i;
                             }}
@@ -172,7 +175,13 @@
 
                             <button
                                 class="my-auto inline align-middle float-right"
-                                ><IconTrash /></button
+                                on:click={() => {
+                                    if (track.sections.length > 1) {
+                                        track.sections.splice(i, 1);
+                                        selectedSectionIdx = 0;
+                                        track = track;
+                                    }
+                                }}><IconTrash /></button
                             >
                         </button>
                     {/each}
@@ -190,7 +199,17 @@
                         track = track;
                     }}>+ straight</button
                 >
-                <button class="border p-1">+ force</button>
+                <button
+                    class="border p-1"
+                    on:click={() => {
+                        track.sections.push({
+                            type: "force",
+                            fixedSpeed: undefined,
+                            transitions: new Transitions(),
+                        });
+                        track = track;
+                    }}>+ force</button
+                >
             </div>
             <div class="flex-1 p-2">
                 {#if selectedSection.type === "straight"}
@@ -239,7 +258,7 @@
             <div>
                 <select
                     bind:value={settings.unitSystem}
-                    class="dark:bg-slate-800 text-white"
+                    class="dark:bg-slate-800 dark:text-white p-1"
                 >
                     <option value={UnitSystem.Metric}>Metric (m, m/s)</option>
                     <option value={UnitSystem.MetricKph}
@@ -251,7 +270,7 @@
                 </select>
                 <select
                     bind:value={settings.darkMode}
-                    class="dark:bg-slate-800 text-white"
+                    class="dark:bg-slate-800 dark:text-white p-1"
                 >
                     <option value={false}>Light</option>
                     <option value={true}>Dark</option>
@@ -288,20 +307,29 @@
             <div class="flex gap-x-2">
                 <PointInfo {spline} {pov} unitSystem={settings.unitSystem} />
             </div>
-            <div class="h-64 flex-auto w-full flex flex-row">
+            <div class="h-64 flex-1 w-full flex flex-row">
                 {#if transitions}
-                    <div class="w-1/4 h-full flex flex-col p-2">
+                    <div class="w-1/3 h-full flex flex-col p-2">
                         <h1 class="font-semibold my-2">Transition Editor</h1>
                         {#if selectedTransition && selected}
                             <label
-                                >Length: <div class="float-right">
-                                    <NumberScroll
-                                        bind:value={selectedTransition.length}
-                                        min={0.1}
-                                        unit="s"
-                                    />
-                                </div></label
-                            >
+                                ><span class="mr-2"
+                                    >Length: <input
+                                        type="checkbox"
+                                        bind:checked={selectedTransition.dynamicLength}
+                                    /></span
+                                >
+                                {#if !selectedTransition.dynamicLength}
+                                    <div class="float-right">
+                                        <NumberScroll
+                                            bind:value={selectedTransition.length}
+                                            fractionalDigits={1}
+                                            min={0.1}
+                                            max={100}
+                                        />
+                                    </div>
+                                {/if}
+                            </label>
 
                             <!-- <button
                     on:click={() => {
@@ -349,7 +377,7 @@
 
                             <label
                                 ><span class="mr-2">Curve:</span><select
-                                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 float-right dark:bg-slate-800 text-white"
+                                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 float-right dark:bg-slate-800 dark:text-white"
                                     bind:value={selectedTransition.curve}
                                 >
                                     {#each curveTypes as curve}
