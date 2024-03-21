@@ -133,6 +133,7 @@ export interface Transition {
     value: number;
     length: number;
     tension: number;
+    dynamicLength: boolean;
 }
 
 export function isTransitionZero(transition: Transition) {
@@ -146,6 +147,7 @@ export class Transitions {
             value: 0,
             length: 1,
             tension: 0,
+            dynamicLength: false,
         },
     ];
     lat: Transition[] = [
@@ -154,6 +156,7 @@ export class Transitions {
             value: 0,
             length: 1,
             tension: 0,
+            dynamicLength: true,
         },
     ];
     roll: Transition[] = [
@@ -162,6 +165,7 @@ export class Transitions {
             value: 0,
             length: 1,
             tension: 0,
+            dynamicLength: false,
         },
     ];
 
@@ -177,6 +181,39 @@ export class Transitions {
             _.sumBy(this.lat, (v) => v.length),
             _.sumBy(this.roll, (v) => v.length)
         );
+    }
+
+    updateDynamicLengths() {
+        let alreadyDynamic = false;
+        for (const transition of this.vert) {
+            if (transition.dynamicLength && !alreadyDynamic) {
+                transition.length = Math.min(
+                    _.sumBy(this.roll, (v) => v.length),
+                    _.sumBy(this.lat, (v) => v.length)
+                );
+                alreadyDynamic = true;
+            }
+        }
+        alreadyDynamic = false;
+        for (const transition of this.lat) {
+            if (transition.dynamicLength && !alreadyDynamic) {
+                transition.length = Math.min(
+                    _.sumBy(this.roll, (v) => v.length),
+                    _.sumBy(this.vert, (v) => v.length)
+                );
+                alreadyDynamic = true;
+            }
+        }
+        alreadyDynamic = false;
+        for (const transition of this.roll) {
+            if (transition.dynamicLength && !alreadyDynamic) {
+                transition.length = Math.min(
+                    _.sumBy(this.lat, (v) => v.length),
+                    _.sumBy(this.vert, (v) => v.length)
+                );
+                alreadyDynamic = true;
+            }
+        }
     }
 
     evaluate(

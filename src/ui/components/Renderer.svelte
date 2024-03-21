@@ -3,14 +3,22 @@
     import type { TrackSpline } from "../../core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qrotate, vadd, vec, vsub } from "../../core/math";
+    import { qrotate, vadd, vec } from "../../core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
-    import { toBufferGeometry, TrackModelType } from "../../models/model";
-    import { OBJExporter } from "three/addons/exporters/OBJExporter.js";
+    import {
+        toBufferGeometry,
+        TrackModelType,
+        type Geometry,
+    } from "../../coaster_types/model";
+
+    import { time } from "../util";
+
+    import ModelWorker from "../modelWorker?worker";
+
+    const modelWorker = new ModelWorker();
 
     export let spline: TrackSpline;
-    export let heartlineOffset: number = 1.1;
     export let pov: { pos: number } = { pos: 0 };
 
     export let models: Map<string, TrackModelType>;
@@ -25,9 +33,50 @@
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
-    let frame = 0;
+    let lastGeometryUpdate: number = 0;
 
     onMount(() => {
+        modelWorker.postMessage({
+            type: "load",
+            modelType: models.get("B&M Family Launch"),
+        });
+
+        modelWorker.onmessage = (event) => {
+            console.log(event);
+            const gu = lastGeometryUpdate;
+
+            const applyGeometry = () => {
+                if (gu !== lastGeometryUpdate) {
+                    return;
+                }
+                lastGeometryUpdate = performance.now();
+                rails.geometry.dispose();
+                heartline.geometry.dispose();
+                spine.geometry.dispose();
+                const { heartlineGeometry, railGeometry, spineGeometry } = time(
+                    () =>
+                        trackGeometry(
+                            spline,
+                            event.data.railsMesh,
+                            event.data.spineMesh,
+                        ),
+                    "makeGeometry",
+                );
+                heartline.geometry = heartlineGeometry;
+                rails.geometry = railGeometry;
+                spine.geometry = spineGeometry;
+
+                heartline = heartline;
+            };
+
+            if (performance.now() - lastGeometryUpdate < 100) {
+                console.log("waiting");
+                setTimeout(() => applyGeometry(), 100);
+            } else {
+                applyGeometry();
+            }
+        };
+
         if (!renderer) {
             renderer = new THREE.WebGLRenderer({
                 antialias: true,
@@ -38,20 +87,19 @@
             renderer.setPixelRatio(window.devicePixelRatio ?? 1);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            // renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 0.5;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1;
 
-            camera = new THREE.PerspectiveCamera(80, 2, 0.1, 1000);
-            camera.lookAt(new THREE.Vector3());
+            camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
 
             scene = new THREE.Scene();
             scene.background = new THREE.Color("white");
 
-            const ambientLight = new THREE.AmbientLight("white", 0.5);
+            const ambientLight = new THREE.AmbientLight("white", 1);
 
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight("white", 2);
+            const sunLight = new THREE.DirectionalLight("white", 2.7);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
@@ -72,9 +120,9 @@
 
             // ground
             const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(1000, 1000, 1, 1),
+                new THREE.PlaneGeometry(1024, 1024, 1, 1),
                 new THREE.MeshStandardMaterial({
-                    color: "green",
+                    color: "#0ea800",
                     side: THREE.DoubleSide,
                 }),
             );
@@ -85,7 +133,11 @@
 
             // track
             const { heartlineGeometry, railGeometry, spineGeometry } =
-                trackGeometry(spline);
+                trackGeometry(
+                    spline,
+                    models.get("B&M Family Launch")!.makeRailsMesh(spline),
+                    models.get("B&M Family Launch")!.makeSpineMesh(spline),
+                );
 
             const heartlineMat = new THREE.LineBasicMaterial({
                 color: new THREE.Color("red"),
@@ -94,7 +146,7 @@
             scene.add(heartline);
 
             const railMat = new THREE.MeshStandardMaterial({
-                color: new THREE.Color("blue"),
+                color: new THREE.Color("#3261e3"),
                 roughness: 0.6,
                 metalness: 0.2,
             });
@@ -105,7 +157,7 @@
             scene.add(rails);
 
             const spineMat = new THREE.MeshStandardMaterial({
-                color: new THREE.Color("blue"),
+                color: new THREE.Color("#3261e3"),
                 roughness: 0.6,
                 metalness: 0.2,
                 flatShading: true,
@@ -116,49 +168,66 @@
             spine.castShadow = true;
             spine.receiveShadow = true;
             scene.add(spine);
-
-            frame = requestAnimationFrame(render);
-
-            return () => {
-                cancelAnimationFrame(frame);
-            };
         }
+
+        let f = 0;
+        let lastTime = 0;
+        function keyHandler(t: number) {
+            const dt = (t - lastTime) * 0.001;
+            lastTime = t;
+
+            if (keyState.down.has("KeyW") || keyState.down.has("KeyS")) {
+                if (!spline.evaluate(pov.pos)) {
+                    fixPos();
+                }
+                if (keyState.down.has("KeyW")) {
+                    const speed = keyState.shift ? 2 : 1;
+                    pov.pos += dt * spline.evaluate(pov.pos)!.velocity * speed;
+                }
+                if (keyState.down.has("KeyS")) {
+                    const speed = keyState.shift ? 2 : 1;
+                    pov.pos -= dt * spline.evaluate(pov.pos)!.velocity * speed;
+                }
+                fixPos();
+            }
+
+            f = requestAnimationFrame(keyHandler);
+        }
+        f = requestAnimationFrame(keyHandler);
+
+        return () => cancelAnimationFrame(f);
     });
 
+    $: if (spline && renderer) {
+        render(performance.now(), pov, spline, heartline, rails, spine);
+    }
+
     $: {
-        if (rails && heartline) {
-            rails.geometry.dispose();
-            heartline.geometry.dispose();
-            const { heartlineGeometry, railGeometry, spineGeometry } =
-                trackGeometry(spline);
-            heartline.geometry = heartlineGeometry;
-            rails.geometry = railGeometry;
-            spine.geometry = spineGeometry;
+        if (renderer) {
+            modelWorker.postMessage({
+                type: "geometry",
+                points: spline.points,
+            });
         }
     }
 
-    let lastTime = 0;
-    function trackGeometry(spline: TrackSpline) {
-        const railGeometry = toBufferGeometry(
-            models
-                .get("B&M Family Launch")!
-                .makeRailsMesh(spline, heartlineOffset),
-        );
+    function trackGeometry(
+        spline: TrackSpline,
+        railsMesh: Geometry,
+        spineMesh: Geometry,
+    ) {
+        const railGeometry = toBufferGeometry(railsMesh);
 
         railGeometry.computeVertexNormals();
 
-        const spineGeometry = toBufferGeometry(
-            models
-                .get("B&M Family Launch")!
-                .makeSpineMesh(spline, heartlineOffset),
-        );
+        const spineGeometry = toBufferGeometry(spineMesh);
 
         spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.points.map(
-                (v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2]),
-            ),
+            spline
+                .intervalPoints(0.1)
+                .map((v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2])),
         );
         return {
             heartlineGeometry,
@@ -167,21 +236,12 @@
         };
     }
 
-    function render(time: number) {
-        const dt = (time - lastTime) * 0.001;
-        lastTime = time;
-        if (!spline.evaluate(pov.pos)) {
-            fixPos();
-        }
-        if (keyState.down.has("KeyW")) {
-            const speed = keyState.shift ? 2 : 1;
-            pov.pos += dt * spline.evaluate(pov.pos)!.velocity * speed;
-        }
-        if (keyState.down.has("KeyS")) {
-            const speed = keyState.shift ? 2 : 1;
-            pov.pos -= dt * spline.evaluate(pov.pos)!.velocity * speed;
-        }
-        fixPos();
+    function render(
+        time: number,
+        pov: { pos: number },
+        spline: TrackSpline,
+        ..._unused: any[]
+    ) {
         let start = spline.evaluate(pov.pos);
         if (!start) {
             pov.pos = 0;
@@ -210,8 +270,6 @@
 
         resizeCanvas(renderer, camera);
         renderer.render(scene, camera);
-
-        requestAnimationFrame(render);
     }
 
     function fixPos() {
@@ -242,5 +300,4 @@
         resizeCanvas(renderer, camera);
     }}
     class="w-full h-full"
-    style="image-rendering: pixelated;"
 />

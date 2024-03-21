@@ -152,7 +152,9 @@
         const ctx = canvas.getContext("2d")!;
 
         ctx.resetTransform();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         const transform = getGraphTransform(
             canvas.width,
             canvas.height,
@@ -170,7 +172,11 @@
             ctx.strokeStyle = "grey";
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(t, 0.08);
+            ctx.moveTo(
+                t,
+
+                (24 * window.devicePixelRatio) / canvas.height,
+            );
             ctx.lineTo(t, 1);
 
             ctx.save();
@@ -212,7 +218,7 @@
             ctx.fillText(
                 g + "g",
                 8 * window.devicePixelRatio,
-                (-g * 0.125 + 0.75) * canvas.height + 2,
+                transformG(g) * canvas.height + 2,
             );
             ctx.restore();
         }
@@ -289,7 +295,17 @@
     $: if (canvas) drawGraph(transitions, zoomLevel, timeOffset, selected);
 
     onMount(() => {
-        if (canvas) drawGraph(transitions, zoomLevel, timeOffset, selected);
+        if (canvas) {
+            drawGraph(transitions, zoomLevel, timeOffset, selected);
+        }
+
+        const observer = new ResizeObserver(() => {
+            canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+            canvas.height =
+                canvas.clientHeight * (window.devicePixelRatio || 1);
+        });
+        observer.observe(canvas);
+        return () => observer.disconnect();
     });
 
     function keyDown(ev: KeyboardEvent) {
@@ -310,6 +326,7 @@
                         ? TransitionCurve.Cubic
                         : TransitionCurve.Plateau,
                 tension: 0,
+                dynamicLength: false,
             };
             transitions[selected.arr].splice(selected.i, 0, newTransition);
             transitions = transitions;
@@ -330,6 +347,7 @@
                         ? TransitionCurve.Cubic
                         : TransitionCurve.Plateau,
                 tension: 0,
+                dynamicLength: false,
             };
             transitions[selected.arr].splice(selected.i + 1, 0, newTransition);
             transitions = transitions;

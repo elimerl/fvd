@@ -1,13 +1,13 @@
 import {
+    type Object3D,
     BufferAttribute,
     BufferGeometry,
-    Object3D,
     Mesh as ThreeMesh,
 } from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { vsub, type vec3, vec, qrotate, vadd } from "../core/math";
+import { vsub, type vec3, vec, qrotate, vadd, vmul } from "../core/math";
 
-import type { TrackSpline } from "../core/TrackSpline";
+import type { TrackPoint, TrackSpline } from "../core/TrackSpline";
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export type Geometry = {
@@ -34,10 +34,13 @@ export type RailGeometry = {
 // model info: gauge is from center of rail to center of other rail
 // all distances in meters
 
-const RAIL_INTERVAL = 0.1;
+const RAIL_INTERVAL = 0.25;
 
 export class TrackModelType {
     name: string;
+    author: string;
+
+    heartlineHeight: number;
     railGauge: number;
     railGeometry: RailGeometry;
     readonly spineGeometry: { vertices: vec3[] };
@@ -47,6 +50,8 @@ export class TrackModelType {
 
     constructor(info: {
         name: string;
+        author: string;
+        heartlineHeight: number;
         railGauge: number;
         railGeometry: RailGeometry;
         spineInterval: number | null;
@@ -55,6 +60,8 @@ export class TrackModelType {
         crossTieGeometry: { vertices: vec3[]; indices: number[] };
     }) {
         this.name = info.name;
+        this.author = info.author;
+        this.heartlineHeight = info.heartlineHeight;
         this.railGauge = info.railGauge;
         this.railGeometry = info.railGeometry;
         this.spineInterval = info.spineInterval;
@@ -74,7 +81,7 @@ export class TrackModelType {
         });
     }
 
-    makeSpineMesh(spline: TrackSpline, heartlineHeight: number): Geometry {
+    makeSpineMesh(spline: TrackSpline): Geometry {
         const vertices: vec3[] = [];
         const indices: number[] = [];
         const indexArray = [];
@@ -88,7 +95,7 @@ export class TrackModelType {
             const indexRow: number[] = [];
             const trackPoint = vsub(
                 points[i].pos,
-                qrotate(vec(0, heartlineHeight, 0), points[i].rot)
+                qrotate(vec(0, this.heartlineHeight, 0), points[i].rot)
             );
 
             for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
@@ -96,7 +103,14 @@ export class TrackModelType {
                 baseVertex = vec(baseVertex[2], baseVertex[1], baseVertex[0]);
                 const point = vadd(
                     trackPoint,
-                    qrotate(baseVertex, points[i].rot)
+                    qrotate(
+                        [
+                            baseVertex[0] * Math.sign(this.heartlineHeight),
+                            baseVertex[1] * Math.sign(this.heartlineHeight),
+                            baseVertex[2],
+                        ],
+                        points[i].rot
+                    )
                 );
 
                 const vertex: vec3 = [point[0], point[1], point[2]];
@@ -129,11 +143,7 @@ export class TrackModelType {
         return { vertices, indices };
     }
 
-    makeRailsMesh(
-        spline: TrackSpline,
-        heartlineHeight: number,
-        vertexCount: number = 6
-    ): Geometry {
+    makeRailsMesh(spline: TrackSpline, vertexCount: number = 6): Geometry {
         const baseVertices: vec3[] = [];
 
         if (this.railGeometry.type === "cylinder") {
@@ -152,31 +162,18 @@ export class TrackModelType {
         const vertices: vec3[] = [];
         const indices: number[] = [];
 
-        this.makeRail(
-            spline,
-            heartlineHeight,
-            baseVertices,
-            vertices,
-            indices,
-            -1
-        );
+        const points = spline.intervalPoints(RAIL_INTERVAL);
 
-        this.makeRail(
-            spline,
-            heartlineHeight,
-            baseVertices,
-            vertices,
-            indices,
-            1
-        );
+        this.makeRail(baseVertices, vertices, indices, -1, points);
 
-        this.makeCrossTies(spline, heartlineHeight, vertices, indices);
+        this.makeRail(baseVertices, vertices, indices, 1, points);
+
+        this.makeCrossTies(spline, vertices, indices);
 
         return { vertices, indices };
     }
     private makeCrossTies(
         spline: TrackSpline,
-        heartlineHeight: number,
         vertices: vec3[],
         indices: number[]
     ) {
@@ -188,18 +185,25 @@ export class TrackModelType {
         for (let i = 0; i < points.length; i++) {
             const trackPoint = vsub(
                 points[i].pos,
-                qrotate(vec(0, heartlineHeight, 0), points[i].rot)
+                qrotate(vec(0, this.heartlineHeight, 0), points[i].rot)
             );
 
-            indices.push(
-                ...this.crossTieGeometry.indices.map((v) => v + vertices.length)
-            );
+            for (const index of this.crossTieGeometry.indices) {
+                indices.push(index + vertices.length);
+            }
 
             for (let j = 0; j < this.crossTieGeometry.vertices.length; j++) {
                 const baseVertex = this.crossTieGeometry.vertices[j];
                 const point = vadd(
                     trackPoint,
-                    qrotate(baseVertex, points[i].rot)
+                    qrotate(
+                        [
+                            baseVertex[0] * Math.sign(this.heartlineHeight),
+                            baseVertex[1] * Math.sign(this.heartlineHeight),
+                            baseVertex[2],
+                        ],
+                        points[i].rot
+                    )
                 );
                 vertices.push(point);
             }
@@ -207,22 +211,24 @@ export class TrackModelType {
     }
 
     private makeRail(
-        spline: TrackSpline,
-        heartlineHeight: number,
         baseVertices: vec3[],
         vertices: vec3[],
         indices: number[],
-        side: -1 | 1
+        side: -1 | 1,
+        points: TrackPoint[]
     ) {
         const indexArray = [];
-        const points = spline.intervalPoints(RAIL_INTERVAL);
 
         for (let i = 0; i < points.length; i++) {
             {
                 const trackPoint = vsub(
                     points[i].pos,
                     qrotate(
-                        vec((this.railGauge / 2) * side, heartlineHeight, 0),
+                        vec(
+                            (this.railGauge / 2) * side,
+                            this.heartlineHeight,
+                            0
+                        ),
                         points[i].rot
                     )
                 );
@@ -257,6 +263,8 @@ export class TrackModelType {
                 // TODO: add end faces
             }
         }
+
+        indexArray.length = 0;
     }
 }
 
@@ -296,6 +304,8 @@ export async function loadModels() {
         );
         const model = new TrackModelType({
             name: modelJSON.name,
+            author: modelJSON.author,
+            heartlineHeight: modelJSON.heartlineHeight,
             crossTieInterval: modelJSON.crossTieInterval,
             spineInterval: modelJSON.spineInterval,
             railGauge: modelJSON.railGauge,

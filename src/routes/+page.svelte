@@ -20,8 +20,9 @@
     import * as _ from "lodash-es";
     import { defaultSettings, type AppSettings } from "../ui/settings";
     import { Track, forces } from "../core/Track";
-    import { loadModels, type TrackModelType } from "../models/model";
-    import { qaxisangle } from "../core/math";
+    import { loadModels, type TrackModelType } from "../coaster_types/model";
+
+    import { IconTrash } from "@tabler/icons-svelte";
 
     let pov = { pos: 0 };
 
@@ -55,7 +56,7 @@
         return transitions[arr][i];
     }
 
-    const track = loadLocalStorage(
+    let track = loadLocalStorage(
         "track",
         (v) => Track.fromJSON(v),
         () => {
@@ -87,7 +88,7 @@
         ? getSelected(transitions, selected)
         : undefined;
 
-    $: ({ spline, sectionStartPos } = time(() => track.getSpline()));
+    $: ({ spline, sectionStartPos } = time(() => track.getSpline(), "spline"));
 
     $: {
         saveLocalStorage("track", track);
@@ -126,11 +127,21 @@
 
     let models: Promise<Map<string, TrackModelType>> = loadModels();
 
-    $: if (spline)
-        console.log(
-            sectionStartPos[selectedSectionIdx],
-            forces(spline, sectionStartPos[selectedSectionIdx]),
-        );
+    // $: {
+    //     transitions[selected.arr][selected.i] = selectedTransition;
+    // }
+    $: if (transitions) {
+        transitions.updateDynamicLengths();
+        selected = selected;
+    }
+
+    $: {
+        if (settings.darkMode) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    }
 </script>
 
 <svelte:window
@@ -144,37 +155,149 @@
     }}
 />
 
-<div class="p-4 w-screen h-screen">
+<div class="w-screen h-screen dark:bg-slate-900 dark:text-white">
     <div class="flex flex-row w-full h-full">
-        <div>track sections TODO</div>
-        <div class="w-full h-full">
-            <select bind:value={settings.unitSystem}>
-                <option value={UnitSystem.Metric}>Metric (m, m/s)</option>
-                <option value={UnitSystem.MetricKph}>Metric (m, km/h)</option>
-                <option value={UnitSystem.Imperial}>Imperial (ft, mph)</option>
-            </select>
+        <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
+            <div class="h-2/3">
+                <div class="flex flex-col border border-gray-200 h-full">
+                    {#each track.sections as section, i}
+                        <button
+                            class={"p-1 border text-left " +
+                                (i === selectedSectionIdx
+                                    ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
+                                    : "dark:bg-slate-800 dark:text-white")}
+                            on:click={() => {
+                                selectedSectionIdx = i;
+                            }}
+                            tabindex="0"
+                        >
+                            {section.type}
 
-            <button
-                class="border p-1"
-                on:click={() => {
-                    var element = document.createElement("a");
-                    element.setAttribute(
-                        "href",
-                        "data:text/plain;charset=utf-8," +
-                            encodeURIComponent(spline.exportToNl2Elem()),
-                    );
-                    element.setAttribute("download", "fvd.nl2elem");
+                            <button
+                                class="my-auto inline align-middle float-right"
+                                on:click={() => {
+                                    if (track.sections.length > 1) {
+                                        track.sections.splice(i, 1);
+                                        selectedSectionIdx = 0;
+                                        track = track;
+                                    }
+                                }}><IconTrash /></button
+                            >
+                        </button>
+                    {/each}
+                </div>
+            </div>
+            <div>
+                <button
+                    class="border p-1"
+                    on:click={() => {
+                        track.sections.push({
+                            type: "straight",
+                            fixedSpeed: 10,
+                            length: 10,
+                        });
+                        track = track;
+                    }}>+ straight</button
+                >
+                <button
+                    class="border p-1"
+                    on:click={() => {
+                        track.sections.push({
+                            type: "force",
+                            fixedSpeed: undefined,
+                            transitions: new Transitions(),
+                        });
+                        track = track;
+                    }}>+ force</button
+                >
+            </div>
+            <div class="flex-1 p-2">
+                {#if selectedSection.type === "straight"}
+                    <div class="flex flex-col">
+                        <label
+                            >Length: <div class="float-right">
+                                <NumberScroll
+                                    bind:value={selectedSection.length}
+                                    min={0.1}
+                                    fractionalDigits={0}
+                                    unit="m"
+                                />
+                            </div></label
+                        >
+                        <label
+                            >Fixed speed:
+                            <input
+                                type="checkbox"
+                                checked={selectedSection.fixedSpeed !==
+                                    undefined}
+                                on:change={(e) => {
+                                    selectedSection.fixedSpeed =
+                                        //@ts-expect-error
+                                        e.target.checked
+                                            ? //@ts-expect-error
+                                              selectedSection.length
+                                            : undefined;
+                                }}
+                            />
+                            <div class="float-right">
+                                {#if selectedSection.fixedSpeed !== undefined}
+                                    <NumberScroll
+                                        bind:value={selectedSection.fixedSpeed}
+                                        min={0.1}
+                                        fractionalDigits={0}
+                                        unit="m/s"
+                                    />
+                                {/if}
+                            </div></label
+                        >
+                    </div>
+                {/if}
+            </div>
+        </div>
+        <div class="w-full h-full flex flex-col py-4">
+            <div>
+                <select
+                    bind:value={settings.unitSystem}
+                    class="dark:bg-slate-800 dark:text-white p-1"
+                >
+                    <option value={UnitSystem.Metric}>Metric (m, m/s)</option>
+                    <option value={UnitSystem.MetricKph}
+                        >Metric (m, km/h)</option
+                    >
+                    <option value={UnitSystem.Imperial}
+                        >Imperial (ft, mph)</option
+                    >
+                </select>
+                <select
+                    bind:value={settings.darkMode}
+                    class="dark:bg-slate-800 dark:text-white p-1"
+                >
+                    <option value={false}>Light</option>
+                    <option value={true}>Dark</option>
+                </select>
 
-                    element.style.display = "none";
-                    document.body.appendChild(element);
+                <button
+                    class="border p-1"
+                    on:click={() => {
+                        var element = document.createElement("a");
+                        element.setAttribute(
+                            "href",
+                            "data:text/plain;charset=utf-8," +
+                                encodeURIComponent(spline.exportToNl2Elem()),
+                        );
+                        element.setAttribute("download", "fvd.nl2elem");
 
-                    element.click();
+                        element.style.display = "none";
+                        document.body.appendChild(element);
 
-                    document.body.removeChild(element);
-                }}>Download nl2elem</button
-            >
+                        element.click();
 
-            <div class="w-full h-2/3">
+                        document.body.removeChild(element);
+                    }}>Download nl2elem</button
+                >
+            </div>
+
+            <div class="w-full flex-initial h-2/3">
                 {#await models}
                     models loading...
                 {:then models}
@@ -184,15 +307,30 @@
             <div class="flex gap-x-2">
                 <PointInfo {spline} {pov} unitSystem={settings.unitSystem} />
             </div>
-            <div class="h-1/3 w-full flex flex-row">
-                {#if transitions && selected}
-                    <div class="w-1/4 h-full grid grid-cols-2">
+            <div class="h-64 flex-1 w-full flex flex-row">
+                {#if transitions}
+                    <div class="w-1/3 h-full flex flex-col p-2">
+                        <h1 class="font-semibold my-2">Transition Editor</h1>
                         {#if selectedTransition && selected}
-                            <label>Length:</label>
-                            <NumberScroll
-                                bind:value={selectedTransition.length}
-                                min={0.1}
-                            />
+                            <label
+                                ><span class="mr-2"
+                                    >Length: <input
+                                        type="checkbox"
+                                        bind:checked={selectedTransition.dynamicLength}
+                                    /></span
+                                >
+                                {#if !selectedTransition.dynamicLength}
+                                    <div class="float-right">
+                                        <NumberScroll
+                                            bind:value={selectedTransition.length}
+                                            fractionalDigits={1}
+                                            min={0.1}
+                                            max={100}
+                                        />
+                                    </div>
+                                {/if}
+                            </label>
+
                             <!-- <button
                     on:click={() => {
                         if (selectedTransition && selected) {
@@ -225,16 +363,21 @@
                     >Set length to max</button
                 > -->
                             <label
-                                ><span class="mr-2">Value:</span><NumberScroll
-                                    bind:value={selectedTransition.value}
-                                    fractionalDigits={selected.arr === "roll"
-                                        ? 0
-                                        : 1}
-                                /></label
+                                ><span class="mr-2">Value:</span>
+                                <div class="float-right">
+                                    <NumberScroll
+                                        bind:value={selectedTransition.value}
+                                        fractionalDigits={selected.arr ===
+                                        "roll"
+                                            ? 0
+                                            : 1}
+                                    />
+                                </div></label
                             >
+
                             <label
                                 ><span class="mr-2">Curve:</span><select
-                                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400"
+                                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 float-right dark:bg-slate-800 dark:text-white"
                                     bind:value={selectedTransition.curve}
                                 >
                                     {#each curveTypes as curve}
@@ -242,13 +385,19 @@
                                     {/each}
                                 </select>
                             </label>
+
                             <label
-                                ><span class="mr-2">Tension:</span><NumberScroll
-                                    bind:value={selectedTransition.tension}
-                                /></label
+                                ><span class="mr-2">Tension:</span>
+                                <div class="float-right">
+                                    <NumberScroll
+                                        bind:value={selectedTransition.tension}
+                                    />
+                                </div></label
                             >
                         {:else}
-                            no transition selected{/if}
+                            <span class="text-center my-auto"
+                                >no transition selected</span
+                            >{/if}
                     </div>
                     <Graph
                         bind:transitions

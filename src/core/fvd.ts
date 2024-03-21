@@ -28,7 +28,7 @@ import { Transitions } from "./Transitions";
 // const GRAVITY = new THREE.Vector3(0, -G, 0);
 
 const EPSILON = 0.0001;
-const DT = 0.001; // Assuming a fixed time step, you can adjust this as needed
+const DT = 0.01; // Assuming a fixed time step, you can adjust this as needed
 
 export function fvd(
     transitions: Transitions,
@@ -82,7 +82,7 @@ export function fvd(
             //     roll * (Math.PI / 180) * DT
             // );
 
-            if (rollSpeed > 0.01) {
+            if (Math.abs(rollSpeed) > 0.01) {
                 new_dir = qmul(
                     qaxisangle(
                         qrotate(FORWARD, new_dir),
