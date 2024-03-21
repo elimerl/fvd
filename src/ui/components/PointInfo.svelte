@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { TrackSpline } from "../../core/TrackSpline";
-    import { type UnitSystem } from "../../core/constants";
+    import { degDiff, type UnitSystem } from "../../core/constants";
     import NumberDisplay from "./NumberDisplay.svelte";
     import UnitNumberDisplay from "./UnitNumberDisplay.svelte";
     import { euler, forces } from "../../core/Track";
@@ -36,14 +36,14 @@
     let [yawPerS, pitchPerS, rollPerS] = [0, 0, 0];
     $: {
         if (point) {
-            const DP = pov.pos - 0.1 < 0 ? 0 : -0.1;
+            const DP = pov.pos - 0.1 < 0 ? 0.1 : -0.1;
             const [lastYaw, lastPitch, lastRoll] = euler(
                 spline.evaluate(pov.pos + DP)!,
             );
             [yawPerS, pitchPerS, rollPerS] = [
-                ((lastYaw - yaw) * point.velocity) / DP,
-                ((lastPitch - pitch) * point.velocity) / DP,
-                ((lastRoll - roll) * point.velocity) / DP,
+                (degDiff(yaw, lastYaw) * point.velocity) / DP,
+                (degDiff(pitch, lastPitch) * point.velocity) / DP,
+                (degDiff(roll, lastRoll) * point.velocity) / DP,
             ];
         }
     }
@@ -52,7 +52,7 @@
 </script>
 
 {#if point}
-    <div class="flex flex-col text-sm">
+    <div class="flex flex-col text-sm dark:text-white">
         <div class="flex gap-x-4">
             <NumberDisplay label="time" value={point.time} unit="s" />
             <UnitNumberDisplay

@@ -33,7 +33,7 @@ export function testTransitions(): Transitions {
         value: 0,
     });
 
-    transitions.roll[0].length = 6.8;
+    transitions.roll[0].length = 7.2;
     transitions.roll[0].curve = TransitionCurve.Plateau;
     transitions.roll[0].value = 0;
 
@@ -64,13 +64,13 @@ export function testTransitions(): Transitions {
     });
     transitions.vert.push({
         curve: TransitionCurve.Cubic,
-        length: 4.1,
+        length: 3.9,
         tension: 0,
         value: 0,
     });
     transitions.vert.push({
         curve: TransitionCurve.Plateau,
-        length: 3.5,
+        length: 4,
         tension: -1,
         value: -3.5,
     });
@@ -81,10 +81,12 @@ export function notNull<T>(a: T | undefined | null): T {
     return a!;
 }
 
-export function time<T>(f: () => T): T {
+export function time<T>(f: () => T, label: string): T {
     const startTime = performance.now();
 
     const v = f();
-    console.log(`took ${(performance.now() - startTime).toFixed(3)}ms`);
+    console.log(
+        `${label} took ${(performance.now() - startTime).toFixed(3)}ms`
+    );
     return v;
 }

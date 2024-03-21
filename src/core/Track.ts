@@ -1,6 +1,14 @@
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import { Transitions } from "./Transitions";
-import { FORWARD, G, RIGHT, UP, degToRad, radToDeg } from "./constants";
+import {
+    FORWARD,
+    G,
+    RIGHT,
+    UP,
+    degDiff,
+    degToRad,
+    radToDeg,
+} from "./constants";
 import { fvd } from "./fvd";
 import {
     qrotate,
@@ -48,36 +56,17 @@ export function forces(spline: TrackSpline, pos: number): Forces | undefined {
     const dist = vlength(vsub(point.pos, lastPoint.pos));
 
     const [lastYaw, lastPitch, lastRoll] = euler(lastPoint);
-    // const rotChange = qmul(point1.rot, qinverse(point2.rot));
-
-    // const vertTwist = qtwist(rotChange, qrotate(RIGHT, point1.rot));
-    // const vertCurvature = qangle(vertTwist) / dist;
-
-    // let vertRadius = vertCurvature < 0.01 ? Infinity : 1 / vertCurvature;
-    // if (vertTwist[1] < 0) {
-    //     vertRadius = -vertRadius;
-    // }
-
-    // const latTwist = qtwist(rotChange, qrotate(UP, point1.rot));
-    // // console.log(latTwist, vertTwist);
-    // const latCurvature = qangle(latTwist) / dist;
-
-    // let latRadius = latCurvature < 0.01 ? Infinity : 1 / latCurvature;
-
-    // if (latTwist[1] < 0) {
-    //     latRadius = -latRadius;
-    // }
 
     const [yaw, pitch, roll] = euler(point);
 
-    const pitchFromLast = degToRad(pitch - lastPitch);
-    const yawFromLast = degToRad(yaw - lastYaw);
+    const pitchFromLast = degToRad(degDiff(lastPitch, pitch));
+    const yawFromLast = degToRad(degDiff(lastYaw, yaw));
 
     const temp = Math.cos(degToRad(Math.abs(pitch)));
 
     const normalDAngle =
-        -pitchFromLast * Math.cos(degToRad(roll)) -
-        temp * yawFromLast * Math.sin(degToRad(roll));
+        -pitchFromLast * Math.cos(degToRad(-roll)) -
+        temp * yawFromLast * Math.sin(degToRad(-roll));
     const lateralDAngle =
         pitchFromLast * Math.sin(degToRad(roll)) -
         temp * -yawFromLast * Math.cos(degToRad(roll));
@@ -211,8 +200,6 @@ export class Track {
         config: TrackConfig
     ): TrackSpline {
         let spline = new TrackSpline();
-
-        console.log(start);
 
         if (section.type === "straight") {
             const dp = 0.01;

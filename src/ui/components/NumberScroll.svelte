@@ -8,17 +8,20 @@
     export let min: number = -100000;
     export let max: number = 100000;
 
+    export let unit: string = "";
+
+    export let disabled: boolean = false;
+
     value = _.clamp(value, min, max);
 
     $: digits = fractionalDigits + 1;
     $: step = Math.pow(10, -fractionalDigits);
     const inputOnWheel = (ev: WheelEvent) => {
         ev.preventDefault();
-        const dy = Math.sign(ev.deltaY);
+        const dy = Math.sign(ev.deltaY === 0 ? ev.deltaX : ev.deltaY);
         value -= dy * step * (ev.ctrlKey ? 0.1 : 1) * (ev.shiftKey ? 10 : 1);
         value = _.round(value, digits);
         value = _.clamp(value, min, max);
-        // todo add shift and ctrl modifiers to change the step size
     };
 
     const inputOnChange = (ev: Event) => {
@@ -39,12 +42,30 @@
 
 <input
     type="text"
-    class="px-1 m-0.5 rounded-md border border-gray-400 text-right"
+    class={"px-1 m-0.5 rounded-md border border-gray-400 text-right w-24 dark:text-gray-100 dark:bg-gray-800" +
+        (disabled
+            ? " bg-gray-200 text-gray-500 dark:bg-gray-500 dark:text-gray-400"
+            : "")}
     step={step / 10}
     min={-1000}
     {max}
-    value={value.toFixed(digits)}
+    value={value.toFixed(digits) + unit}
+    {disabled}
+    readonly={disabled}
     on:input={inputOnChange}
     on:wheel={inputOnWheel}
+    on:keydown={(ev) => {
+        if (ev.key === "ArrowUp") {
+            ev.preventDefault();
+            value += step * (ev.ctrlKey ? 0.1 : 1) * (ev.shiftKey ? 10 : 1);
+            value = _.round(value, digits);
+            value = _.clamp(value, min, max);
+        } else if (ev.key === "ArrowDown") {
+            ev.preventDefault();
+            value -= step * (ev.ctrlKey ? 0.1 : 1) * (ev.shiftKey ? 10 : 1);
+            value = _.round(value, digits);
+            value = _.clamp(value, min, max);
+        }
+    }}
     alt=""
 />

@@ -1,6 +1,7 @@
 {
 	"name": "B&M Family Launch",
 	"author": "Kw6sTheater",
+	"heartlineHeight": 1.1,
 	"railGauge": 1.0,
 	"railGeometry": {
 		"type": "cylinder",
