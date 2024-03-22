@@ -65,11 +65,11 @@ export function forces(spline: TrackSpline, pos: number): Forces | undefined {
     const temp = Math.cos(degToRad(Math.abs(pitch)));
 
     const normalDAngle =
-        -pitchFromLast * Math.cos(degToRad(-roll)) -
-        temp * yawFromLast * Math.sin(degToRad(-roll));
+        pitchFromLast * Math.cos(degToRad(-roll)) -
+        temp * -yawFromLast * Math.sin(degToRad(-roll));
     const lateralDAngle =
-        pitchFromLast * Math.sin(degToRad(roll)) -
-        temp * -yawFromLast * Math.cos(degToRad(roll));
+        -pitchFromLast * Math.sin(degToRad(roll)) -
+        temp * yawFromLast * Math.cos(degToRad(roll));
 
     const forceVec = vadd(
         vec(0, 1, 0),
@@ -256,6 +256,6 @@ export function euler(p: TrackPoint): [number, number, number] {
     const upDir = qrotate(UP, p.rot);
     const rightDir = qrotate(RIGHT, p.rot);
 
-    const roll = radToDeg(Math.atan2(rightDir[1], -upDir[1]));
+    const roll = radToDeg(Math.atan2(-rightDir[1], upDir[1]));
     return [yaw, pitch, roll];
 }
