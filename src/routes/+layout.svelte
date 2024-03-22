@@ -11,7 +11,7 @@
 
 <svelte:head>
     {@html webManifestLink}
-    <title>forcevector</title>
+    <title>forcevector.app</title>
     <meta name="theme-color" content="#ffffff" />
 </svelte:head>
 
