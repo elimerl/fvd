@@ -33,8 +33,6 @@
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
-    let lastGeometryUpdate: number = 0;
-
     onMount(() => {
         modelWorker.postMessage({
             type: "load",
@@ -43,13 +41,8 @@
 
         modelWorker.onmessage = (event) => {
             console.log(event);
-            const gu = lastGeometryUpdate;
 
             const applyGeometry = () => {
-                if (gu !== lastGeometryUpdate) {
-                    return;
-                }
-                lastGeometryUpdate = performance.now();
                 rails.geometry.dispose();
                 heartline.geometry.dispose();
                 spine.geometry.dispose();
@@ -69,12 +62,7 @@
                 heartline = heartline;
             };
 
-            if (performance.now() - lastGeometryUpdate < 100) {
-                console.log("waiting");
-                setTimeout(() => applyGeometry(), 100);
-            } else {
-                applyGeometry();
-            }
+            requestIdleCallback(applyGeometry);
         };
 
         if (!renderer) {

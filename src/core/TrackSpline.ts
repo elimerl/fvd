@@ -18,7 +18,7 @@ export interface TrackPoint {
 }
 
 // export point interval in meters
-const EXPORT_INTERVAL = 2;
+const EXPORT_INTERVAL = 0.5;
 export class TrackSpline {
     points: TrackPoint[] = [];
 
@@ -105,11 +105,18 @@ export class TrackSpline {
 
         let output = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><root><element><description>fvd.elidavies.com exported data</description>`;
 
+        const maxHeight = exportPoints.reduce(
+            (max, p) => Math.max(max, p.pos[1]),
+            0
+        );
+
         exportPoints.forEach((p, i) => {
             const isStrict = i === 0 || i === exportPoints.length - 1;
-            output += `<vertex><x>${p.pos[0].toFixed(
-                3
-            )}</x><y>${p.pos[1].toFixed(3)}</y><z>${p.pos[2].toFixed(
+            output += `<vertex><x>${p.pos[0].toFixed(3)}</x><y>${(
+                p.pos[1] -
+                maxHeight +
+                1
+            ).toFixed(3)}</y><z>${p.pos[2].toFixed(
                 3
             )}</z><strict>${isStrict}</strict></vertex>`;
         });

@@ -11,7 +11,7 @@ import type { TrackPoint, TrackSpline } from "../core/TrackSpline";
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export type Geometry = {
-    vertices: vec3[];
+    vertices: Float32Array;
     indices: number[];
 };
 
@@ -20,7 +20,7 @@ export function toBufferGeometry(geometry: Geometry): BufferGeometry {
     threeGeometry.setIndex(geometry.indices);
     threeGeometry.setAttribute(
         "position",
-        new BufferAttribute(new Float32Array(geometry.vertices.flat()), 3)
+        new BufferAttribute(geometry.vertices, 3)
     );
 
     return threeGeometry;
@@ -140,7 +140,10 @@ export class TrackModelType {
             }
         }
 
-        return { vertices, indices };
+        return {
+            vertices: new Float32Array(vertices.flat()),
+            indices,
+        };
     }
 
     makeRailsMesh(spline: TrackSpline, vertexCount: number = 6): Geometry {
@@ -170,7 +173,7 @@ export class TrackModelType {
 
         this.makeCrossTies(spline, vertices, indices);
 
-        return { vertices, indices };
+        return { vertices: new Float32Array(vertices.flat()), indices };
     }
     private makeCrossTies(
         spline: TrackSpline,
