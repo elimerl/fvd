@@ -97,7 +97,11 @@
     let settings: AppSettings = loadLocalStorage(
         "settings",
         (v) => v as AppSettings,
-        defaultSettings,
+        () =>
+            defaultSettings(
+                window.matchMedia &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches,
+            ),
     );
 
     $: {
@@ -299,13 +303,20 @@
 
             <div class="w-full flex-initial h-2/3">
                 {#await models}
-                    models loading...
+                    <p class="text-xl text-center my-auto w-full h-full">
+                        models loading...
+                    </p>
                 {:then models}
                     <Renderer {spline} {models} bind:pov />
                 {/await}
             </div>
             <div class="flex gap-x-2">
-                <PointInfo {spline} {pov} unitSystem={settings.unitSystem} />
+                <PointInfo
+                    {spline}
+                    {pov}
+                    unitSystem={settings.unitSystem}
+                    mode={"pov"}
+                />
             </div>
             <div class="h-64 flex-1 w-full flex flex-row">
                 {#if transitions}
@@ -314,7 +325,7 @@
                         {#if selectedTransition && selected}
                             <label
                                 ><span class="mr-2"
-                                    >Length: <input
+                                    >Length: dynamic <input
                                         type="checkbox"
                                         bind:checked={selectedTransition.dynamicLength}
                                     /></span

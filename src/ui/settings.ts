@@ -5,9 +5,9 @@ export interface AppSettings {
     darkMode: boolean;
 }
 
-export const defaultSettings = (): AppSettings => {
+export const defaultSettings = (darkMode: boolean = true): AppSettings => {
     return {
         unitSystem: UnitSystem.Metric,
-        darkMode: true,
+        darkMode,
     };
 };

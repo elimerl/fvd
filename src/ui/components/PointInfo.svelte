@@ -9,7 +9,11 @@
     export let unitSystem: UnitSystem;
     export let pov: { pos: number } = { pos: 0 };
 
-    $: point = spline.evaluate(pov.pos);
+    export let mode: "atEnd" | "pov";
+
+    $: pos = mode === "atEnd" ? spline.getLength() : pov.pos;
+
+    $: point = spline.evaluate(pos);
 
     // fix thios
 
@@ -36,9 +40,9 @@
     let [yawPerS, pitchPerS, rollPerS] = [0, 0, 0];
     $: {
         if (point) {
-            const DP = pov.pos - 0.1 < 0 ? 0.1 : -0.1;
+            const DP = pos - 0.1 < 0 ? 0.1 : -0.1;
             const [lastYaw, lastPitch, lastRoll] = euler(
-                spline.evaluate(pov.pos + DP)!,
+                spline.evaluate(pos + DP)!,
             );
             [yawPerS, pitchPerS, rollPerS] = [
                 (degDiff(yaw, lastYaw) * point.velocity) / DP,
@@ -48,7 +52,7 @@
         }
     }
 
-    $: force = forces(spline, pov.pos) ?? { vert: 0, lat: 0, roll: 0 };
+    $: force = forces(spline, pos) ?? { vert: 0, lat: 0, roll: 0 };
 </script>
 
 {#if point}
@@ -57,7 +61,7 @@
             <NumberDisplay label="time" value={point.time} unit="s" />
             <UnitNumberDisplay
                 label="pos"
-                value={pov.pos}
+                value={pos}
                 baseUnit="distance"
                 {unitSystem}
             />
