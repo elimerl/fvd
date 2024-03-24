@@ -57,6 +57,7 @@
 
 {#if point}
     <div class="flex flex-col text-sm dark:text-white">
+        <p class="font-semibold text-lg">point info</p>
         <div class="flex gap-x-4">
             <NumberDisplay label="time" value={point.time} unit="s" />
             <UnitNumberDisplay

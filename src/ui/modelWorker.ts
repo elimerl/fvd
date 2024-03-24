@@ -6,7 +6,6 @@ let modelType: TrackModelType;
 onmessage = (e) => {
     if (e.data.type === "load") {
         modelType = new TrackModelType(e.data.modelType);
-        console.log(modelType);
     } else if (e.data.type === "geometry") {
         const spline = new TrackSpline();
         spline.points = e.data.points;

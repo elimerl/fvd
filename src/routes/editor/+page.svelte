@@ -8,7 +8,7 @@
         curveTypes,
     } from "../../core/Transitions";
     import Graph from "../../ui/components/Graph.svelte";
-    import { testTransitions, time } from "../../ui/util";
+    import { time } from "../../ui/util";
     import NumberScroll from "../../ui/components/NumberScroll.svelte";
     import Renderer from "../../ui/components/Renderer.svelte";
     import { keyState, keydownHandler, keyupHandler } from "../../ui/input";
@@ -61,12 +61,7 @@
         (v) => Track.fromJSON(v),
         () => {
             const track = new Track();
-            track.anchor.pos = [0, 34, 0];
-            track.sections.push({
-                type: "force",
-                fixedSpeed: undefined,
-                transitions: testTransitions(),
-            });
+            track.anchor.pos = [0, 3.9, 0];
             return track;
         },
     );
@@ -162,7 +157,7 @@
 <div class="w-screen h-screen dark:bg-slate-900 dark:text-white">
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
-            <div class="h-2/3">
+            <div class="h-1/2">
                 <div class="flex flex-col border border-gray-200 h-full">
                     {#each track.sections as section, i}
                         <button
@@ -195,7 +190,7 @@
                 <button
                     class="border p-1"
                     on:click={() => {
-                        track.sections.push({
+                        track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "straight",
                             fixedSpeed: 10,
                             length: 10,
@@ -206,7 +201,20 @@
                 <button
                     class="border p-1"
                     on:click={() => {
-                        track.sections.push({
+                        track.sections.splice(selectedSectionIdx + 1, 0, {
+                            type: "curved",
+                            fixedSpeed: 10,
+                            radius: 15,
+                            angle: 45,
+                            direction: 0,
+                        });
+                        track = track;
+                    }}>+ curved</button
+                >
+                <button
+                    class="border p-1"
+                    on:click={() => {
+                        track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "force",
                             fixedSpeed: undefined,
                             transitions: new Transitions(),
@@ -417,6 +425,12 @@
                             spline,
                             sectionStartPos[selectedSectionIdx],
                         )}
+                        markerTime={spline.evaluate(pov.pos)
+                            ? spline.evaluate(pov.pos).time -
+                              spline.evaluate(
+                                  sectionStartPos[selectedSectionIdx],
+                              ).time
+                            : 0}
                     />
                 {/if}
             </div>

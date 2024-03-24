@@ -22,6 +22,8 @@
 
     export let startForces: Forces;
 
+    export let markerTime: number;
+
     let container: HTMLDivElement;
     let canvas: HTMLCanvasElement;
     let dragging: number | undefined = undefined;
@@ -144,6 +146,7 @@
         zoomLevel: number,
         timeOffset: number,
         selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined,
+        markerTime: number,
     ) {
         const start = performance.now();
         canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
@@ -162,6 +165,22 @@
             timeOffset,
         );
         ctx.setTransform(transform);
+
+        // marker
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(
+            markerTime,
+
+            (24 * window.devicePixelRatio) / canvas.height,
+        );
+        ctx.lineTo(markerTime, 1);
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.stroke();
+        ctx.restore();
 
         // gridlines
         for (
@@ -292,11 +311,12 @@
 
     let frame = 0;
 
-    $: if (canvas) drawGraph(transitions, zoomLevel, timeOffset, selected);
+    $: if (canvas)
+        drawGraph(transitions, zoomLevel, timeOffset, selected, markerTime);
 
     onMount(() => {
         if (canvas) {
-            drawGraph(transitions, zoomLevel, timeOffset, selected);
+            drawGraph(transitions, zoomLevel, timeOffset, selected, markerTime);
         }
 
         const observer = new ResizeObserver(() => {

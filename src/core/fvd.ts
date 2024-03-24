@@ -28,7 +28,7 @@ import { Transitions } from "./Transitions";
 // const GRAVITY = new THREE.Vector3(0, -G, 0);
 
 const EPSILON = 0.0001;
-const DT = 0.01; // Assuming a fixed time step, you can adjust this as needed
+const DT = 0.01;
 
 export function fvd(
     transitions: Transitions,

@@ -3,6 +3,7 @@ import {
     BufferAttribute,
     BufferGeometry,
     Mesh as ThreeMesh,
+    Points as ThreePoints,
 } from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { vsub, type vec3, vec, qrotate, vadd, vmul } from "../core/math";
@@ -180,6 +181,7 @@ export class TrackModelType {
         vertices: vec3[],
         indices: number[]
     ) {
+        if (!this.crossTieGeometry) return;
         const interval = this.crossTieInterval ?? this.spineInterval;
         if (interval === null) throw new Error("no cross tie interval");
 
@@ -196,12 +198,16 @@ export class TrackModelType {
             }
 
             for (let j = 0; j < this.crossTieGeometry.vertices.length; j++) {
-                const baseVertex = this.crossTieGeometry.vertices[j];
+                const baseVertex = [
+                    this.crossTieGeometry.vertices[j][2],
+                    this.crossTieGeometry.vertices[j][1],
+                    this.crossTieGeometry.vertices[j][0],
+                ];
                 const point = vadd(
                     trackPoint,
                     qrotate(
                         [
-                            baseVertex[0] * Math.sign(this.heartlineHeight),
+                            -baseVertex[0] * Math.sign(this.heartlineHeight),
                             baseVertex[1] * Math.sign(this.heartlineHeight),
                             baseVertex[2],
                         ],
@@ -276,31 +282,26 @@ export async function loadModels() {
     const models = new Map<string, TrackModelType>();
 
     const findMeshChild = (obj: Object3D) => {
-        let v: ThreeMesh | undefined;
+        let v: ThreeMesh | ThreePoints | undefined;
         obj.traverse(function (child) {
-            if (child instanceof ThreeMesh) {
+            if (child instanceof ThreeMesh || child instanceof ThreePoints) {
                 v = child;
             }
         });
         return v;
     };
 
-    for (const json of Object.values(modelsJSON)) {
+    for (const [filename, json] of Object.entries(modelsJSON)) {
+        const filenameNoJson = filename.slice(2, -5);
         const modelJSON = json as any;
-        const spineObj = findMeshChild(
-            new OBJLoader().parse(
-                await fetch(`/models/b&m_family/${modelJSON.spineObj}`).then(
-                    (r) => r.text()
-                )
-            )
-        );
-        const crossTieObj = findMeshChild(
-            new OBJLoader().parse(
-                await fetch(`/models/b&m_family/${modelJSON.crossTieObj}`).then(
-                    (r) => r.text()
-                )
-            )
-        );
+        const spineText = await fetch(
+            `/models/${filenameNoJson}/${modelJSON.spineObj}`
+        ).then((r) => r.text());
+        const spineObj = findMeshChild(new OBJLoader().parse(spineText));
+        const crossTieText = await fetch(
+            `/models/${filenameNoJson}/${modelJSON.crossTieObj}`
+        ).then((r) => r.text());
+        const crossTieObj = findMeshChild(new OBJLoader().parse(crossTieText));
         const fixedCrossTieGeometry = BufferGeometryUtils.mergeVertices(
             crossTieObj.geometry,
             0.0001
@@ -326,8 +327,7 @@ export async function loadModels() {
                 indices: Array.from(fixedCrossTieGeometry.index!.array),
             },
         });
-
-        models.set(model.name, model);
+        models.set(filenameNoJson, model);
     }
 
     return models;

@@ -3,7 +3,7 @@
     import type { TrackSpline } from "../../core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qrotate, vadd, vec } from "../../core/math";
+    import { qaxisangle, qmul, qrotate, vadd, vec } from "../../core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
     import {
@@ -33,15 +33,25 @@
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
+    let mode: "fly" | "pov" = "pov";
+
+    let flyPos = vec(0, 0, 0);
+    let flyPitch = 0;
+    let flyYaw = 0;
+    $: flyQuat = qmul(
+        qaxisangle(vec(0, 1, 0), flyYaw),
+        qaxisangle(vec(1, 0, 0), flyPitch),
+    );
+
+    let modelType = models.get("s&s_newgen");
+
     onMount(() => {
         modelWorker.postMessage({
             type: "load",
-            modelType: models.get("B&M Family Launch"),
+            modelType,
         });
 
         modelWorker.onmessage = (event) => {
-            console.log(event);
-
             const applyGeometry = () => {
                 rails.geometry.dispose();
                 heartline.geometry.dispose();
@@ -81,7 +91,7 @@
             camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color("white");
+            scene.background = new THREE.Color("black");
 
             const ambientLight = new THREE.AmbientLight("white", 1);
 
@@ -123,8 +133,8 @@
             const { heartlineGeometry, railGeometry, spineGeometry } =
                 trackGeometry(
                     spline,
-                    models.get("B&M Family Launch")!.makeRailsMesh(spline),
-                    models.get("B&M Family Launch")!.makeSpineMesh(spline),
+                    modelType.makeRailsMesh(spline),
+                    modelType.makeSpineMesh(spline),
                 );
 
             const heartlineMat = new THREE.LineBasicMaterial({
@@ -137,6 +147,7 @@
                 color: new THREE.Color("#3261e3"),
                 roughness: 0.6,
                 metalness: 0.2,
+                // wireframe: true,
             });
 
             rails = new THREE.Mesh(railGeometry, railMat);
@@ -148,7 +159,7 @@
                 color: new THREE.Color("#3261e3"),
                 roughness: 0.6,
                 metalness: 0.2,
-                flatShading: true,
+                // flatShading: true,
                 // wireframe: true,
             });
 
@@ -164,19 +175,43 @@
             const dt = (t - lastTime) * 0.001;
             lastTime = t;
 
-            if (keyState.down.has("KeyW") || keyState.down.has("KeyS")) {
-                if (!spline.evaluate(pov.pos)) {
+            if (mode === "pov") {
+                if (keyState.down.has("KeyW") || keyState.down.has("KeyS")) {
+                    if (!spline.evaluate(pov.pos)) {
+                        fixPos();
+                    }
+                    if (keyState.down.has("KeyW")) {
+                        const speed = keyState.shift ? 2 : 1;
+                        pov.pos +=
+                            dt * spline.evaluate(pov.pos)!.velocity * speed;
+                    }
+                    if (keyState.down.has("KeyS")) {
+                        const speed = keyState.shift ? 2 : 1;
+                        pov.pos -=
+                            dt * spline.evaluate(pov.pos)!.velocity * speed;
+                    }
                     fixPos();
                 }
+            } else if (mode === "fly") {
+                const speed = keyState.shift ? 60 : 30;
                 if (keyState.down.has("KeyW")) {
-                    const speed = keyState.shift ? 2 : 1;
-                    pov.pos += dt * spline.evaluate(pov.pos)!.velocity * speed;
+                    flyPos = vadd(flyPos, qrotate([0, 0, dt * speed], flyQuat));
                 }
                 if (keyState.down.has("KeyS")) {
-                    const speed = keyState.shift ? 2 : 1;
-                    pov.pos -= dt * spline.evaluate(pov.pos)!.velocity * speed;
+                    flyPos = vadd(
+                        flyPos,
+                        qrotate([0, 0, -dt * speed], flyQuat),
+                    );
                 }
-                fixPos();
+                if (keyState.down.has("KeyA")) {
+                    flyPos = vadd(flyPos, qrotate([dt * speed, 0, 0], flyQuat));
+                }
+                if (keyState.down.has("KeyD")) {
+                    flyPos = vadd(
+                        flyPos,
+                        qrotate([-dt * speed, 0, 0], flyQuat),
+                    );
+                }
             }
 
             f = requestAnimationFrame(keyHandler);
@@ -187,7 +222,17 @@
     });
 
     $: if (spline && renderer) {
-        render(performance.now(), pov, spline, heartline, rails, spine);
+        render(
+            performance.now(),
+            pov,
+            spline,
+            heartline,
+            rails,
+            spine,
+            mode,
+            flyPos,
+            flyQuat,
+        );
     }
 
     $: {
@@ -239,22 +284,39 @@
             }
         }
 
-        const camPos = vadd(start.pos, qrotate(vec(0, 0, 0), start.rot));
+        if (mode === "pov") {
+            const camPos = vadd(start.pos, qrotate(vec(0, 0, 0), start.rot));
 
-        camera.position.set(camPos[0], camPos[1], camPos[2]);
-        camera.setRotationFromQuaternion(
-            new THREE.Quaternion(
-                start.rot[1],
-                start.rot[2],
-                start.rot[3],
-                start.rot[0],
-            ).multiply(
-                new THREE.Quaternion().setFromAxisAngle(
-                    new THREE.Vector3(0, 1, 0),
-                    Math.PI,
+            camera.position.set(camPos[0], camPos[1], camPos[2]);
+            camera.setRotationFromQuaternion(
+                new THREE.Quaternion(
+                    start.rot[1],
+                    start.rot[2],
+                    start.rot[3],
+                    start.rot[0],
+                ).multiply(
+                    new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0),
+                        Math.PI,
+                    ),
                 ),
-            ),
-        );
+            );
+        } else {
+            camera.position.set(flyPos[0], flyPos[1], flyPos[2]);
+            camera.setRotationFromQuaternion(
+                new THREE.Quaternion(
+                    flyQuat[1],
+                    flyQuat[2],
+                    flyQuat[3],
+                    flyQuat[0],
+                ).multiply(
+                    new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0),
+                        Math.PI,
+                    ),
+                ),
+            );
+        }
 
         resizeCanvas(renderer, camera);
         renderer.render(scene, camera);
@@ -280,12 +342,45 @@
             camera.updateProjectionMatrix();
         }
     }
+
+    let pointerLocked = false;
+    document.onpointerlockchange = () => {
+        pointerLocked = document.pointerLockElement === canvasThree;
+    };
 </script>
+
+<svelte:body
+    on:keydown={(ev) => {
+        if (ev.code === "Space") {
+            if (mode === "pov") {
+                mode = "fly";
+            } else {
+                mode = "pov";
+            }
+        }
+    }}
+/>
 
 <canvas
     bind:this={canvasThree}
     on:resize={() => {
         resizeCanvas(renderer, camera);
+    }}
+    on:contextmenu={(ev) => ev.preventDefault()}
+    on:mousedown={(ev) => {
+        ev.preventDefault();
+        if (ev.button === 2) {
+            if (!pointerLocked)
+                // @ts-expect-error
+                canvasThree.requestPointerLock({ unadjustedMovement: true });
+            else document.exitPointerLock();
+        }
+    }}
+    on:mousemove={(ev) => {
+        if (pointerLocked) {
+            flyPitch += ev.movementY * 0.001;
+            flyYaw += -ev.movementX * 0.001;
+        }
     }}
     class="w-full h-full"
 />

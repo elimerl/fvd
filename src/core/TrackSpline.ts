@@ -18,7 +18,7 @@ export interface TrackPoint {
 }
 
 // export point interval in meters
-const EXPORT_INTERVAL = 0.5;
+const EXPORT_INTERVAL = 1;
 export class TrackSpline {
     points: TrackPoint[] = [];
 
@@ -112,12 +112,10 @@ export class TrackSpline {
 
         exportPoints.forEach((p, i) => {
             const isStrict = i === 0 || i === exportPoints.length - 1;
-            output += `<vertex><x>${p.pos[0].toFixed(3)}</x><y>${(
-                p.pos[1] -
-                maxHeight +
-                1
-            ).toFixed(3)}</y><z>${p.pos[2].toFixed(
-                3
+            output += `<vertex><x>${p.pos[0].toFixed(
+                5
+            )}</x><y>${p.pos[1].toFixed(5)}</y><z>${p.pos[2].toFixed(
+                5
             )}</z><strict>${isStrict}</strict></vertex>`;
         });
 
@@ -142,14 +140,14 @@ export class TrackSpline {
             const up = qrotate(UP, p.rot);
             const right = qrotate(RIGHT, p.rot);
 
-            output += `<roll><ux>${up[0].toFixed(5)}</ux><uy>${up[1].toFixed(
-                5
-            )}</uy><uz>${up[2].toFixed(5)}</uz><rx>${right[0].toFixed(
-                5
-            )}</rx><ry>${right[1].toFixed(5)}</ry><rz>${right[2].toFixed(
-                5
+            output += `<roll><ux>${up[0].toFixed(7)}</ux><uy>${up[1].toFixed(
+                7
+            )}</uy><uz>${up[2].toFixed(7)}</uz><rx>${right[0].toFixed(
+                7
+            )}</rx><ry>${right[1].toFixed(7)}</ry><rz>${right[2].toFixed(
+                7
             )}</rz><coord>${(currentLength / totalLength).toFixed(
-                6
+                9
             )}</coord></roll>`;
         });
 

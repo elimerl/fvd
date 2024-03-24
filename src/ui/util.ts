@@ -24,59 +24,6 @@ export function deltaY(e: WheelEvent) {
     return e.deltaMode === 0 ? e.deltaY : e.deltaY * scrollLineHeight;
 }
 
-export function testTransitions(): Transitions {
-    const transitions = new Transitions();
-    transitions.lat.push({
-        length: 30,
-        curve: TransitionCurve.Linear,
-        tension: 0,
-        value: 0,
-    });
-
-    transitions.roll[0].length = 7.2;
-    transitions.roll[0].curve = TransitionCurve.Plateau;
-    transitions.roll[0].value = 0;
-
-    transitions.roll.push({
-        length: 3,
-        curve: TransitionCurve.Plateau,
-        tension: 0,
-        value: 180,
-    });
-    transitions.vert.pop();
-    transitions.vert.push({
-        curve: TransitionCurve.Cubic,
-        length: 1.5,
-        tension: 0,
-        value: -1.5,
-    });
-    transitions.vert.push({
-        curve: TransitionCurve.Cubic,
-        length: 0.3,
-        tension: 0,
-        value: 0,
-    });
-    transitions.vert.push({
-        curve: TransitionCurve.Cubic,
-        length: 1,
-        tension: 0,
-        value: 4,
-    });
-    transitions.vert.push({
-        curve: TransitionCurve.Cubic,
-        length: 3.9,
-        tension: 0,
-        value: 0,
-    });
-    transitions.vert.push({
-        curve: TransitionCurve.Plateau,
-        length: 4,
-        tension: -1,
-        value: -3.5,
-    });
-    return transitions;
-}
-
 export function notNull<T>(a: T | undefined | null): T {
     return a!;
 }

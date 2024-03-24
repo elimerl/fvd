@@ -38,6 +38,13 @@ export type TrackSection =
           type: "force";
           fixedSpeed: number | undefined;
           transitions: Transitions;
+      }
+    | {
+          type: "curved";
+          fixedSpeed: number | undefined;
+          radius: number;
+          direction: number;
+          angle: number;
       };
 
 export interface Forces {
@@ -114,6 +121,14 @@ export class Track {
                     type: "force",
                     fixedSpeed: section.fixedSpeed,
                     transitions: Transitions.fromJSON(section.transitions),
+                };
+            } else if (section.type === "curved") {
+                return {
+                    type: "curved",
+                    fixedSpeed: section.fixedSpeed,
+                    radius: section.radius,
+                    direction: section.direction,
+                    angle: section.angle,
                 };
             } else {
                 throw new Error("Invalid section type");
@@ -206,7 +221,7 @@ export class Track {
             let pos = start.pos;
             let velocity = section.fixedSpeed;
             if (!section.fixedSpeed)
-                throw new Error("TODO friction on straight track");
+                throw new Error("TODO friction on sections");
 
             for (let d = 0; d <= section.length; d += dp) {
                 pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
@@ -225,6 +240,27 @@ export class Track {
                 this.config,
                 startForces
             );
+        } else if (section.type === "curved") {
+            const dp = 0.01;
+            let pos = start.pos;
+            let velocity = section.fixedSpeed;
+            let rot = start.rot;
+            if (!section.fixedSpeed)
+                throw new Error("TODO friction on sections");
+
+            const angle = degToRad(section.angle);
+
+            for (let d = 0; d <= angle * section.radius; d += dp) {
+                pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
+                velocity = section.fixedSpeed;
+                // rot = qrotate(vmul(FORWARD, dp), start.rot);
+                spline.points.push({
+                    pos,
+                    rot,
+                    velocity,
+                    time: d / velocity + start.time,
+                });
+            }
         }
 
         return spline;

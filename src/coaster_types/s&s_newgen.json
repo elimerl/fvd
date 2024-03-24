@@ -1,0 +1,14 @@
+{
+	"name": "S&S Newgen",
+	"author": "KohlerCoaster",
+	"heartlineHeight": 1.2,
+	"railGauge": 1.2,
+	"railGeometry": {
+		"type": "cylinder",
+		"radius": 0.07
+	},
+	"spineInterval": 0.25,
+	"crossTieInterval": 0.8,
+	"spineObj": "s&s_newgen_spine.obj",
+	"crossTieObj": "s&s_newgen_crosstie.obj"
+}
