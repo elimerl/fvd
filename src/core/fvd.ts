@@ -34,11 +34,12 @@ export function fvd(
     transitions: Transitions,
     start: TrackPoint,
     config: TrackConfig,
-    startForces: Forces
+    startForces: Forces,
+    fixedSpeed: number | undefined
 ): TrackSpline {
     const spline = new TrackSpline();
     const pointEnergies: number[] = [];
-    let velocity = start.velocity;
+    let velocity = fixedSpeed ?? start.velocity;
     let pos = start.pos;
     let traveled = 0;
     let direction: quaternion = start.rot;
@@ -140,30 +141,35 @@ export function fvd(
                       )
                   );
 
-        let energy = 0.5 * velocity * velocity;
+        if (fixedSpeed === undefined) {
+            let energy = 0.5 * velocity * velocity;
 
-        energy -= velocity * velocity * velocity * DT * config.resistance;
+            energy -= velocity * velocity * velocity * DT * config.resistance;
 
-        if (
-            energy -
-                (trackPosFriction[1] -
-                    lastTrackPosFriction[1] +
-                    vlength(vsub(trackPosFriction, lastTrackPosFriction)) *
-                        config.parameter) *
-                    G <=
-            0
-        )
-            break;
-
-        velocity = Math.sqrt(
-            2 *
-                (energy -
+            if (
+                energy -
                     (trackPosFriction[1] -
                         lastTrackPosFriction[1] +
                         vlength(vsub(trackPosFriction, lastTrackPosFriction)) *
                             config.parameter) *
-                        G)
-        );
+                        G <=
+                0
+            )
+                break;
+
+            velocity = Math.sqrt(
+                2 *
+                    (energy -
+                        (trackPosFriction[1] -
+                            lastTrackPosFriction[1] +
+                            vlength(
+                                vsub(trackPosFriction, lastTrackPosFriction)
+                            ) *
+                                config.parameter) *
+                            G)
+            );
+            pointEnergies.push(energy);
+        }
 
         spline.points.push({
             pos,
@@ -174,8 +180,6 @@ export function fvd(
 
         time += DT;
         traveled += deltaLength;
-
-        pointEnergies.push(energy);
     }
 
     return spline;

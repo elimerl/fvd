@@ -188,8 +188,12 @@ export class Transitions {
         for (const transition of this.vert) {
             if (transition.dynamicLength && !alreadyDynamic) {
                 transition.length = Math.min(
-                    _.sumBy(this.roll, (v) => v.length),
-                    _.sumBy(this.lat, (v) => v.length)
+                    _.sumBy(this.roll, (v) =>
+                        v.dynamicLength ? Infinity : v.length
+                    ),
+                    _.sumBy(this.lat, (v) =>
+                        v.dynamicLength ? Infinity : v.length
+                    )
                 );
                 alreadyDynamic = true;
             }
@@ -198,8 +202,12 @@ export class Transitions {
         for (const transition of this.lat) {
             if (transition.dynamicLength && !alreadyDynamic) {
                 transition.length = Math.min(
-                    _.sumBy(this.roll, (v) => v.length),
-                    _.sumBy(this.vert, (v) => v.length)
+                    _.sumBy(this.roll, (v) =>
+                        v.dynamicLength ? Infinity : v.length
+                    ),
+                    _.sumBy(this.vert, (v) =>
+                        v.dynamicLength ? Infinity : v.length
+                    )
                 );
                 alreadyDynamic = true;
             }
@@ -208,8 +216,12 @@ export class Transitions {
         for (const transition of this.roll) {
             if (transition.dynamicLength && !alreadyDynamic) {
                 transition.length = Math.min(
-                    _.sumBy(this.lat, (v) => v.length),
-                    _.sumBy(this.vert, (v) => v.length)
+                    _.sumBy(this.lat, (v) =>
+                        v.dynamicLength ? Infinity : v.length
+                    ),
+                    _.sumBy(this.vert, (v) =>
+                        v.dynamicLength ? Infinity : v.length
+                    )
                 );
                 alreadyDynamic = true;
             }

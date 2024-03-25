@@ -26,6 +26,7 @@ import {
     vec,
     vdot,
     qtoaxisangle,
+    qaxisangle,
 } from "./math";
 
 export type TrackSection =
@@ -201,7 +202,7 @@ export class Track {
             }
             startForces = forces(
                 splines[splines.length - 1],
-                splines[splines.length - 1].getLength() - 0.02
+                splines[splines.length - 1].getLength() - 0.05
             )!;
         });
 
@@ -238,10 +239,11 @@ export class Track {
                 section.transitions,
                 { ...start },
                 this.config,
-                startForces
+                startForces,
+                section.fixedSpeed
             );
         } else if (section.type === "curved") {
-            const dp = 0.01;
+            const dp = 0.05;
             let pos = start.pos;
             let velocity = section.fixedSpeed;
             let rot = start.rot;
@@ -249,11 +251,17 @@ export class Track {
                 throw new Error("TODO friction on sections");
 
             const angle = degToRad(section.angle);
+            const radPerM = 1 / section.radius;
+
+            const axis = qrotate(
+                RIGHT,
+                qaxisangle(FORWARD, degToRad(section.direction))
+            );
 
             for (let d = 0; d <= angle * section.radius; d += dp) {
-                pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
+                pos = vadd(pos, qrotate(vmul(FORWARD, dp), rot));
                 velocity = section.fixedSpeed;
-                // rot = qrotate(vmul(FORWARD, dp), start.rot);
+                rot = qmul(rot, qaxisangle(axis, radPerM * dp));
                 spline.points.push({
                     pos,
                     rot,

@@ -22,7 +22,7 @@
     import { Track, forces } from "../../core/Track";
     import { loadModels, type TrackModelType } from "../../coaster_types/model";
 
-    import { IconTrash } from "@tabler/icons-svelte";
+    import { Trash2Icon } from "svelte-feather-icons";
 
     let pov = { pos: 0 };
 
@@ -157,8 +157,11 @@
 <div class="w-screen h-screen dark:bg-slate-900 dark:text-white">
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
+            <p class="mb-2 font-semibold text-lg">Track sections</p>
             <div class="h-1/2">
-                <div class="flex flex-col border border-gray-200 h-full">
+                <div
+                    class="flex flex-col border border-gray-200 h-full overflow-y-scroll overflow-x-hidden"
+                >
                     {#each track.sections as section, i}
                         <button
                             class={"p-1 border text-left " +
@@ -180,7 +183,7 @@
                                         selectedSectionIdx = 0;
                                         track = track;
                                     }
-                                }}><IconTrash /></button
+                                }}><Trash2Icon class="p-0.5" /></button
                             >
                         </button>
                     {/each}
@@ -245,10 +248,92 @@
                                 on:change={(e) => {
                                     selectedSection.fixedSpeed =
                                         //@ts-expect-error
-                                        e.target.checked
-                                            ? //@ts-expect-error
-                                              selectedSection.length
-                                            : undefined;
+                                        e.target.checked ? 10 : undefined;
+                                }}
+                            />
+                            <div class="float-right">
+                                {#if selectedSection.fixedSpeed !== undefined}
+                                    <NumberScroll
+                                        bind:value={selectedSection.fixedSpeed}
+                                        min={0.1}
+                                        fractionalDigits={0}
+                                        unit="m/s"
+                                    />
+                                {/if}
+                            </div></label
+                        >
+                    </div>
+                {/if}
+                {#if selectedSection.type === "curved"}
+                    <div class="flex flex-col">
+                        <label
+                            >Radius: <div class="float-right">
+                                <NumberScroll
+                                    bind:value={selectedSection.radius}
+                                    min={0.1}
+                                    fractionalDigits={0}
+                                    unit="m"
+                                />
+                            </div></label
+                        >
+                        <label
+                            >Total angle: <div class="float-right">
+                                <NumberScroll
+                                    bind:value={selectedSection.angle}
+                                    min={0.1}
+                                    fractionalDigits={0}
+                                    unit="°"
+                                />
+                            </div></label
+                        >
+                        <label
+                            >Direction: <div class="float-right">
+                                <NumberScroll
+                                    bind:value={selectedSection.direction}
+                                    min={-180}
+                                    max={180}
+                                    fractionalDigits={0}
+                                    unit="°"
+                                />
+                            </div></label
+                        >
+                        <label
+                            >Fixed speed:
+                            <input
+                                type="checkbox"
+                                checked={selectedSection.fixedSpeed !==
+                                    undefined}
+                                on:change={(e) => {
+                                    selectedSection.fixedSpeed =
+                                        //@ts-expect-error
+                                        e.target.checked ? 10 : undefined;
+                                }}
+                            />
+                            <div class="float-right">
+                                {#if selectedSection.fixedSpeed !== undefined}
+                                    <NumberScroll
+                                        bind:value={selectedSection.fixedSpeed}
+                                        min={0.1}
+                                        fractionalDigits={0}
+                                        unit="m/s"
+                                    />
+                                {/if}
+                            </div></label
+                        >
+                    </div>
+                {/if}
+                {#if selectedSection.type === "force"}
+                    <div class="flex flex-col">
+                        <label
+                            >Fixed speed:
+                            <input
+                                type="checkbox"
+                                checked={selectedSection.fixedSpeed !==
+                                    undefined}
+                                on:change={(e) => {
+                                    selectedSection.fixedSpeed =
+                                        //@ts-expect-error
+                                        e.target.checked ? 10 : undefined;
                                 }}
                             />
                             <div class="float-right">
