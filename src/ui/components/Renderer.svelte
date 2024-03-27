@@ -43,7 +43,7 @@
         qaxisangle(vec(1, 0, 0), flyPitch),
     );
 
-    let modelType = models.get("s&s_newgen");
+    let modelType = models.get("b&m_family");
 
     onMount(() => {
         modelWorker.postMessage({
@@ -260,7 +260,14 @@
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline
                 .intervalPoints(0.1)
-                .map((v) => new THREE.Vector3(v.pos[0], v.pos[1], v.pos[2])),
+                .map(
+                    (v) =>
+                        new THREE.Vector3(
+                            v.point.pos[0],
+                            v.point.pos[1],
+                            v.point.pos[2],
+                        ),
+                ),
         );
         return {
             heartlineGeometry,

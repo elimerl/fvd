@@ -18,7 +18,7 @@ export interface TrackPoint {
 }
 
 // export point interval in meters
-const EXPORT_INTERVAL = 1;
+const EXPORT_INTERVAL = 2;
 export class TrackSpline {
     points: TrackPoint[] = [];
 
@@ -78,23 +78,35 @@ export class TrackSpline {
         return undefined;
     }
 
-    intervalPoints(interval: number): TrackPoint[] {
-        const points: TrackPoint[] = [];
+    intervalPoints(interval: number): { point: TrackPoint; dist: number }[] {
+        const points: { point: TrackPoint; dist: number }[] = [
+            { point: { ...this.points[0] }, dist: 0 },
+        ];
         let intervalAccum = Infinity;
         let lastPoint = this.points[0];
+        let distAccum = 0;
 
         this.points.forEach((p) => {
             const distance = vlength(vsub(p.pos, lastPoint.pos));
             intervalAccum += distance;
+            distAccum += distance;
 
             if (intervalAccum > interval) {
                 intervalAccum = 0;
                 points.push({
-                    ...p,
+                    point: {
+                        ...p,
+                    },
+                    dist: distAccum,
                 });
             }
 
             lastPoint = p;
+        });
+
+        points.push({
+            point: { ...this.points[this.points.length - 1] },
+            dist: intervalAccum,
         });
 
         return points;
@@ -106,15 +118,17 @@ export class TrackSpline {
         let output = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><root><element><description>fvd.elidavies.com exported data</description>`;
 
         const maxHeight = exportPoints.reduce(
-            (max, p) => Math.max(max, p.pos[1]),
+            (max, p) => Math.max(max, p.point.pos[1]),
             0
         );
 
         exportPoints.forEach((p, i) => {
             const isStrict = i === 0 || i === exportPoints.length - 1;
-            output += `<vertex><x>${p.pos[0].toFixed(
+            output += `<vertex><x>${p.point.pos[0].toFixed(
                 5
-            )}</x><y>${p.pos[1].toFixed(5)}</y><z>${p.pos[2].toFixed(
+            )}</x><y>${p.point.pos[1].toFixed(
+                5
+            )}</y><z>${p.point.pos[2].toFixed(
                 5
             )}</z><strict>${isStrict}</strict></vertex>`;
         });
@@ -125,8 +139,8 @@ export class TrackSpline {
             let lastPoint = this.points[0];
 
             exportPoints.slice(1).forEach((v) => {
-                totalLength += vlength(vsub(v.pos, lastPoint.pos));
-                lastPoint = v;
+                totalLength += vlength(vsub(v.point.pos, lastPoint.pos));
+                lastPoint = v.point;
             });
         }
 
@@ -134,11 +148,11 @@ export class TrackSpline {
         let currentLength = 0;
 
         exportPoints.forEach((p) => {
-            currentLength += vlength(vsub(p.pos, lastPoint.pos));
+            currentLength += vlength(vsub(p.point.pos, p.point.pos));
 
             lastPoint = p;
-            const up = qrotate(UP, p.rot);
-            const right = qrotate(RIGHT, p.rot);
+            const up = qrotate(UP, p.point.rot);
+            const right = qrotate(RIGHT, p.point.rot);
 
             output += `<roll><ux>${up[0].toFixed(7)}</ux><uy>${up[1].toFixed(
                 7

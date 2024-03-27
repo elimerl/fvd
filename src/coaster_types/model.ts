@@ -6,7 +6,16 @@ import {
     Points as ThreePoints,
 } from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { vsub, type vec3, vec, qrotate, vadd, vmul } from "../core/math";
+import {
+    vsub,
+    type vec3,
+    vec,
+    qrotate,
+    vadd,
+    vmul,
+    qslerp,
+    vlerp,
+} from "../core/math";
 
 import type { TrackPoint, TrackSpline } from "../core/TrackSpline";
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
@@ -90,13 +99,13 @@ export class TrackModelType {
         const points =
             this.spineInterval !== null
                 ? spline.intervalPoints(this.spineInterval)
-                : spline.points;
+                : spline.intervalPoints(0);
 
         for (let i = 0; i < points.length; i++) {
             const indexRow: number[] = [];
             const trackPoint = vsub(
-                points[i].pos,
-                qrotate(vec(0, this.heartlineHeight, 0), points[i].rot)
+                points[i].point.pos,
+                qrotate(vec(0, this.heartlineHeight, 0), points[i].point.rot)
             );
 
             for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
@@ -110,7 +119,7 @@ export class TrackModelType {
                             baseVertex[1] * Math.sign(this.heartlineHeight),
                             baseVertex[2],
                         ],
-                        points[i].rot
+                        points[i].point.rot
                     )
                 );
 
@@ -188,9 +197,15 @@ export class TrackModelType {
         const points = spline.intervalPoints(interval);
 
         for (let i = 0; i < points.length; i++) {
-            const trackPoint = vsub(
-                points[i].pos,
-                qrotate(vec(0, this.heartlineHeight, 0), points[i].rot)
+            const trackPointStart = vsub(
+                points[i].point.pos,
+                qrotate(vec(0, this.heartlineHeight, 0), points[i].point.rot)
+            );
+            const pointEnd =
+                spline.evaluate(points[i].dist + interval) ?? points[i].point;
+            const trackPointEnd = vsub(
+                pointEnd.pos,
+                qrotate(vec(0, this.heartlineHeight, 0), pointEnd.rot)
             );
 
             for (const index of this.crossTieGeometry.indices) {
@@ -203,15 +218,24 @@ export class TrackModelType {
                     this.crossTieGeometry.vertices[j][1],
                     this.crossTieGeometry.vertices[j][0],
                 ];
+                const offset = baseVertex[0];
+
+                const rot = qslerp(
+                    points[i].point.rot,
+                    pointEnd.rot,
+                    offset / interval
+                );
+                const pos = trackPointStart;
+
                 const point = vadd(
-                    trackPoint,
+                    pos,
                     qrotate(
                         [
                             -baseVertex[0] * Math.sign(this.heartlineHeight),
                             baseVertex[1] * Math.sign(this.heartlineHeight),
                             baseVertex[2],
                         ],
-                        points[i].rot
+                        rot
                     )
                 );
                 vertices.push(point);
@@ -224,21 +248,21 @@ export class TrackModelType {
         vertices: vec3[],
         indices: number[],
         side: -1 | 1,
-        points: TrackPoint[]
+        points: { point: TrackPoint; dist: number }[]
     ) {
         const indexArray = [];
 
         for (let i = 0; i < points.length; i++) {
             {
                 const trackPoint = vsub(
-                    points[i].pos,
+                    points[i].point.pos,
                     qrotate(
                         vec(
                             (this.railGauge / 2) * side,
                             this.heartlineHeight,
                             0
                         ),
-                        points[i].rot
+                        points[i].point.rot
                     )
                 );
                 const indexRow = [];
@@ -246,7 +270,7 @@ export class TrackModelType {
                     const baseVertex = baseVertices[j];
                     const point = vadd(
                         trackPoint,
-                        qrotate(baseVertex, points[i].rot)
+                        qrotate(baseVertex, points[i].point.rot)
                     );
 
                     const vertex: vec3 = [point[0], point[1], point[2]];
