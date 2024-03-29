@@ -1,6 +1,7 @@
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import { Transitions } from "./Transitions";
 import {
+    DOWN,
     FORWARD,
     G,
     RIGHT,
@@ -220,13 +221,34 @@ export class Track {
         if (section.type === "straight") {
             const dp = 0.01;
             let pos = start.pos;
-            let velocity = section.fixedSpeed;
-            if (!section.fixedSpeed)
-                throw new Error("TODO friction on sections");
+            let velocity = start.velocity;
 
             for (let d = 0; d <= section.length; d += dp) {
+                const lastPoint = spline.points[spline.points.length - 1];
                 pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
-                velocity = section.fixedSpeed;
+                if (section.fixedSpeed !== undefined) {
+                    velocity = section.fixedSpeed;
+                } else {
+                    const dt = dp / velocity;
+                    const point = {
+                        pos,
+                        rot: start.rot,
+                        velocity,
+                        time: d / velocity + start.time,
+                    };
+                    velocity = trackFriction(
+                        config.parameter,
+                        config.resistance,
+                        config.heartlineHeight,
+                        lastPoint ?? point,
+                        point,
+                        dt
+                    );
+                    if (velocity <= 0) {
+                        return spline;
+                    }
+                    console.log(velocity);
+                }
                 spline.points.push({
                     pos,
                     rot: start.rot,
@@ -245,10 +267,8 @@ export class Track {
         } else if (section.type === "curved") {
             const dp = 0.05;
             let pos = start.pos;
-            let velocity = section.fixedSpeed;
+            let velocity = start.velocity;
             let rot = start.rot;
-            if (!section.fixedSpeed)
-                throw new Error("TODO friction on sections");
 
             const angle = degToRad(section.angle);
             const radPerM = 1 / section.radius;
@@ -258,9 +278,33 @@ export class Track {
                 qaxisangle(FORWARD, degToRad(section.direction))
             );
 
-            for (let d = 0; d <= angle * section.radius; d += dp) {
+            for (let d = 0; d < angle * section.radius; d += dp) {
+                const lastPoint = spline.points[spline.points.length - 1];
+
                 pos = vadd(pos, qrotate(vmul(FORWARD, dp), rot));
-                velocity = section.fixedSpeed;
+                if (section.fixedSpeed !== undefined) {
+                    velocity = section.fixedSpeed;
+                } else {
+                    const dt = dp / velocity;
+                    const point = {
+                        pos,
+                        rot,
+                        velocity,
+                        time: d / velocity + start.time,
+                    };
+                    velocity = trackFriction(
+                        config.parameter,
+                        config.resistance,
+                        config.heartlineHeight,
+                        lastPoint ?? point,
+                        point,
+                        dt
+                    );
+                    if (velocity <= 0) {
+                        return spline;
+                    }
+                    console.log(velocity);
+                }
                 rot = qmul(rot, qaxisangle(axis, radPerM * dp));
                 spline.points.push({
                     pos,
@@ -306,4 +350,53 @@ export function euler(p: TrackPoint): [number, number, number] {
 
     const roll = radToDeg(Math.atan2(-rightDir[1], upDir[1]));
     return [yaw, pitch, roll];
+}
+
+export function trackFriction(
+    parameter: number,
+    resistance: number,
+    heartlineHeight: number,
+    lastPoint: TrackPoint,
+    point: TrackPoint,
+    dt: number
+): number {
+    const trackPosFriction = vadd(
+        point.pos,
+        qrotate(vmul(DOWN, heartlineHeight * 0.9), point.rot)
+    );
+
+    const lastTrackPosFriction = vadd(
+        lastPoint.pos,
+        qrotate(vmul(DOWN, heartlineHeight * 0.9), lastPoint.rot)
+    );
+
+    let energy = 0.5 * lastPoint.velocity * lastPoint.velocity;
+
+    energy -=
+        lastPoint.velocity *
+        lastPoint.velocity *
+        lastPoint.velocity *
+        dt *
+        resistance;
+
+    if (
+        energy -
+            (trackPosFriction[1] -
+                lastTrackPosFriction[1] +
+                vlength(vsub(trackPosFriction, lastTrackPosFriction)) *
+                    parameter) *
+                G <=
+        0
+    )
+        return 0;
+
+    return Math.sqrt(
+        2 *
+            (energy -
+                (trackPosFriction[1] -
+                    lastTrackPosFriction[1] +
+                    vlength(vsub(trackPosFriction, lastTrackPosFriction)) *
+                        parameter) *
+                    G)
+    );
 }

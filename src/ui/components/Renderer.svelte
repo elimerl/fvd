@@ -217,8 +217,15 @@
             f = requestAnimationFrame(keyHandler);
         }
         f = requestAnimationFrame(keyHandler);
+        const observer = new ResizeObserver(() => {
+            render(performance.now(), pov, spline);
+        });
+        observer.observe(canvasThree);
 
-        return () => cancelAnimationFrame(f);
+        return () => {
+            cancelAnimationFrame(f);
+            observer.disconnect();
+        };
     });
 
     $: if (spline && renderer) {
@@ -358,7 +365,9 @@
 
 <svelte:body
     on:keydown={(ev) => {
-        if (ev.code === "Space") {
+        if (ev.code === "Tab") {
+            ev.preventDefault();
+            ev.stopPropagation();
             if (mode === "pov") {
                 mode = "fly";
             } else {
@@ -369,6 +378,7 @@
 />
 
 <canvas
+    tabindex="0"
     bind:this={canvasThree}
     on:resize={() => {
         resizeCanvas(renderer, camera);

@@ -203,10 +203,6 @@ export class TrackModelType {
             );
             const pointEnd =
                 spline.evaluate(points[i].dist + interval) ?? points[i].point;
-            const trackPointEnd = vsub(
-                pointEnd.pos,
-                qrotate(vec(0, this.heartlineHeight, 0), pointEnd.rot)
-            );
 
             for (const index of this.crossTieGeometry.indices) {
                 indices.push(index + vertices.length);

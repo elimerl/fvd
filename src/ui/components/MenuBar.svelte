@@ -1,17 +1,37 @@
-<script>
-    // Define any functionality needed for the menu bar
+<script lang="ts">
+    import { Menubar } from "bits-ui";
 </script>
 
-<nav class="bg-gray-800 p-1">
-    <div class="flex justify-between">
-        <div class="flex space-x-4">
-            <button class="text-white peer">File</button>
-            <div
-                class="flex-col absolute bg-black left-0 my-6 p-1 hidden peer-hover:flex"
+<Menubar.Root
+    class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini"
+>
+    <Menubar.Menu>
+        <Menubar.Trigger
+            class="inline-flex h-8 cursor-default items-center justify-center rounded-9px px-1 text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted data-[state=open]:bg-muted"
+            >View</Menubar.Trigger
+        >
+        <Menubar.Content
+            class="z-50 w-full max-w-[220px]  border border-muted bg-background px-1 py-1.5 shadow-popover !ring-0 !ring-transparent "
+            align="start"
+            sideOffset={3}
+        >
+            <Menubar.Item></Menubar.Item>
+        </Menubar.Content>
+    </Menubar.Menu>
+    <Menubar.Menu>
+        <Menubar.Trigger
+            class="inline-flex h-8 cursor-default items-center justify-center rounded-[9px] px-1 text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted data-[state=open]:bg-muted"
+            >Edit</Menubar.Trigger
+        >
+        <Menubar.Content
+            class="z-50 w-full max-w-[220px]  border border-muted bg-background px-1 py-1.5 shadow-popover"
+            align="start"
+            sideOffset={3}
+        >
+            <Menubar.Item
+                class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                >Preferences</Menubar.Item
             >
-                <button class="text-white">Open</button>
-                <button class="text-white">Save</button>
-            </div>
-        </div>
-    </div>
-</nav>
+        </Menubar.Content>
+    </Menubar.Menu>
+</Menubar.Root>

@@ -31,8 +31,8 @@
     let zoomLevel = 5;
     let timeOffset: number = 0;
 
-    const transformG = (g: number) => -g * 0.125 + 0.75;
-    const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.75;
+    const transformG = (g: number) => -g * 0.125 + 0.72;
+    const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.72;
 
     function canvasMouseUp(ev: MouseEvent) {
         if (dragging && Math.abs(dragging) > 0.05) return;
@@ -390,7 +390,7 @@
 <div
     bind:this={container}
     on:keydown={keyDown}
-    class="overflow-clip overscroll-none w-full h-full"
+    class=" w-full h-full"
     on:mousedown={(ev) => {
         if (ev.button === 0) {
             dragging = 0;
