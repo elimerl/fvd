@@ -78,10 +78,13 @@ export class TrackSpline {
         return undefined;
     }
 
-    intervalPoints(interval: number): { point: TrackPoint; dist: number }[] {
-        const points: { point: TrackPoint; dist: number }[] = [
-            { point: { ...this.points[0] }, dist: 0 },
-        ];
+    intervalPoints(
+        interval: number,
+        startAndEnd: boolean = true
+    ): { point: TrackPoint; dist: number }[] {
+        const points: { point: TrackPoint; dist: number }[] = startAndEnd
+            ? [{ point: { ...this.points[0] }, dist: 0 }]
+            : [];
         let intervalAccum = Infinity;
         let lastPoint = this.points[0];
         let distAccum = 0;
@@ -103,11 +106,11 @@ export class TrackSpline {
 
             lastPoint = p;
         });
-
-        points.push({
-            point: { ...this.points[this.points.length - 1] },
-            dist: intervalAccum,
-        });
+        if (startAndEnd)
+            points.push({
+                point: { ...this.points[this.points.length - 1] },
+                dist: intervalAccum,
+            });
 
         return points;
     }

@@ -194,7 +194,7 @@ export class TrackModelType {
         const interval = this.crossTieInterval ?? this.spineInterval;
         if (interval === null) throw new Error("no cross tie interval");
 
-        const points = spline.intervalPoints(interval);
+        const points = spline.intervalPoints(interval, false);
 
         for (let i = 0; i < points.length; i++) {
             const trackPointStart = vsub(
