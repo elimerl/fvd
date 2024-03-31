@@ -16,7 +16,12 @@
 
     import ModelWorker from "../modelWorker?worker";
 
-    const modelWorker = new ModelWorker();
+    const modelWorkers = [];
+    for (let i = 0; i < 6; i++) {
+        modelWorkers.push(new ModelWorker());
+    }
+
+    let modelWorkerIdx = 0;
 
     export let spline: TrackSpline;
     export let pov: { pos: number } = { pos: 0 };
@@ -46,34 +51,39 @@
     let modelType = models.get("b&m_family");
 
     onMount(() => {
-        modelWorker.postMessage({
-            type: "load",
-            modelType,
-        });
+        modelWorkers.forEach((worker) =>
+            worker.postMessage({
+                type: "load",
+                modelType,
+            }),
+        );
 
-        modelWorker.onmessage = (event) => {
-            const applyGeometry = () => {
-                rails.geometry.dispose();
-                heartline.geometry.dispose();
-                spine.geometry.dispose();
-                const { heartlineGeometry, railGeometry, spineGeometry } = time(
-                    () =>
-                        trackGeometry(
-                            spline,
-                            event.data.railsMesh,
-                            event.data.spineMesh,
-                        ),
-                    "makeGeometry",
-                );
-                heartline.geometry = heartlineGeometry;
-                rails.geometry = railGeometry;
-                spine.geometry = spineGeometry;
+        modelWorkers.forEach((worker) => {
+            worker.onmessage = (event) => {
+                const applyGeometry = () => {
+                    rails.geometry.dispose();
+                    heartline.geometry.dispose();
+                    spine.geometry.dispose();
+                    const { heartlineGeometry, railGeometry, spineGeometry } =
+                        time(
+                            () =>
+                                trackGeometry(
+                                    spline,
+                                    event.data.railsMesh,
+                                    event.data.spineMesh,
+                                ),
+                            "makeGeometry",
+                        );
+                    heartline.geometry = heartlineGeometry;
+                    rails.geometry = railGeometry;
+                    spine.geometry = spineGeometry;
 
-                heartline = heartline;
+                    heartline = heartline;
+                };
+
+                requestIdleCallback(applyGeometry, { timeout: 100 });
             };
-
-            requestIdleCallback(applyGeometry);
-        };
+        });
 
         if (!renderer) {
             renderer = new THREE.WebGLRenderer({
@@ -91,7 +101,7 @@
             camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color("black");
+            scene.background = new THREE.Color("white");
 
             const ambientLight = new THREE.AmbientLight("white", 1);
 
@@ -118,9 +128,9 @@
 
             // ground
             const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(1024, 1024, 1, 1),
+                new THREE.PlaneGeometry(16384, 16384, 16, 16),
                 new THREE.MeshStandardMaterial({
-                    color: "#0ea800",
+                    color: "#dddddd",
                     side: THREE.DoubleSide,
                 }),
             );
@@ -244,7 +254,10 @@
 
     $: {
         if (renderer) {
-            modelWorker.postMessage({
+            const worker = modelWorkers[modelWorkerIdx];
+            modelWorkerIdx = (modelWorkerIdx + 1) % modelWorkers.length;
+
+            worker.postMessage({
                 type: "geometry",
                 points: spline.points,
             });

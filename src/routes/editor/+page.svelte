@@ -1,30 +1,27 @@
 <script lang="ts">
-    import "@fontsource-variable/overpass-mono";
-    import "@fontsource-variable/overpass";
-
     import {
         Transitions,
         type Transition,
         curveTypes,
     } from "../../core/Transitions";
-    import Graph from "../../ui/components/Graph.svelte";
-    import { time } from "../../ui/util";
-    import NumberScroll from "../../ui/components/NumberScroll.svelte";
-    import Renderer from "../../ui/components/Renderer.svelte";
-    import { keyState, keydownHandler, keyupHandler } from "../../ui/input";
+    import Graph from "../../lib/components/Graph.svelte";
+    import { time } from "../../lib/util";
+    import NumberScroll from "../../lib/components/NumberScroll.svelte";
+    import Renderer from "../../lib/components/Renderer.svelte";
+    import { keyState, keydownHandler, keyupHandler } from "../../lib/input";
 
-    import PointInfo from "../../ui/components/PointInfo.svelte";
+    import PointInfo from "../../lib/components/PointInfo.svelte";
     import { UnitSystem, degToRad } from "../../core/constants";
     import { onMount } from "svelte";
 
     import * as _ from "lodash-es";
-    import { defaultSettings, type AppSettings } from "../../ui/settings";
+    import { defaultSettings, type AppSettings } from "../../lib/settings";
     import { Track, forces } from "../../core/Track";
     import { loadModels, type TrackModelType } from "../../coaster_types/model";
 
     import { Trash2Icon } from "svelte-feather-icons";
-    import Button from "../../ui/components/Button.svelte";
-    import MenuBar from "../../ui/components/MenuBar.svelte";
+    import Button from "../../lib/components/Button.svelte";
+    import MenuBar from "../../lib/components/MenuBar.svelte";
 
     import { Pane, PaneGroup, PaneResizer } from "paneforge";
 

@@ -2,6 +2,7 @@
     <h1>forcevector.app</h1>
     <p>Coming soon!</p>
 
-    <a href="/editor" class="border p-1 text-black w-full text-center">Editor</a
-    >
+    <a href="/editor">Editor</a>
+
+    <a href="/login">Log in</a>
 </main>

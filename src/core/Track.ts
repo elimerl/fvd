@@ -265,13 +265,14 @@ export class Track {
                 section.fixedSpeed
             );
         } else if (section.type === "curved") {
-            const dp = 0.05;
             let pos = start.pos;
             let velocity = start.velocity;
             let rot = start.rot;
 
             const angle = degToRad(section.angle);
             const radPerM = 1 / section.radius;
+
+            const dp = (angle * section.radius) / 200;
 
             const axis = qrotate(
                 RIGHT,
