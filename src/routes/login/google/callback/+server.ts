@@ -4,15 +4,12 @@ import { parseJWT } from "oslo/jwt";
 
 import type { RequestEvent } from "@sveltejs/kit";
 
-import { googleOauth, getLucia } from "$lib/server/auth.server";
-import { getDB } from "$lib/server/db";
+import { googleOauth, lucia } from "$lib/server/auth";
 import { userTable } from "$lib/server/schema";
 import { eq } from "drizzle-orm";
+import { db } from "$lib/server/db";
 
 export async function GET(event: RequestEvent): Promise<Response> {
-    const lucia = getLucia(event.platform);
-    const db = getDB(event.platform);
-
     const code = event.url.searchParams.get("code");
     const state = event.url.searchParams.get("state");
 
