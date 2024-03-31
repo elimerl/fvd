@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import { generateCodeVerifier, generateState } from "arctic";
-import { googleOauth } from "$lib/server/auth";
+import { googleOauth } from "$lib/server/auth.server";
 
 import type { RequestEvent } from "@sveltejs/kit";
 

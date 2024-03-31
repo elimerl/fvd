@@ -4,7 +4,7 @@ import { parseJWT } from "oslo/jwt";
 
 import type { RequestEvent } from "@sveltejs/kit";
 
-import { googleOauth, getLucia } from "$lib/server/auth";
+import { googleOauth, getLucia } from "$lib/server/auth.server";
 import { getDB } from "$lib/server/db";
 import { userTable } from "$lib/server/schema";
 import { eq } from "drizzle-orm";
