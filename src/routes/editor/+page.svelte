@@ -1,28 +1,29 @@
 <script lang="ts">
-    import "@fontsource-variable/overpass-mono";
-    import "@fontsource-variable/overpass";
-
     import {
         Transitions,
         type Transition,
         curveTypes,
     } from "../../core/Transitions";
-    import Graph from "../../ui/components/Graph.svelte";
-    import { time } from "../../ui/util";
-    import NumberScroll from "../../ui/components/NumberScroll.svelte";
-    import Renderer from "../../ui/components/Renderer.svelte";
-    import { keyState, keydownHandler, keyupHandler } from "../../ui/input";
+    import Graph from "../../lib/components/Graph.svelte";
+    import { time } from "../../lib/util";
+    import NumberScroll from "../../lib/components/NumberScroll.svelte";
+    import Renderer from "../../lib/components/Renderer.svelte";
+    import { keyState, keydownHandler, keyupHandler } from "../../lib/input";
 
-    import PointInfo from "../../ui/components/PointInfo.svelte";
+    import PointInfo from "../../lib/components/PointInfo.svelte";
     import { UnitSystem, degToRad } from "../../core/constants";
     import { onMount } from "svelte";
 
     import * as _ from "lodash-es";
-    import { defaultSettings, type AppSettings } from "../../ui/settings";
+    import { defaultSettings, type AppSettings } from "../../lib/settings";
     import { Track, forces } from "../../core/Track";
     import { loadModels, type TrackModelType } from "../../coaster_types/model";
 
     import { Trash2Icon } from "svelte-feather-icons";
+    import Button from "../../lib/components/Button.svelte";
+    import MenuBar from "../../lib/components/MenuBar.svelte";
+
+    import { Pane, PaneGroup, PaneResizer } from "paneforge";
 
     let pov = { pos: 0 };
 
@@ -154,7 +155,8 @@
     }}
 />
 
-<div class="w-screen h-screen dark:bg-slate-900 dark:text-white">
+<div class="w-screen h-screen overflow-clip bg-background text-foreground">
+    <MenuBar />
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
             <p class="mb-2 font-semibold text-lg">Track sections</p>
@@ -190,8 +192,7 @@
                 </div>
             </div>
             <div>
-                <button
-                    class="border p-1"
+                <Button
                     on:click={() => {
                         track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "straight",
@@ -199,10 +200,10 @@
                             length: 10,
                         });
                         track = track;
-                    }}>+ straight</button
+                        selectedSectionIdx++;
+                    }}>+ straight</Button
                 >
-                <button
-                    class="border p-1"
+                <Button
                     on:click={() => {
                         track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "curved",
@@ -212,10 +213,10 @@
                             direction: 0,
                         });
                         track = track;
-                    }}>+ curved</button
+                        selectedSectionIdx++;
+                    }}>+ curved</Button
                 >
-                <button
-                    class="border p-1"
+                <Button
                     on:click={() => {
                         track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "force",
@@ -223,7 +224,8 @@
                             transitions: new Transitions(),
                         });
                         track = track;
-                    }}>+ force</button
+                        selectedSectionIdx++;
+                    }}>+ force</Button
                 >
             </div>
             <div class="flex-1 p-2">
@@ -249,6 +251,7 @@
                                     selectedSection.fixedSpeed =
                                         //@ts-expect-error
                                         e.target.checked ? 10 : undefined;
+                                    track = track;
                                 }}
                             />
                             <div class="float-right">
@@ -307,6 +310,7 @@
                                     selectedSection.fixedSpeed =
                                         //@ts-expect-error
                                         e.target.checked ? 10 : undefined;
+                                    track = track;
                                 }}
                             />
                             <div class="float-right">
@@ -334,6 +338,7 @@
                                     selectedSection.fixedSpeed =
                                         //@ts-expect-error
                                         e.target.checked ? 10 : undefined;
+                                    track = track;
                                 }}
                             />
                             <div class="float-right">
@@ -355,7 +360,7 @@
             <div>
                 <select
                     bind:value={settings.unitSystem}
-                    class="dark:bg-slate-800 dark:text-white p-1"
+                    class="bg-background-alt p-1"
                 >
                     <option value={UnitSystem.Metric}>Metric (m, m/s)</option>
                     <option value={UnitSystem.MetricKph}
@@ -367,14 +372,13 @@
                 </select>
                 <select
                     bind:value={settings.darkMode}
-                    class="dark:bg-slate-800 dark:text-white p-1"
+                    class="bg-background-alt p-1"
                 >
                     <option value={false}>Light</option>
                     <option value={true}>Dark</option>
                 </select>
 
-                <button
-                    class="border p-1"
+                <Button
                     on:click={() => {
                         var element = document.createElement("a");
                         element.setAttribute(
@@ -390,52 +394,66 @@
                         element.click();
 
                         document.body.removeChild(element);
-                    }}>Download nl2elem</button
+                    }}>Download nl2elem</Button
                 >
             </div>
-
-            <div class="w-full flex-initial h-2/3">
-                {#await models}
-                    <p class="text-xl text-center my-auto w-full h-full">
-                        models loading...
-                    </p>
-                {:then models}
-                    <Renderer {spline} {models} bind:pov />
-                {/await}
-            </div>
-            <div class="flex gap-x-2">
-                <PointInfo
-                    {spline}
-                    {pov}
-                    unitSystem={settings.unitSystem}
-                    mode={"pov"}
-                />
-            </div>
-            <div class="h-64 flex-1 w-full flex flex-row">
-                {#if transitions}
-                    <div class="w-1/3 h-full flex flex-col p-2">
-                        <h1 class="font-semibold my-2">Transition Editor</h1>
-                        {#if selectedTransition && selected}
-                            <label
-                                ><span class="mr-2"
-                                    >Length: dynamic <input
-                                        type="checkbox"
-                                        bind:checked={selectedTransition.dynamicLength}
-                                    /></span
+            <PaneGroup class="h-full" direction="vertical">
+                <Pane class="bg-background" minSize={20}>
+                    <div class="flex flex-col overflow-clip h-full">
+                        <div class="w-full flex-shrink flex-grow min-h-16">
+                            {#await models}
+                                <p
+                                    class="text-xl text-center my-auto w-full h-full"
                                 >
-                                {#if !selectedTransition.dynamicLength}
-                                    <div class="float-right">
-                                        <NumberScroll
-                                            bind:value={selectedTransition.length}
-                                            fractionalDigits={1}
-                                            min={0.1}
-                                            max={100}
-                                        />
-                                    </div>
-                                {/if}
-                            </label>
+                                    models loading...
+                                </p>
+                            {:then models}
+                                <Renderer {spline} {models} bind:pov />
+                            {/await}
+                        </div>
+                        <div class="flex-shrink-0">
+                            <PointInfo
+                                {spline}
+                                {pov}
+                                unitSystem={settings.unitSystem}
+                                mode={"pov"}
+                            />
+                        </div>
+                    </div></Pane
+                >
+                <PaneResizer class="py-2"
+                    ><div
+                        class="h-1 border-t border-foreground p-0 mx-4"
+                    ></div></PaneResizer
+                >
+                <Pane>
+                    <div class="h-full flex-1 w-full flex flex-row">
+                        {#if transitions}
+                            <div class="w-1/3 flex flex-col p-2">
+                                <h1 class="font-semibold my-2">
+                                    Transition Editor
+                                </h1>
+                                {#if selectedTransition && selected}
+                                    <label
+                                        ><span class="mr-2"
+                                            >Length: dynamic <input
+                                                type="checkbox"
+                                                bind:checked={selectedTransition.dynamicLength}
+                                            /></span
+                                        >
+                                        {#if !selectedTransition.dynamicLength}
+                                            <div class="float-right">
+                                                <NumberScroll
+                                                    bind:value={selectedTransition.length}
+                                                    fractionalDigits={1}
+                                                    min={0.1}
+                                                    max={100}
+                                                />
+                                            </div>
+                                        {/if}
+                                    </label>
 
-                            <!-- <button
+                                    <!-- <button
                     on:click={() => {
                         if (selectedTransition && selected) {
                             const otherLength = Math.min(
@@ -466,59 +484,71 @@
                     class="px-1 py-0.5 rounded-md border border-gray-400 bg-gray-200"
                     >Set length to max</button
                 > -->
-                            <label
-                                ><span class="mr-2">Value:</span>
-                                <div class="float-right">
-                                    <NumberScroll
-                                        bind:value={selectedTransition.value}
-                                        fractionalDigits={selected.arr ===
-                                        "roll"
-                                            ? 0
-                                            : 1}
-                                    />
-                                </div></label
-                            >
+                                    <label
+                                        ><span class="mr-2">Value:</span>
+                                        <div class="float-right">
+                                            <NumberScroll
+                                                bind:value={selectedTransition.value}
+                                                fractionalDigits={selected.arr ===
+                                                "roll"
+                                                    ? 0
+                                                    : 1}
+                                            />
+                                        </div></label
+                                    >
 
-                            <label
-                                ><span class="mr-2">Curve:</span><select
-                                    class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 float-right dark:bg-slate-800 dark:text-white"
-                                    bind:value={selectedTransition.curve}
-                                >
-                                    {#each curveTypes as curve}
-                                        <option value={curve}>{curve}</option>
-                                    {/each}
-                                </select>
-                            </label>
+                                    <label
+                                        ><span class="mr-2">Curve:</span><select
+                                            class="px-1 py-0.5 m-0.5 rounded-md border border-gray-400 float-right dark:bg-slate-800 dark:text-white"
+                                            bind:value={selectedTransition.curve}
+                                        >
+                                            {#each curveTypes as curve}
+                                                <option value={curve}
+                                                    >{curve}</option
+                                                >
+                                            {/each}
+                                        </select>
+                                    </label>
 
-                            <label
-                                ><span class="mr-2">Tension:</span>
-                                <div class="float-right">
-                                    <NumberScroll
-                                        bind:value={selectedTransition.tension}
-                                    />
-                                </div></label
-                            >
+                                    <label
+                                        ><span class="mr-2">Tension:</span>
+                                        <div class="float-right">
+                                            <NumberScroll
+                                                bind:value={selectedTransition.tension}
+                                            />
+                                        </div></label
+                                    >
+                                {:else}
+                                    <span class="text-center my-auto"
+                                        >no transition selected</span
+                                    >{/if}
+                            </div>
+                            <div class="w-full h-full pb-8">
+                                <Graph
+                                    bind:transitions
+                                    bind:selected
+                                    startForces={forces(
+                                        spline,
+                                        sectionStartPos[selectedSectionIdx],
+                                    )}
+                                    markerTime={spline.evaluate(pov.pos)
+                                        ? spline.evaluate(pov.pos).time -
+                                          spline.evaluate(
+                                              sectionStartPos[
+                                                  selectedSectionIdx
+                                              ],
+                                          ).time
+                                        : 0}
+                                />
+                            </div>
                         {:else}
-                            <span class="text-center my-auto"
-                                >no transition selected</span
-                            >{/if}
-                    </div>
-                    <Graph
-                        bind:transitions
-                        bind:selected
-                        startForces={forces(
-                            spline,
-                            sectionStartPos[selectedSectionIdx],
-                        )}
-                        markerTime={spline.evaluate(pov.pos)
-                            ? spline.evaluate(pov.pos).time -
-                              spline.evaluate(
-                                  sectionStartPos[selectedSectionIdx],
-                              ).time
-                            : 0}
-                    />
-                {/if}
-            </div>
+                            <span class="text-center my-auto w-full"
+                                >select a section with a graph</span
+                            >
+                        {/if}
+                    </div></Pane
+                ></PaneGroup
+            >
         </div>
     </div>
 </div>

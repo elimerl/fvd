@@ -6,7 +6,7 @@ const config = {
     kit: {
         adapter: adapter(),
     },
-    preprocess: [vitePreprocess()],
+    preprocess: vitePreprocess(),
 
     // Disable accessibility warnings
     onwarn: (warning, handler) => {
