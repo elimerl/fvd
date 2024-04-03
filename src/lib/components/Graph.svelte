@@ -32,7 +32,7 @@
     let timeOffset: number = 0;
 
     const transformG = (g: number) => -g * 0.125 + 0.72;
-    const transformRoll = (degPerS: number) => -degPerS * (1 / 400) + 0.72;
+    const transformRoll = (degPerS: number) => -degPerS * (1 / 800) + 0.72;
 
     function canvasMouseUp(ev: MouseEvent) {
         if (dragging && Math.abs(dragging) > 0.05) return;
