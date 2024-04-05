@@ -26,12 +26,6 @@ dependencies:
   bits-ui:
     specifier: ^0.21.1
     version: 0.21.1(svelte@4.2.12)
-  date-fns:
-    specifier: ^3.6.0
-    version: 3.6.0
-  date-fns-tz:
-    specifier: ^2.0.1
-    version: 2.0.1(date-fns@3.6.0)
   dayjs:
     specifier: ^1.11.10
     version: 1.11.10
@@ -2295,18 +2289,6 @@ packages:
   /data-uri-to-buffer@4.0.1:
     resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
     engines: {node: '>= 12'}
-    dev: false
-
-  /date-fns-tz@2.0.1(date-fns@3.6.0):
-    resolution: {integrity: sha512-fJCG3Pwx8HUoLhkepdsP7Z5RsucUi+ZBOxyM5d0ZZ6c4SdYustq0VMmOu6Wf7bli+yS/Jwp91TOCqn9jMcVrUA==}
-    peerDependencies:
-      date-fns: 2.x
-    dependencies:
-      date-fns: 3.6.0
-    dev: false
-
-  /date-fns@3.6.0:
-    resolution: {integrity: sha512-fRHTG8g/Gif+kSh50gaGEdToemgfj74aRX3swtiouboip5JDLAyDE9F11nHMIcvOaXeOC6D7SpNhi7uFyB7Uww==}
     dev: false
 
   /dayjs@1.11.10:
