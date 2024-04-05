@@ -1,4 +1,4 @@
-import { G, UP, FORWARD, GRAVITY, RIGHT, DOWN, degToRad } from "./constants";
+import { G, UP, FORWARD, RIGHT, DOWN, degToRad } from "./constants";
 import {
     type quaternion,
     type vec3,

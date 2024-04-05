@@ -1,8 +1,13 @@
-import { getLucia } from "$lib/server/auth";
+import { lucia } from "$lib/server/auth";
 import type { Handle } from "@sveltejs/kit";
+import { handle as documentHandle } from "@sveltekit-addons/document/hooks";
+import { sequence } from "@sveltejs/kit/hooks";
+import { db } from "$lib/server/db";
+import { eq } from "drizzle-orm";
+import { settingsTable } from "$lib/server/schema";
+import { defaultSettings, type AppSettings } from "$lib/settings";
 
-export const handle: Handle = async ({ event, resolve }) => {
-    const lucia = getLucia(event.platform);
+const myHandle: Handle = async ({ event, resolve }) => {
     const sessionId = event.cookies.get(lucia.sessionCookieName);
     if (!sessionId) {
         event.locals.user = null;
@@ -27,5 +32,20 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
     event.locals.user = user;
     event.locals.session = session;
+
+    const settings = event.locals.user
+        ? (JSON.parse(
+              (
+                  await db.query.settingsTable.findFirst({
+                      where: eq(settingsTable.userId, event.locals.user!.id),
+                  })
+              ).json
+          ) as AppSettings)
+        : defaultSettings();
+
+    event.locals.settings = settings;
+
     return resolve(event);
 };
+
+export const handle = sequence(myHandle, documentHandle);

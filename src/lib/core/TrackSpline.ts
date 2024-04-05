@@ -1,4 +1,4 @@
-import { RIGHT, UP, metersToFeet } from "./constants";
+import { RIGHT, UP } from "./constants";
 import {
     type quaternion,
     type vec3,

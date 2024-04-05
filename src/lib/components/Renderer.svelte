@@ -1,16 +1,16 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import type { TrackSpline } from "../../core/TrackSpline";
+    import type { TrackSpline } from "$lib/core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qaxisangle, qmul, qrotate, vadd, vec } from "../../core/math";
+    import { qaxisangle, qmul, qrotate, vadd, vec } from "$lib/core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
     import {
         toBufferGeometry,
         TrackModelType,
         type Geometry,
-    } from "../../coaster_types/model";
+    } from "$lib/coaster_types/model";
 
     import { time } from "../util";
 
@@ -108,13 +108,18 @@
             scene.add(ambientLight);
 
             const sunLight = new THREE.DirectionalLight("white", 2.7);
+
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
             sunLight.shadow.camera.near = 0.1;
-            sunLight.shadow.camera.far = 100;
+            sunLight.shadow.camera.far = 1000;
+            sunLight.shadow.camera.top = 32;
+            sunLight.shadow.camera.right = 32;
+            sunLight.shadow.camera.bottom = -32;
+            sunLight.shadow.camera.left = -32;
 
-            sunLight.position.set(1, 3, 2);
+            sunLight.position.set(0, 500, 0);
             scene.add(sunLight);
 
             const grid = new InfiniteGridHelper(
@@ -190,15 +195,14 @@
                     if (!spline.evaluate(pov.pos)) {
                         fixPos();
                     }
+                    const p = spline.evaluate(pov.pos)!;
                     if (keyState.down.has("KeyW")) {
                         const speed = keyState.shift ? 2 : 1;
-                        pov.pos +=
-                            dt * spline.evaluate(pov.pos)!.velocity * speed;
+                        pov.pos += dt * (p.velocity ?? 0) * speed;
                     }
                     if (keyState.down.has("KeyS")) {
                         const speed = keyState.shift ? 2 : 1;
-                        pov.pos -=
-                            dt * spline.evaluate(pov.pos)!.velocity * speed;
+                        pov.pos -= dt * (p.velocity ?? 0) * speed;
                     }
                     fixPos();
                 }

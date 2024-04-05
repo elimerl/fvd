@@ -1,9 +1,10 @@
 <script lang="ts">
-    import type { TrackSpline } from "../../core/TrackSpline";
-    import { degDiff, type UnitSystem } from "../../core/constants";
+    import type { TrackSpline } from "$lib/core/TrackSpline";
+    import { degDiff } from "$lib/core/constants";
     import NumberDisplay from "./NumberDisplay.svelte";
     import UnitNumberDisplay from "./UnitNumberDisplay.svelte";
-    import { euler, forces } from "../../core/Track";
+    import { euler, forces } from "$lib/core/Track";
+    import type { UnitSystem } from "$lib/core/units";
 
     export let spline: TrackSpline;
     export let unitSystem: UnitSystem;
@@ -14,26 +15,6 @@
     $: pos = mode === "atEnd" ? spline.getLength() : pov.pos;
 
     $: point = spline.evaluate(pos);
-
-    // fix thios
-
-    // $: {
-    //     if (point) {
-    //         const dir = qrotate(FORWARD, point.rot);
-    //         const yaw = radToDeg(Math.atan2(-dir[0], -dir[2]));
-    //         const pitch = radToDeg(
-    //             Math.atan2(
-    //                 dir[1],
-    //                 Math.sqrt(dir[0] * dir[0] + dir[2] * dir[2]),
-    //             ),
-    //         );
-    //         const rightDir = qrotate(RIGHT, point.rot);
-
-    //         const roll = radToDeg(Math.atan2(-rightDir[1], rightDir[0]));
-
-    //         console.log(roll);
-    //     }
-    // }
 
     $: [yaw, pitch, roll] = point ? euler(point) : [0, 0, 0];
 
@@ -56,7 +37,7 @@
 </script>
 
 {#if point}
-    <div class="flex flex-col text-sm dark:text-white">
+    <div class="flex flex-col text-sm text-foreground">
         <p class="font-semibold text-lg">point info</p>
         <div class="flex gap-x-4">
             <NumberDisplay label="time" value={point.time} unit="s" />

@@ -3,47 +3,29 @@
         Transitions,
         type Transition,
         curveTypes,
-    } from "../../core/Transitions";
-    import Graph from "../../lib/components/Graph.svelte";
-    import { time } from "../../lib/util";
-    import NumberScroll from "../../lib/components/NumberScroll.svelte";
-    import Renderer from "../../lib/components/Renderer.svelte";
-    import { keyState, keydownHandler, keyupHandler } from "../../lib/input";
+    } from "$lib/core/Transitions";
+    import Graph from "$lib/components/Graph.svelte";
+    import { time } from "$lib/util";
+    import NumberScroll from "$lib/components/NumberScroll.svelte";
+    import Renderer from "$lib/components/Renderer.svelte";
+    import { keyState, keydownHandler, keyupHandler } from "$lib/input";
 
-    import PointInfo from "../../lib/components/PointInfo.svelte";
-    import { UnitSystem, degToRad } from "../../core/constants";
+    import PointInfo from "$lib/components/PointInfo.svelte";
     import { onMount } from "svelte";
 
     import * as _ from "lodash-es";
-    import { defaultSettings, type AppSettings } from "../../lib/settings";
-    import { Track, forces } from "../../core/Track";
-    import { loadModels, type TrackModelType } from "../../coaster_types/model";
+    import { Track, forces } from "$lib/core/Track";
+    import { loadModels, type TrackModelType } from "$lib/coaster_types/model";
 
     import { Trash2Icon } from "svelte-feather-icons";
-    import Button from "../../lib/components/Button.svelte";
-    import MenuBar from "../../lib/components/MenuBar.svelte";
 
     import { Pane, PaneGroup, PaneResizer } from "paneforge";
+    import { Menubar } from "bits-ui";
+    import { beforeNavigate } from "$app/navigation";
 
     let pov = { pos: 0 };
 
-    function loadLocalStorage<T>(
-        key: string,
-        load: (v: any) => T,
-        defaultValue: () => T,
-    ) {
-        let value = localStorage.getItem(key);
-        if (value) {
-            return load(JSON.parse(value));
-        } else {
-            let result = defaultValue();
-            return result;
-        }
-    }
-
-    function saveLocalStorage<T>(key: string, value: T) {
-        localStorage.setItem(key, JSON.stringify(value));
-    }
+    export let data;
 
     let selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined =
         undefined;
@@ -56,16 +38,11 @@
         const { i, arr } = selected;
         return transitions[arr][i];
     }
+    console.log(new Track());
 
-    let track = loadLocalStorage(
-        "track",
-        (v) => Track.fromJSON(v),
-        () => {
-            const track = new Track();
-            track.anchor.pos = [0, 3.9, 0];
-            return track;
-        },
-    );
+    let track = Track.fromJSON(JSON.parse(data.track.trackJson));
+
+    $: data.track.trackJson = JSON.stringify(track);
     // track.sections.push({
     //     type: "force",
     //     fixedSpeed: undefined,
@@ -85,47 +62,46 @@
         : undefined;
 
     $: ({ spline, sectionStartPos } = time(() => track.getSpline(), "spline"));
-
+    let saveTimeout: any;
+    let dirty = false;
     $: {
-        saveLocalStorage("track", track);
+        if (track) dirty = true;
+    }
+    $: {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(async () => {
+            await save();
+        }, 2000);
     }
 
-    let settings: AppSettings = loadLocalStorage(
-        "settings",
-        (v) => v as AppSettings,
-        () =>
-            defaultSettings(
-                window.matchMedia &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches,
-            ),
-    );
-
-    $: {
-        saveLocalStorage("settings", settings);
-    }
+    beforeNavigate(({ from, to, cancel }) => {
+        if (dirty) {
+            cancel();
+            alert("Please wait for changes to be saved.");
+            save();
+        }
+    });
 
     onMount(() => {
-        const handler = (e: KeyboardEvent) => {
-            // if (e.key === "z" && e.ctrlKey) {
-            //     e.preventDefault();
-            //     transitions = undo(transitions);
-            //     console.log(transitions);
-            // }
-            // if (e.key === "y" && e.ctrlKey) {
-            //     e.preventDefault();
-            //     transitions = redo(transitions);
-            //     console.log(transitions);
-            // }
-        };
+        const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+            if (dirty) {
+                const confirmationMessage =
+                    "If you leave this page, your changes will be lost.";
 
-        document.addEventListener("keydown", handler);
+                (e || window.event).returnValue = confirmationMessage;
+                return confirmationMessage;
+            }
+        };
+        window.addEventListener("beforeunload", beforeUnloadHandler);
 
         return () => {
-            document.removeEventListener("keydown", handler);
+            window.removeEventListener("beforeunload", beforeUnloadHandler);
         };
     });
 
     let models: Promise<Map<string, TrackModelType>> = loadModels();
+
+    let handle: FileSystemFileHandle | undefined;
 
     // $: {
     //     transitions[selected.arr][selected.i] = selectedTransition;
@@ -135,12 +111,16 @@
         selected = selected;
     }
 
-    $: {
-        if (settings.darkMode) {
-            document.body.classList.add("dark");
-        } else {
-            document.body.classList.remove("dark");
-        }
+    async function save() {
+        await fetch("/api/save", {
+            credentials: "include",
+            method: "PUT",
+            body: JSON.stringify(data.track),
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+        dirty = false;
     }
 </script>
 
@@ -156,7 +136,86 @@
 />
 
 <div class="w-screen h-screen overflow-clip bg-background text-foreground">
-    <MenuBar />
+    <Menubar.Root
+        class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini"
+    >
+        <Menubar.Menu>
+            <Menubar.Trigger
+                class="inline-flex h-8 cursor-default items-center justify-center rounded-9px px-1 text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted data-[state=open]:bg-muted"
+                >File</Menubar.Trigger
+            >
+            <Menubar.Content
+                class="z-50 w-full max-w-[220px]  border border-muted bg-background px-1 py-1.5 shadow-popover !ring-0 !ring-transparent text-foreground"
+                align="start"
+                sideOffset={3}
+            >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={async () => {
+                        if ("showSaveFilePicker" in window) {
+                            if (!handle)
+                                handle = await window.showSaveFilePicker({
+                                    types: [
+                                        {
+                                            description:
+                                                "NoLimits 2 Element Files",
+                                            accept: {
+                                                "application/octet-stream":
+                                                    ".nl2elem",
+                                            },
+                                        },
+                                    ],
+                                });
+                            if (handle) {
+                                const writable = await handle.createWritable();
+                                await writable.write(spline.exportToNl2Elem());
+                                await writable.close();
+                            }
+                        } else {
+                            var element = document.createElement("a");
+                            element.setAttribute(
+                                "href",
+                                "data:text/plain;charset=utf-8," +
+                                    encodeURIComponent(
+                                        spline.exportToNl2Elem(),
+                                    ),
+                            );
+                            element.setAttribute(
+                                "download",
+                                data.track.name + ".nl2elem",
+                            );
+
+                            element.style.display = "none";
+                            document.body.appendChild(element);
+
+                            element.click();
+
+                            document.body.removeChild(element);
+                        }
+                    }}
+                    >Export {handle
+                        ? `(${handle.name})`
+                        : "nl2elem"}</Menubar.Item
+                >
+            </Menubar.Content>
+        </Menubar.Menu>
+        <Menubar.Menu>
+            <Menubar.Trigger
+                class="inline-flex h-8 cursor-default items-center justify-center rounded-[9px] px-1 text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted data-[state=open]:bg-muted"
+                >Edit</Menubar.Trigger
+            >
+            <Menubar.Content
+                class="z-50 w-full max-w-[220px]  border border-muted bg-background px-1 py-1.5 shadow-popover"
+                align="start"
+                sideOffset={3}
+            >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    >IDK</Menubar.Item
+                >
+            </Menubar.Content>
+        </Menubar.Menu>
+    </Menubar.Root>
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
             <p class="mb-2 font-semibold text-lg">Track sections</p>
@@ -192,7 +251,8 @@
                 </div>
             </div>
             <div>
-                <Button
+                <button
+                    class="button"
                     on:click={() => {
                         track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "straight",
@@ -201,9 +261,10 @@
                         });
                         track = track;
                         selectedSectionIdx++;
-                    }}>+ straight</Button
+                    }}>+ straight</button
                 >
-                <Button
+                <button
+                    class="button"
                     on:click={() => {
                         track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "curved",
@@ -214,9 +275,10 @@
                         });
                         track = track;
                         selectedSectionIdx++;
-                    }}>+ curved</Button
+                    }}>+ curved</button
                 >
-                <Button
+                <button
+                    class="button"
                     on:click={() => {
                         track.sections.splice(selectedSectionIdx + 1, 0, {
                             type: "force",
@@ -225,7 +287,7 @@
                         });
                         track = track;
                         selectedSectionIdx++;
-                    }}>+ force</Button
+                    }}>+ force</button
                 >
             </div>
             <div class="flex-1 p-2">
@@ -357,46 +419,6 @@
             </div>
         </div>
         <div class="w-full h-full flex flex-col py-4">
-            <div>
-                <select
-                    bind:value={settings.unitSystem}
-                    class="bg-background-alt p-1"
-                >
-                    <option value={UnitSystem.Metric}>Metric (m, m/s)</option>
-                    <option value={UnitSystem.MetricKph}
-                        >Metric (m, km/h)</option
-                    >
-                    <option value={UnitSystem.Imperial}
-                        >Imperial (ft, mph)</option
-                    >
-                </select>
-                <select
-                    bind:value={settings.darkMode}
-                    class="bg-background-alt p-1"
-                >
-                    <option value={false}>Light</option>
-                    <option value={true}>Dark</option>
-                </select>
-
-                <Button
-                    on:click={() => {
-                        var element = document.createElement("a");
-                        element.setAttribute(
-                            "href",
-                            "data:text/plain;charset=utf-8," +
-                                encodeURIComponent(spline.exportToNl2Elem()),
-                        );
-                        element.setAttribute("download", "fvd.nl2elem");
-
-                        element.style.display = "none";
-                        document.body.appendChild(element);
-
-                        element.click();
-
-                        document.body.removeChild(element);
-                    }}>Download nl2elem</Button
-                >
-            </div>
             <PaneGroup class="h-full" direction="vertical">
                 <Pane class="bg-background" minSize={20}>
                     <div class="flex flex-col overflow-clip h-full">
@@ -415,7 +437,7 @@
                             <PointInfo
                                 {spline}
                                 {pov}
-                                unitSystem={settings.unitSystem}
+                                unitSystem={data.settings.unitSystem}
                                 mode={"pov"}
                             />
                         </div>

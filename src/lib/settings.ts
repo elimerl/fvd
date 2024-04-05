@@ -1,4 +1,4 @@
-import { UnitSystem } from "../core/constants";
+import { UnitSystem } from "./core/units";
 
 export interface AppSettings {
     unitSystem: UnitSystem;

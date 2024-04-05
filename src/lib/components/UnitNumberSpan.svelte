@@ -1,21 +1,16 @@
 <script lang="ts">
     import {
-        UnitSystem,
         distanceUnit,
         metersPerSecondToUnit,
         metersToUnit,
         velocityUnit,
+        type UnitSystem,
     } from "$lib/core/units";
-    import NumberDisplay from "./NumberDisplay.svelte";
-
-    export let label: string;
-    export let parentheses: boolean = false;
-    export let plusPositive: boolean = false;
-    export let fractionalDigits: number = 2;
 
     export let value: number;
-    export let baseUnit: "distance" | "velocity";
     export let unitSystem: UnitSystem;
+    export let baseUnit: "distance" | "velocity";
+    export let fractionalDigits: number = 2;
 
     let valueConverted: number;
     let unit: string;
@@ -31,11 +26,4 @@
     }
 </script>
 
-<NumberDisplay
-    {label}
-    value={valueConverted}
-    {unit}
-    {fractionalDigits}
-    {parentheses}
-    {plusPositive}
-/>
+{valueConverted.toFixed(fractionalDigits)}{unit}

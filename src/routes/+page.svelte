@@ -1,8 +1,17 @@
-<main class="prose mx-auto my-8">
-    <h1>forcevector.app</h1>
-    <p>Coming soon!</p>
+<script lang="ts">
+    export let data;
+</script>
 
-    <a href="/editor">Editor</a>
-
-    <a href="/login">Log in</a>
+<svelte:body class="bg-background" />
+<main>
+    <div class="prose dark:prose-invert mx-auto px-4 mt-8">
+        <h1>forcevector.app</h1>
+        <a href="/login">Log in</a>
+        {#if data.user}
+            <p>
+                Logged in as {data.user.username}
+                <a href={`/profile/${data.user.username}`}>Profile</a>
+            </p>
+        {/if}
+    </div>
 </main>

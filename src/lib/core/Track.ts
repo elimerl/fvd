@@ -333,7 +333,7 @@ export type TrackConfig = {
 
 export function defaultTrackConfig(): TrackConfig {
     return {
-        parameter: 0.03,
+        parameter: 0.027,
         resistance: 1e-5,
         heartlineHeight: 1.1,
     };

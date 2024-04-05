@@ -1,12 +1,13 @@
 import adapter from "@sveltejs/adapter-cloudflare";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
+import { preprocessor as documentPreprocessor } from "@sveltekit-addons/document";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
     kit: {
         adapter: adapter(),
     },
-    preprocess: vitePreprocess(),
+    preprocess: [vitePreprocess(), documentPreprocessor()],
 
     // Disable accessibility warnings
     onwarn: (warning, handler) => {
