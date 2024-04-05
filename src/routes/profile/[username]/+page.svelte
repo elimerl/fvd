@@ -9,8 +9,8 @@
         formatRelative,
         parse,
         parseISO,
-        zonedTimeToUtc,
     } from "date-fns";
+    import { zonedTimeToUtc } from "date-fns-tz";
     import * as _ from "lodash-es";
 
     export let data;
