@@ -6,7 +6,7 @@
 	:root {
 		/* Colors */
 		--background: 0 0% 100%;
-		--background-alt: 0 0% 100%;
+		--background-alt: 0 0% 90%;
 		--foreground: 0 0% 9%;
 		--foreground-alt: 0 0% 32%;
 		--muted: 240 5% 96%;
@@ -54,4 +54,8 @@
 		--accent-foreground: 204 94% 94%;
 		--destructive: 350 89% 60%;
 	}
+}
+
+.button {
+	@apply px-1 py-0.5 border bg-background hover:bg-background-alt;
 }

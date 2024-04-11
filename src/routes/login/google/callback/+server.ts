@@ -5,9 +5,10 @@ import { parseJWT } from "oslo/jwt";
 import type { RequestEvent } from "@sveltejs/kit";
 
 import { googleOauth, lucia } from "$lib/server/auth";
-import { userTable } from "$lib/server/schema";
+import { settingsTable, userTable } from "$lib/server/schema";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/server/db";
+import { defaultSettings } from "$lib/settings";
 
 export async function GET(event: RequestEvent): Promise<Response> {
     const code = event.url.searchParams.get("code");
@@ -56,7 +57,6 @@ export async function GET(event: RequestEvent): Promise<Response> {
                 ...sessionCookie.attributes,
             });
         } else {
-            // Replace this with your own DB client.
             const user = await db
                 .insert(userTable)
                 .values({
@@ -73,6 +73,18 @@ export async function GET(event: RequestEvent): Promise<Response> {
             event.cookies.set(sessionCookie.name, sessionCookie.value, {
                 path: ".",
                 ...sessionCookie.attributes,
+            });
+
+            await db.insert(settingsTable).values({
+                userId: user.id,
+                json: JSON.stringify(defaultSettings()),
+            });
+
+            return new Response(null, {
+                status: 302,
+                headers: {
+                    Location: "/login/setup",
+                },
             });
         }
 

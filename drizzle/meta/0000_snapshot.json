@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "2558ba22-d17e-4375-9f28-92ad4de30274",
+  "id": "24df187b-7f59-44c3-977e-009b06491902",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "session": {
@@ -16,7 +16,7 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "text",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false

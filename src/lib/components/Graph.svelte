@@ -9,11 +9,11 @@
         evalTransition,
         transitionsLength,
         TransitionCurve,
-    } from "../../core/Transitions";
+    } from "$lib/core/Transitions";
     import * as _ from "lodash-es";
     import { scrollLineHeight } from "../util";
     import { keyState } from "../input";
-    import type { Forces } from "../../core/Track";
+    import type { Forces } from "$lib/core/Track";
 
     export let transitions: Transitions;
     export let selected:

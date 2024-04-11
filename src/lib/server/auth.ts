@@ -9,7 +9,13 @@ declare module "lucia" {
     interface Register {
         Lucia: typeof lucia;
         UserId: number;
+        DatabaseUserAttributes: DatabaseUserAttributes;
     }
+}
+
+interface DatabaseUserAttributes {
+    username: string;
+    google_id: string;
 }
 
 export const googleOauth = new Google(
@@ -24,5 +30,12 @@ export const lucia = new Lucia(adapter, {
         attributes: {
             secure: import.meta.env.PROD,
         },
+    },
+
+    getUserAttributes: (attributes) => {
+        return {
+            username: attributes.username,
+            google_id: attributes.google_id,
+        };
     },
 });

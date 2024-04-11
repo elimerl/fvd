@@ -14,7 +14,9 @@
 
     <div class="min-w-24 text-right font-mono">
         {(!plusPositive || value <= 0 ? "" : "+") +
-            value.toFixed(fractionalDigits)}{unit}
+            (value !== undefined && value !== null
+                ? value.toFixed(fractionalDigits)
+                : "none")}{unit}
     </div>
     {#if parentheses}){/if}
 </div>

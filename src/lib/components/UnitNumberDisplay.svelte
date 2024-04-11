@@ -1,10 +1,11 @@
 <script lang="ts">
     import {
         UnitSystem,
-        metersPerSecondToKph,
-        metersPerSecondToMph,
-        metersToFeet,
-    } from "../../core/constants";
+        distanceUnit,
+        metersPerSecondToUnit,
+        metersToUnit,
+        velocityUnit,
+    } from "$lib/core/units";
     import NumberDisplay from "./NumberDisplay.svelte";
 
     export let label: string;
@@ -21,32 +22,11 @@
 
     $: {
         if (baseUnit === "distance") {
-            switch (unitSystem) {
-                case UnitSystem.Metric:
-                case UnitSystem.MetricKph:
-                    valueConverted = value;
-                    unit = "m";
-                    break;
-                case UnitSystem.Imperial:
-                    valueConverted = metersToFeet(value);
-                    unit = "ft";
-                    break;
-            }
+            valueConverted = metersToUnit(value, unitSystem);
+            unit = distanceUnit(unitSystem);
         } else if (baseUnit === "velocity") {
-            switch (unitSystem) {
-                case UnitSystem.Metric:
-                    valueConverted = value;
-                    unit = "m/s";
-                    break;
-                case UnitSystem.MetricKph:
-                    valueConverted = metersPerSecondToKph(value);
-                    unit = "km/h";
-                    break;
-                case UnitSystem.Imperial:
-                    valueConverted = metersPerSecondToMph(value);
-                    unit = "mph";
-                    break;
-            }
+            valueConverted = metersPerSecondToUnit(value, unitSystem);
+            unit = velocityUnit(unitSystem);
         }
     }
 </script>

@@ -1,4 +1,4 @@
-import { TransitionCurve, Transitions } from "../core/Transitions";
+import { TransitionCurve, Transitions } from "./core/Transitions";
 
 // function getScrollLineHeight() {
 //     var r;

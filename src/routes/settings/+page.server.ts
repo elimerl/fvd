@@ -1,0 +1,34 @@
+import type { UnitSystem } from "$lib/core/units.js";
+import { db } from "$lib/server/db.js";
+import { settingsTable } from "$lib/server/schema.js";
+import type { AppSettings } from "$lib/settings.js";
+import { redirect } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
+
+export async function load(event) {
+    if (!event.locals.user) {
+        return redirect(302, "/login");
+    }
+    return {
+        user: event.locals.user,
+        settings: event.locals.settings,
+    };
+}
+
+export const actions = {
+    default: async ({ request, locals }) => {
+        const data = await request.formData();
+        console.log(Object.fromEntries(data.entries()));
+        const settings: AppSettings = {
+            unitSystem: data.get("unitSystem") as UnitSystem,
+            darkMode: data.get("darkMode") === "true",
+        };
+
+        await db
+            .update(settingsTable)
+            .set({ json: JSON.stringify(settings) })
+            .where(eq(settingsTable.userId, locals.user.id));
+
+        return redirect(302, "/");
+    },
+};
