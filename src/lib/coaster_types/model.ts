@@ -44,7 +44,7 @@ export type RailGeometry = {
 // model info: gauge is from center of rail to center of other rail
 // all distances in meters
 
-const RAIL_INTERVAL = 0.25;
+const RAIL_INTERVAL = 0.1;
 
 export class TrackModelType {
     name: string;
