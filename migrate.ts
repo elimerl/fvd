@@ -2,12 +2,22 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { drizzle } from "drizzle-orm/libsql";
 import { createClient } from "@libsql/client";
 import "dotenv/config";
+import { readFile } from "fs/promises";
+
+const info = process.argv[2];
+
+if (!info) {
+    console.error("Usage: migrate <db.json file>");
+    process.exit(1);
+}
 
 async function main() {
+    const { url, auth } = JSON.parse((await readFile(info)).toString());
+
     const db = drizzle(
         createClient({
-            url: process.argv[2]!,
-            authToken: process.argv.length > 3 ? process.argv[3] : undefined,
+            url,
+            authToken: auth,
         })
     );
 

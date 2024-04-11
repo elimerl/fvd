@@ -25,3 +25,6 @@ dist-ssr
 .svelte-kit
 .env
 db.sqlite
+
+db.*.json
+!db.example.json
