@@ -25,7 +25,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
         !storedCodeVerifier ||
         state !== storedState
     ) {
-        return new Response(null, {
+        return new Response("Invalid request", {
             status: 400,
         });
     }
@@ -66,8 +66,6 @@ export async function GET(event: RequestEvent): Promise<Response> {
                 .returning()
                 .get();
 
-            console.log(user.id);
-
             const session = await lucia.createSession(user.id, {});
             const sessionCookie = lucia.createSessionCookie(session.id);
             event.cookies.set(sessionCookie.name, sessionCookie.value, {
@@ -103,7 +101,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
                 status: 400,
             });
         }
-        return new Response(null, {
+        return new Response(e.message, {
             status: 500,
         });
     }

@@ -15,8 +15,6 @@ export async function GET(event: RequestEvent): Promise<Response> {
         ],
     });
 
-    console.log(url);
-
     event.cookies.set("google_oauth_state", state, {
         path: "/",
         secure: import.meta.env.PROD,

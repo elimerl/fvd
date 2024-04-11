@@ -38,7 +38,6 @@
         const { i, arr } = selected;
         return transitions[arr][i];
     }
-    console.log(new Track());
 
     let track = Track.fromJSON(JSON.parse(data.track.trackJson));
 
