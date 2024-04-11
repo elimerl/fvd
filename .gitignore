@@ -24,4 +24,4 @@ dist-ssr
 
 .svelte-kit
 .env
-sqlite.db
+db.sqlite

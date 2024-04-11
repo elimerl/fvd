@@ -2,15 +2,9 @@
     import UnitNumberDisplay from "$lib/components/UnitNumberDisplay.svelte";
     import UnitNumberSpan from "$lib/components/UnitNumberSpan.svelte";
     import { Track } from "$lib/core/Track";
-    import {
-        constructNow,
-        format,
-        formatISO,
-        formatRelative,
-        parse,
-        parseISO,
-    } from "date-fns";
-    import { zonedTimeToUtc } from "date-fns-tz";
+    import dayjs from "dayjs";
+    import utc from "dayjs/plugin/utc";
+    dayjs.extend(utc);
     import * as _ from "lodash-es";
 
     export let data;
@@ -44,15 +38,10 @@
                 <div class="ml-2 my-2">
                     <p>
                         created <time
-                            title={formatISO(
-                                zonedTimeToUtc(parseISO(track.createdAt)),
-                            )}
-                            datetime={formatISO(
-                                zonedTimeToUtc(parseISO(track.createdAt)),
-                            )}
-                            >{formatRelative(
-                                zonedTimeToUtc(parseISO(track.createdAt)),
-                                constructNow(new Date()),
+                            title={dayjs(track.createdAt).toISOString()}
+                            datetime={dayjs(track.createdAt).toISOString()}
+                            >{dayjs(track.createdAt).format(
+                                "YYYY-MM-DD hh:mm a",
                             )}</time
                         >
                     </p>

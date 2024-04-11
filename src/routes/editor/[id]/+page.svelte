@@ -218,207 +218,235 @@
     </Menubar.Root>
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
-            <p class="mb-2 font-semibold text-lg">Track sections</p>
-            <div class="h-1/2">
-                <div
-                    class="flex flex-col border border-gray-200 h-full overflow-y-scroll overflow-x-hidden"
-                >
-                    {#each track.sections as section, i}
-                        <button
-                            class={"p-1 border text-left " +
-                                (i === selectedSectionIdx
-                                    ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
-                                    : "dark:bg-slate-800 dark:text-white")}
-                            on:click={() => {
-                                selectedSectionIdx = i;
-                            }}
-                            tabindex="0"
-                        >
-                            {section.type}
+            <div>
+                <details>
+                    <summary>
+                        <span class="mb-2 font-semibold text-lg">
+                            Track properties
+                        </span>
+                    </summary>
+                    <label
+                        >Name <input
+                            type="text"
+                            class="bg-background-alt text-foreground px-1 py-0.5 border"
+                            bind:value={data.track.name}
+                        />
+                    </label>
+                    <label
+                        >Description <textarea
+                            class="bg-background-alt text-foreground p-1 border"
+                            bind:value={data.track.description}
+                            placeholder="Description goes here..."
+                        />
+                    </label>
 
+                    <p class="mb-1">Anchor Y (todo xyz)</p>
+                    <NumberScroll bind:value={track.anchor.pos[1]} unit="m" />
+                </details>
+            </div>
+            <div class="flex flex-col flex-grow">
+                <p class="mb-2 font-semibold text-lg">Track sections</p>
+                <div class="h-1/2">
+                    <div
+                        class="flex flex-col border border-gray-200 h-full overflow-y-scroll overflow-x-hidden"
+                    >
+                        {#each track.sections as section, i}
                             <button
-                                class="my-auto inline align-middle float-right"
+                                class={"p-1 border text-left " +
+                                    (i === selectedSectionIdx
+                                        ? "bg-blue-500 text-white dark:bg-blue-500 dark:text-white"
+                                        : "dark:bg-slate-800 dark:text-white")}
                                 on:click={() => {
-                                    if (track.sections.length > 1) {
-                                        track.sections.splice(i, 1);
-                                        selectedSectionIdx = 0;
-                                        track = track;
-                                    }
-                                }}><Trash2Icon class="p-0.5" /></button
+                                    selectedSectionIdx = i;
+                                }}
+                                tabindex="0"
                             >
-                        </button>
-                    {/each}
+                                {section.type}
+
+                                <button
+                                    class="my-auto inline align-middle float-right"
+                                    on:click={() => {
+                                        if (track.sections.length > 1) {
+                                            track.sections.splice(i, 1);
+                                            selectedSectionIdx = 0;
+                                            track = track;
+                                        }
+                                    }}><Trash2Icon class="p-0.5" /></button
+                                >
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+                <div>
+                    <button
+                        class="button"
+                        on:click={() => {
+                            track.sections.splice(selectedSectionIdx + 1, 0, {
+                                type: "straight",
+                                fixedSpeed: 10,
+                                length: 10,
+                            });
+                            track = track;
+                            selectedSectionIdx++;
+                        }}>+ straight</button
+                    >
+                    <button
+                        class="button"
+                        on:click={() => {
+                            track.sections.splice(selectedSectionIdx + 1, 0, {
+                                type: "curved",
+                                fixedSpeed: 10,
+                                radius: 15,
+                                angle: 45,
+                                direction: 0,
+                            });
+                            track = track;
+                            selectedSectionIdx++;
+                        }}>+ curved</button
+                    >
+                    <button
+                        class="button"
+                        on:click={() => {
+                            track.sections.splice(selectedSectionIdx + 1, 0, {
+                                type: "force",
+                                fixedSpeed: undefined,
+                                transitions: new Transitions(),
+                            });
+                            track = track;
+                            selectedSectionIdx++;
+                        }}>+ force</button
+                    >
+                </div>
+                <div class="flex-1 p-2">
+                    {#if selectedSection.type === "straight"}
+                        <div class="flex flex-col">
+                            <label
+                                >Length: <div class="float-right">
+                                    <NumberScroll
+                                        bind:value={selectedSection.length}
+                                        min={0.1}
+                                        fractionalDigits={0}
+                                        unit="m"
+                                    />
+                                </div></label
+                            >
+                            <label
+                                >Fixed speed:
+                                <input
+                                    type="checkbox"
+                                    checked={selectedSection.fixedSpeed !==
+                                        undefined}
+                                    on:change={(e) => {
+                                        selectedSection.fixedSpeed =
+                                            //@ts-expect-error
+                                            e.target.checked ? 10 : undefined;
+                                        track = track;
+                                    }}
+                                />
+                                <div class="float-right">
+                                    {#if selectedSection.fixedSpeed !== undefined}
+                                        <NumberScroll
+                                            bind:value={selectedSection.fixedSpeed}
+                                            min={0.1}
+                                            fractionalDigits={0}
+                                            unit="m/s"
+                                        />
+                                    {/if}
+                                </div></label
+                            >
+                        </div>
+                    {/if}
+                    {#if selectedSection.type === "curved"}
+                        <div class="flex flex-col">
+                            <label
+                                >Radius: <div class="float-right">
+                                    <NumberScroll
+                                        bind:value={selectedSection.radius}
+                                        min={0.1}
+                                        fractionalDigits={0}
+                                        unit="m"
+                                    />
+                                </div></label
+                            >
+                            <label
+                                >Total angle: <div class="float-right">
+                                    <NumberScroll
+                                        bind:value={selectedSection.angle}
+                                        min={0.1}
+                                        fractionalDigits={0}
+                                        unit="°"
+                                    />
+                                </div></label
+                            >
+                            <label
+                                >Direction: <div class="float-right">
+                                    <NumberScroll
+                                        bind:value={selectedSection.direction}
+                                        min={-180}
+                                        max={180}
+                                        fractionalDigits={0}
+                                        unit="°"
+                                    />
+                                </div></label
+                            >
+                            <label
+                                >Fixed speed:
+                                <input
+                                    type="checkbox"
+                                    checked={selectedSection.fixedSpeed !==
+                                        undefined}
+                                    on:change={(e) => {
+                                        selectedSection.fixedSpeed =
+                                            //@ts-expect-error
+                                            e.target.checked ? 10 : undefined;
+                                        track = track;
+                                    }}
+                                />
+                                <div class="float-right">
+                                    {#if selectedSection.fixedSpeed !== undefined}
+                                        <NumberScroll
+                                            bind:value={selectedSection.fixedSpeed}
+                                            min={0.1}
+                                            fractionalDigits={0}
+                                            unit="m/s"
+                                        />
+                                    {/if}
+                                </div></label
+                            >
+                        </div>
+                    {/if}
+                    {#if selectedSection.type === "force"}
+                        <div class="flex flex-col">
+                            <label
+                                >Fixed speed:
+                                <input
+                                    type="checkbox"
+                                    checked={selectedSection.fixedSpeed !==
+                                        undefined}
+                                    on:change={(e) => {
+                                        selectedSection.fixedSpeed =
+                                            //@ts-expect-error
+                                            e.target.checked ? 10 : undefined;
+                                        track = track;
+                                    }}
+                                />
+                                <div class="float-right">
+                                    {#if selectedSection.fixedSpeed !== undefined}
+                                        <NumberScroll
+                                            bind:value={selectedSection.fixedSpeed}
+                                            min={0.1}
+                                            fractionalDigits={0}
+                                            unit="m/s"
+                                        />
+                                    {/if}
+                                </div></label
+                            >
+                        </div>
+                    {/if}
                 </div>
             </div>
-            <div>
-                <button
-                    class="button"
-                    on:click={() => {
-                        track.sections.splice(selectedSectionIdx + 1, 0, {
-                            type: "straight",
-                            fixedSpeed: 10,
-                            length: 10,
-                        });
-                        track = track;
-                        selectedSectionIdx++;
-                    }}>+ straight</button
-                >
-                <button
-                    class="button"
-                    on:click={() => {
-                        track.sections.splice(selectedSectionIdx + 1, 0, {
-                            type: "curved",
-                            fixedSpeed: 10,
-                            radius: 15,
-                            angle: 45,
-                            direction: 0,
-                        });
-                        track = track;
-                        selectedSectionIdx++;
-                    }}>+ curved</button
-                >
-                <button
-                    class="button"
-                    on:click={() => {
-                        track.sections.splice(selectedSectionIdx + 1, 0, {
-                            type: "force",
-                            fixedSpeed: undefined,
-                            transitions: new Transitions(),
-                        });
-                        track = track;
-                        selectedSectionIdx++;
-                    }}>+ force</button
-                >
-            </div>
-            <div class="flex-1 p-2">
-                {#if selectedSection.type === "straight"}
-                    <div class="flex flex-col">
-                        <label
-                            >Length: <div class="float-right">
-                                <NumberScroll
-                                    bind:value={selectedSection.length}
-                                    min={0.1}
-                                    fractionalDigits={0}
-                                    unit="m"
-                                />
-                            </div></label
-                        >
-                        <label
-                            >Fixed speed:
-                            <input
-                                type="checkbox"
-                                checked={selectedSection.fixedSpeed !==
-                                    undefined}
-                                on:change={(e) => {
-                                    selectedSection.fixedSpeed =
-                                        //@ts-expect-error
-                                        e.target.checked ? 10 : undefined;
-                                    track = track;
-                                }}
-                            />
-                            <div class="float-right">
-                                {#if selectedSection.fixedSpeed !== undefined}
-                                    <NumberScroll
-                                        bind:value={selectedSection.fixedSpeed}
-                                        min={0.1}
-                                        fractionalDigits={0}
-                                        unit="m/s"
-                                    />
-                                {/if}
-                            </div></label
-                        >
-                    </div>
-                {/if}
-                {#if selectedSection.type === "curved"}
-                    <div class="flex flex-col">
-                        <label
-                            >Radius: <div class="float-right">
-                                <NumberScroll
-                                    bind:value={selectedSection.radius}
-                                    min={0.1}
-                                    fractionalDigits={0}
-                                    unit="m"
-                                />
-                            </div></label
-                        >
-                        <label
-                            >Total angle: <div class="float-right">
-                                <NumberScroll
-                                    bind:value={selectedSection.angle}
-                                    min={0.1}
-                                    fractionalDigits={0}
-                                    unit="°"
-                                />
-                            </div></label
-                        >
-                        <label
-                            >Direction: <div class="float-right">
-                                <NumberScroll
-                                    bind:value={selectedSection.direction}
-                                    min={-180}
-                                    max={180}
-                                    fractionalDigits={0}
-                                    unit="°"
-                                />
-                            </div></label
-                        >
-                        <label
-                            >Fixed speed:
-                            <input
-                                type="checkbox"
-                                checked={selectedSection.fixedSpeed !==
-                                    undefined}
-                                on:change={(e) => {
-                                    selectedSection.fixedSpeed =
-                                        //@ts-expect-error
-                                        e.target.checked ? 10 : undefined;
-                                    track = track;
-                                }}
-                            />
-                            <div class="float-right">
-                                {#if selectedSection.fixedSpeed !== undefined}
-                                    <NumberScroll
-                                        bind:value={selectedSection.fixedSpeed}
-                                        min={0.1}
-                                        fractionalDigits={0}
-                                        unit="m/s"
-                                    />
-                                {/if}
-                            </div></label
-                        >
-                    </div>
-                {/if}
-                {#if selectedSection.type === "force"}
-                    <div class="flex flex-col">
-                        <label
-                            >Fixed speed:
-                            <input
-                                type="checkbox"
-                                checked={selectedSection.fixedSpeed !==
-                                    undefined}
-                                on:change={(e) => {
-                                    selectedSection.fixedSpeed =
-                                        //@ts-expect-error
-                                        e.target.checked ? 10 : undefined;
-                                    track = track;
-                                }}
-                            />
-                            <div class="float-right">
-                                {#if selectedSection.fixedSpeed !== undefined}
-                                    <NumberScroll
-                                        bind:value={selectedSection.fixedSpeed}
-                                        min={0.1}
-                                        fractionalDigits={0}
-                                        unit="m/s"
-                                    />
-                                {/if}
-                            </div></label
-                        >
-                    </div>
-                {/if}
-            </div>
         </div>
-        <div class="w-full h-full flex flex-col py-4">
+        <div class="w-full flex flex-col py-4">
             <PaneGroup class="h-full" direction="vertical">
                 <Pane class="bg-background" minSize={20}>
                     <div class="flex flex-col overflow-clip h-full">

@@ -6,6 +6,16 @@ export const keyState = {
 };
 
 export function keydownHandler(ev: KeyboardEvent) {
+    if (ev.code === "Escape") {
+        if (document.activeElement) (document.activeElement as any).blur();
+        window.focus();
+    }
+    if (
+        ev.target instanceof HTMLInputElement ||
+        ev.target instanceof HTMLTextAreaElement
+    ) {
+        return;
+    }
     if (
         ev.code !== "ControlLeft" &&
         ev.code !== "ControlRight" &&
