@@ -97,11 +97,11 @@ export async function GET(event: RequestEvent): Promise<Response> {
         if (e instanceof OAuth2RequestError) {
             console.error(e);
             // invalid code
-            return new Response(e.stack ?? e.message, {
+            return new Response(JSON.stringify(e), {
                 status: 400,
             });
         }
-        return new Response(e.stack ?? e.message, {
+        return new Response(JSON.stringify(e), {
             status: 500,
         });
     }
