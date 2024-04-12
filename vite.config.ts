@@ -1,6 +1,15 @@
 import { defineConfig } from "vite";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { sveltekit } from "@sveltejs/kit/vite";
 
 export default defineConfig({
-    plugins: [svelte()],
+    plugins: [sveltekit()],
+    build: {
+        rollupOptions: {
+            external: [
+                "better-sqlite3",
+                "drizzle-orm/better-sqlite3",
+                "bindings",
+            ],
+        },
+    },
 });

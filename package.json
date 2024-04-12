@@ -6,25 +6,44 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "generate": "drizzle-kit generate:sqlite",
+        "migrate": "tsx migrate"
     },
     "dependencies": {
         "@fontsource-variable/overpass": "^5.0.17",
         "@fontsource-variable/overpass-mono": "^5.0.16",
-        "file-system-access": "^1.0.4",
+        "@libsql/client": "^0.6.0",
+        "@lucia-auth/adapter-drizzle": "^1.0.7",
+        "arctic": "^1.5.0",
+        "bits-ui": "^0.21.1",
+        "dayjs": "^1.11.10",
+        "drizzle-orm": "^0.30.6",
         "lodash-es": "^4.17.21",
+        "lucia": "^3.1.1",
         "mitt": "^3.0.1",
+        "oslo": "^1.2.0",
+        "svelte-splitpanes": "^0.8.0",
         "three": "^0.161.0"
     },
     "devDependencies": {
-        "@sveltejs/vite-plugin-svelte": "^3.0.2",
-        "@tsconfig/svelte": "^5.0.2",
+        "@sveltejs/adapter-cloudflare": "^4.2.0",
+        "@sveltejs/kit": "^2.5.4",
+        "@sveltejs/vite-plugin-svelte": "^3.0.0",
+        "@tailwindcss/typography": "^0.5.10",
         "@types/lodash-es": "^4.17.12",
         "@types/three": "^0.161.2",
+        "@types/wicg-file-system-access": "^2023.10.5",
         "autoprefixer": "^10.4.17",
+        "dotenv": "^16.4.5",
+        "drizzle-kit": "^0.20.14",
+        "paneforge": "^0.0.2",
         "postcss": "^8.4.35",
         "svelte": "^4.2.12",
+        "svelte-feather-icons": "^4.1.0",
+        "svelte-turnstile": "^0.5.0",
         "tailwindcss": "^3.4.1",
+        "tsx": "^4.7.2",
         "typescript": "^5.2.2",
         "vite": "^5.1.0"
     }

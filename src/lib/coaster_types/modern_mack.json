@@ -1,0 +1,14 @@
+{
+	"name": "Modern Mack",
+	"author": "KohlerCoaster",
+	"heartlineHeight": 1.5,
+	"railGauge": 1.2,
+	"railGeometry": {
+		"type": "cylinder",
+		"radius": 0.08
+	},
+	"spineInterval": 0.25,
+	"crossTieInterval": 1.9,
+	"spineObj": "modern_mack_spine.obj",
+	"crossTieObj": "modern_mack_crosstie.obj"
+}
