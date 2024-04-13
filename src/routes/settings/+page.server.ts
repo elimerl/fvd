@@ -18,7 +18,6 @@ export async function load(event) {
 export const actions = {
     default: async ({ request, locals }) => {
         const data = await request.formData();
-        console.log(Object.fromEntries(data.entries()));
         const settings: AppSettings = {
             unitSystem: data.get("unitSystem") as UnitSystem,
             darkMode: data.get("darkMode") === "true",

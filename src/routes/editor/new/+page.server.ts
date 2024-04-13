@@ -17,7 +17,7 @@ export async function load(event) {
             trackJson: JSON.stringify(new Track()),
             userId: user.id,
         })
-        .returning();
+        .returning({ id: tracksTable.id });
 
-    return {};
+    return redirect(302, `/editor/${track[0].id}`);
 }

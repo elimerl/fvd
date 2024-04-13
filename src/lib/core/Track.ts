@@ -247,7 +247,6 @@ export class Track {
                     if (velocity <= 0) {
                         return spline;
                     }
-                    console.log(velocity);
                 }
                 spline.points.push({
                     pos,
@@ -304,7 +303,6 @@ export class Track {
                     if (velocity <= 0) {
                         return spline;
                     }
-                    console.log(velocity);
                 }
                 rot = qmul(rot, qaxisangle(axis, radPerM * dp));
                 spline.points.push({

@@ -7,14 +7,14 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "generate": "drizzle-kit generate:sqlite"
+        "generate": "drizzle-kit generate:sqlite",
+        "migrate": "tsx migrate"
     },
     "dependencies": {
         "@fontsource-variable/overpass": "^5.0.17",
         "@fontsource-variable/overpass-mono": "^5.0.16",
         "@libsql/client": "^0.6.0",
         "@lucia-auth/adapter-drizzle": "^1.0.7",
-        "@sveltekit-addons/document": "^1.0.1",
         "arctic": "^1.5.0",
         "bits-ui": "^0.21.1",
         "dayjs": "^1.11.10",
@@ -45,6 +45,7 @@
         "svelte-feather-icons": "^4.1.0",
         "svelte-turnstile": "^0.5.0",
         "tailwindcss": "^3.4.1",
+        "tsx": "^4.7.2",
         "typescript": "^5.2.2",
         "vite": "^5.1.0"
     }

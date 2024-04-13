@@ -4,7 +4,10 @@
 <main class="max-w-96 mx-auto px-4 my-8">
     <h1 class="font-semibold my-4 text-lg text-center">account setup</h1>
     <form method="post">
-        <p>Thanks for joining forcevector! Pick a username:</p>
+        <p>
+            Thanks for joining forcevector! Pick a username (this cannot be
+            changed later):
+        </p>
         <label class="flex gap-x-2"
             >Username:<input
                 name="username"

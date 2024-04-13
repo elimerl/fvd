@@ -157,12 +157,12 @@ export class TrackSpline {
             const up = qrotate(UP, p.point.rot);
             const right = qrotate(RIGHT, p.point.rot);
 
-            output += `<roll><ux>${up[0].toFixed(5)}</ux><uy>${up[1].toFixed(
-                5
-            )}</uy><uz>${up[2].toFixed(5)}</uz><rx>${right[0].toFixed(
-                5
-            )}</rx><ry>${right[1].toFixed(5)}</ry><rz>${right[2].toFixed(
-                5
+            output += `<roll><ux>${up[0].toFixed(6)}</ux><uy>${up[1].toFixed(
+                6
+            )}</uy><uz>${up[2].toFixed(6)}</uz><rx>${right[0].toFixed(
+                6
+            )}</rx><ry>${right[1].toFixed(6)}</ry><rz>${right[2].toFixed(
+                6
             )}</rz><coord>${(currentLength / totalLength).toFixed(
                 6
             )}</coord><strict>false</strict></roll>`;
