@@ -37,67 +37,87 @@
 </script>
 
 {#if point}
-    <div class="flex flex-col text-sm text-foreground">
-        <p class="font-semibold text-lg">point info</p>
-        <div class="flex gap-x-4">
-            <NumberDisplay label="time" value={point.time} unit="s" />
-            <UnitNumberDisplay
-                label="pos"
-                value={pos}
-                baseUnit="distance"
-                {unitSystem}
-            />
-            <UnitNumberDisplay
-                label="velocity"
-                value={point.velocity}
-                baseUnit="velocity"
-                {unitSystem}
-            />
-            <UnitNumberDisplay
-                label="x"
-                value={point.pos[0]}
-                baseUnit="distance"
-                {unitSystem}
-            />
-            <UnitNumberDisplay
-                label="y"
-                value={point.pos[1]}
-                baseUnit="distance"
-                {unitSystem}
-            />
-            <UnitNumberDisplay
-                label="z"
-                value={point.pos[2]}
-                baseUnit="distance"
-                {unitSystem}
-            />
-        </div>
-        <div class="flex gap-x-4">
-            <NumberDisplay label="yaw" value={yaw} unit="°" />
-            <NumberDisplay
-                label="yaw/s"
-                value={yawPerS}
-                unit="°/s"
-                fractionalDigits={1}
-            />
-            <NumberDisplay label="pitch" value={pitch} unit="°" />
-            <NumberDisplay
-                label="pitch/s"
-                value={pitchPerS}
-                unit="°/s"
-                fractionalDigits={1}
-            />
-            <NumberDisplay label="roll" value={roll} unit="°" />
-            <NumberDisplay
-                label="roll/s"
-                value={rollPerS}
-                unit="°/s"
-                fractionalDigits={1}
-            />
-        </div>
-        <div class="flex gap-x-4">
-            <NumberDisplay label="y-accel" value={force.vert} unit="g" />
-            <NumberDisplay label="x-accel" value={force.lat} unit="g" />
-        </div>
-    </div>
+    <table class="text-sm text-foreground">
+        <thead>
+            <tr><th>point info</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="pr-4"
+                    ><NumberDisplay
+                        label="time"
+                        value={point.time}
+                        unit="s"
+                    /></td
+                >
+                <td class="pr-4">
+                    <UnitNumberDisplay
+                        label="pos"
+                        value={pos}
+                        baseUnit="distance"
+                        {unitSystem}
+                    /></td
+                >
+                <td class="pr-4">
+                    <UnitNumberDisplay
+                        label="velocity"
+                        value={point.velocity}
+                        baseUnit="velocity"
+                        {unitSystem}
+                    /></td
+                >
+                <td class="pr-4"
+                    ><UnitNumberDisplay
+                        label="x"
+                        value={point.pos[0]}
+                        baseUnit="distance"
+                        {unitSystem}
+                    /></td
+                >
+                <td class="pr-4"
+                    ><UnitNumberDisplay
+                        label="y"
+                        value={point.pos[1]}
+                        baseUnit="distance"
+                        {unitSystem}
+                    /></td
+                >
+                <td>
+                    <UnitNumberDisplay
+                        label="z"
+                        value={point.pos[2]}
+                        baseUnit="distance"
+                        {unitSystem}
+                    /></td
+                >
+            </tr>
+            <!-- <div class="flex gap-x-4">
+                <NumberDisplay label="yaw" value={yaw} unit="°" />
+                <NumberDisplay
+                    label="yaw/s"
+                    value={yawPerS}
+                    unit="°/s"
+                    fractionalDigits={1}
+                />
+                <NumberDisplay label="pitch" value={pitch} unit="°" />
+                <NumberDisplay
+                    label="pitch/s"
+                    value={pitchPerS}
+                    unit="°/s"
+                    fractionalDigits={1}
+                />
+                <NumberDisplay label="roll" value={roll} unit="°" />
+                <NumberDisplay
+                    label="roll/s"
+                    value={rollPerS}
+                    unit="°/s"
+                    fractionalDigits={1}
+                />
+            </div>
+            <div class="flex gap-x-4">
+                <NumberDisplay label="y-accel" value={force.vert} unit="g" />
+                <NumberDisplay label="x-accel" value={force.lat} unit="g" />
+            </div> -->
+        </tbody>
+    </table>
 {/if}
