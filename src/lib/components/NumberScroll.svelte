@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { deltaY } from "../util";
     import * as _ from "lodash-es";
 
     export let value: number;

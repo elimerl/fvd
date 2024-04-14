@@ -457,7 +457,12 @@
                                     models loading...
                                 </p>
                             {:then models}
-                                <Renderer {spline} {models} bind:pov />
+                                <Renderer
+                                    {spline}
+                                    {models}
+                                    config={track.config}
+                                    bind:pov
+                                />
                             {/await}
                         </div>
                         <div class="flex-shrink-0">
