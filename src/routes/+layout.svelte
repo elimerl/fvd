@@ -6,12 +6,14 @@
 
     import { SettingsIcon } from "svelte-feather-icons";
 
+    import { Body } from "svelte-body";
+
     export let data;
 
     const darkMode = data.settings ? data.settings.darkMode : false;
 </script>
 
-<svelte:body
+<Body
     class={(darkMode ? "dark bg-background text-foreground" : "") +
         " overscroll-none overflow-x-clip subpixel-antialiased"}
 />
