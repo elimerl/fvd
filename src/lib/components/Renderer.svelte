@@ -266,6 +266,7 @@
             worker.postMessage({
                 type: "geometry",
                 points: spline.points,
+                config,
             });
         }
     }
