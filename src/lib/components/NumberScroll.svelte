@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { deltaY } from "../util";
     import * as _ from "lodash-es";
 
     export let value: number;
@@ -53,9 +54,10 @@
     step={step / 10}
     min={-1000}
     {max}
-    value={value.toFixed(digits) + unit}
+    value={value.toFixed(digits)}
     {disabled}
     readonly={disabled}
+    title={unit}
     on:input={inputOnChange}
     on:wheel={inputOnWheel}
     on:keydown={(ev) => {

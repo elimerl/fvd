@@ -50,7 +50,7 @@ export class TrackModelType {
     name: string;
     author: string;
 
-    defaultHeartlineHeight: number;
+    heartlineHeight: number;
     railGauge: number;
     railGeometry: RailGeometry;
     readonly spineGeometry: { vertices: vec3[] };
@@ -71,7 +71,7 @@ export class TrackModelType {
     }) {
         this.name = info.name;
         this.author = info.author;
-        this.defaultHeartlineHeight = info.heartlineHeight;
+        this.heartlineHeight = info.heartlineHeight;
         this.railGauge = info.railGauge;
         this.railGeometry = info.railGeometry;
         this.spineInterval = info.spineInterval;
@@ -91,7 +91,7 @@ export class TrackModelType {
         });
     }
 
-    makeSpineMesh(spline: TrackSpline, heartlineHeight: number): Geometry {
+    makeSpineMesh(spline: TrackSpline): Geometry {
         const vertices: vec3[] = [];
         const indices: number[] = [];
         const indexArray = [];
@@ -105,7 +105,7 @@ export class TrackModelType {
             const indexRow: number[] = [];
             const trackPoint = vsub(
                 points[i].point.pos,
-                qrotate(vec(0, heartlineHeight, 0), points[i].point.rot)
+                qrotate(vec(0, this.heartlineHeight, 0), points[i].point.rot)
             );
 
             for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
@@ -115,8 +115,8 @@ export class TrackModelType {
                     trackPoint,
                     qrotate(
                         [
-                            baseVertex[0] * Math.sign(heartlineHeight),
-                            baseVertex[1] * Math.sign(heartlineHeight),
+                            baseVertex[0] * Math.sign(this.heartlineHeight),
+                            baseVertex[1] * Math.sign(this.heartlineHeight),
                             baseVertex[2],
                         ],
                         points[i].point.rot
@@ -156,11 +156,7 @@ export class TrackModelType {
         };
     }
 
-    makeRailsMesh(
-        spline: TrackSpline,
-        vertexCount: number = 6,
-        heartlineHeight: number
-    ): Geometry {
+    makeRailsMesh(spline: TrackSpline, vertexCount: number = 6): Geometry {
         const baseVertices: vec3[] = [];
 
         if (this.railGeometry.type === "cylinder") {
@@ -181,33 +177,18 @@ export class TrackModelType {
 
         const points = spline.intervalPoints(RAIL_INTERVAL);
 
-        this.makeRail(
-            baseVertices,
-            vertices,
-            indices,
-            -1,
-            points,
-            heartlineHeight
-        );
+        this.makeRail(baseVertices, vertices, indices, -1, points);
 
-        this.makeRail(
-            baseVertices,
-            vertices,
-            indices,
-            1,
-            points,
-            heartlineHeight
-        );
+        this.makeRail(baseVertices, vertices, indices, 1, points);
 
-        this.makeCrossTies(spline, vertices, indices, heartlineHeight);
+        this.makeCrossTies(spline, vertices, indices);
 
         return { vertices: new Float32Array(vertices.flat()), indices };
     }
     private makeCrossTies(
         spline: TrackSpline,
         vertices: vec3[],
-        indices: number[],
-        heartlineHeight: number
+        indices: number[]
     ) {
         if (!this.crossTieGeometry) return;
         const interval = this.crossTieInterval ?? this.spineInterval;
@@ -218,7 +199,7 @@ export class TrackModelType {
         for (let i = 0; i < points.length; i++) {
             const trackPointStart = vsub(
                 points[i].point.pos,
-                qrotate(vec(0, heartlineHeight, 0), points[i].point.rot)
+                qrotate(vec(0, this.heartlineHeight, 0), points[i].point.rot)
             );
             const pointEnd =
                 spline.evaluate(points[i].dist + interval) ?? points[i].point;
@@ -246,8 +227,8 @@ export class TrackModelType {
                     pos,
                     qrotate(
                         [
-                            -baseVertex[0] * Math.sign(heartlineHeight),
-                            baseVertex[1] * Math.sign(heartlineHeight),
+                            -baseVertex[0] * Math.sign(this.heartlineHeight),
+                            baseVertex[1] * Math.sign(this.heartlineHeight),
                             baseVertex[2],
                         ],
                         rot
@@ -263,8 +244,7 @@ export class TrackModelType {
         vertices: vec3[],
         indices: number[],
         side: -1 | 1,
-        points: { point: TrackPoint; dist: number }[],
-        heartline: number
+        points: { point: TrackPoint; dist: number }[]
     ) {
         const indexArray = [];
 
@@ -273,7 +253,11 @@ export class TrackModelType {
                 const trackPoint = vsub(
                     points[i].point.pos,
                     qrotate(
-                        vec((this.railGauge / 2) * side, heartline, 0),
+                        vec(
+                            (this.railGauge / 2) * side,
+                            this.heartlineHeight,
+                            0
+                        ),
                         points[i].point.rot
                     )
                 );

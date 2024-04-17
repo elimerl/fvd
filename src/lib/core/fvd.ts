@@ -1,4 +1,3 @@
-import type { TrackModelType } from "$lib/coaster_types/model";
 import { G, UP, FORWARD, RIGHT, DOWN, degToRad } from "./constants";
 import {
     type quaternion,

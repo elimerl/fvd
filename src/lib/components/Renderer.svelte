@@ -3,7 +3,7 @@
     import type { TrackSpline } from "$lib/core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qaxisangle, qmul, qrotate, vadd, vec, vmul } from "$lib/core/math";
+    import { qaxisangle, qmul, qrotate, vadd, vec } from "$lib/core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
     import {
@@ -15,8 +15,6 @@
     import { time } from "../util";
 
     import ModelWorker from "../modelWorker?worker";
-    import { DOWN } from "$lib/core/constants";
-    import type { TrackConfig } from "$lib/core/Track";
 
     const modelWorkers = [];
     for (let i = 0; i < 6; i++) {
@@ -27,7 +25,6 @@
 
     export let spline: TrackSpline;
     export let pov: { pos: number } = { pos: 0 };
-    export let config: TrackConfig;
 
     export let models: Map<string, TrackModelType>;
 
@@ -151,8 +148,8 @@
             const { heartlineGeometry, railGeometry, spineGeometry } =
                 trackGeometry(
                     spline,
-                    modelType.makeRailsMesh(spline, 6, config.heartlineHeight),
-                    modelType.makeSpineMesh(spline, config.heartlineHeight),
+                    modelType.makeRailsMesh(spline),
+                    modelType.makeSpineMesh(spline),
                 );
 
             const heartlineMat = new THREE.LineBasicMaterial({
@@ -285,13 +282,16 @@
         spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.intervalPoints(0.1).map((v) => {
-                return new THREE.Vector3(
-                    v.point.pos[0],
-                    v.point.pos[1],
-                    v.point.pos[2],
-                );
-            }),
+            spline
+                .intervalPoints(0.1)
+                .map(
+                    (v) =>
+                        new THREE.Vector3(
+                            v.point.pos[0],
+                            v.point.pos[1],
+                            v.point.pos[2],
+                        ),
+                ),
         );
         return {
             heartlineGeometry,

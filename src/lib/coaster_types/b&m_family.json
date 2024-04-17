@@ -1,7 +1,7 @@
 {
     "name": "B&M Family Launch",
     "author": "KohlerCoaster",
-    "heartlineHeight": -1.1,
+    "heartlineHeight": 1.1,
     "railGauge": 1.0,
     "railGeometry": {
         "type": "cylinder",
