@@ -12,6 +12,7 @@
                 <a href={`/profile/${data.user.username}`}>Profile</a>
             </p>
         {:else}
+            <p>Welcome to forcevector!</p>
             <a href="/login">Log in</a>
         {/if}
     </div>

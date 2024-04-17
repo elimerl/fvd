@@ -15,6 +15,7 @@
     import { time } from "../util";
 
     import ModelWorker from "../modelWorker?worker";
+    import type { TrackConfig } from "$lib/core/Track";
 
     const modelWorkers = [];
     for (let i = 0; i < 6; i++) {
@@ -27,6 +28,7 @@
     export let pov: { pos: number } = { pos: 0 };
 
     export let models: Map<string, TrackModelType>;
+    export let config: TrackConfig;
 
     let canvasThree: HTMLCanvasElement;
 
@@ -148,8 +150,8 @@
             const { heartlineGeometry, railGeometry, spineGeometry } =
                 trackGeometry(
                     spline,
-                    modelType.makeRailsMesh(spline),
-                    modelType.makeSpineMesh(spline),
+                    modelType.makeRailsMesh(spline, config.heartlineHeight),
+                    modelType.makeSpineMesh(spline, config.heartlineHeight),
                 );
 
             const heartlineMat = new THREE.LineBasicMaterial({
