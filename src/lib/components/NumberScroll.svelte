@@ -47,7 +47,7 @@
 
 <input
     type="text"
-    class={"px-1 m-0.5 rounded-md border border-gray-400 text-right w-24 dark:text-gray-100 dark:bg-gray-800" +
+    class={"font-mono px-1 m-0.5 rounded-md border border-gray-400 text-right w-24 dark:text-gray-100 dark:bg-gray-800" +
         (disabled
             ? " bg-gray-200 text-gray-500 dark:bg-gray-500 dark:text-gray-400"
             : "")}
