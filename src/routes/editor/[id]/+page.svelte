@@ -239,8 +239,28 @@
                         />
                     </label>
 
-                    <p class="mb-1">Anchor Y (todo xyz)</p>
-                    <NumberScroll bind:value={track.anchor.pos[1]} unit="m" />
+                    <label class="mb-1"
+                        >Anchor Y (todo xyz)
+                        <NumberScroll
+                            bind:value={track.anchor.pos[1]}
+                            unit="m"
+                        /></label
+                    >
+
+                    <label class="mb-1"
+                        >Heartline Height
+                        <NumberScroll
+                            bind:value={track.config.heartlineHeight}
+                            unit="m"
+                        /></label
+                    >
+                    <label class="mb-1"
+                        >Friction
+                        <NumberScroll
+                            fractionalDigits={2}
+                            bind:value={track.config.parameter}
+                        /></label
+                    >
                 </details>
             </div>
             <div class="flex flex-col flex-grow">

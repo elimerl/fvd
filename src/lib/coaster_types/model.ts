@@ -107,6 +107,7 @@ export class TrackModelType {
                 points[i].point.pos,
                 qrotate(vec(0, heartlineHeight, 0), points[i].point.rot)
             );
+            const heartlineSign = Math.sign(heartlineHeight) >= 0 ? 1 : -1;
 
             for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
                 let baseVertex = this.spineGeometry.vertices[j];
@@ -115,8 +116,8 @@ export class TrackModelType {
                     trackPoint,
                     qrotate(
                         [
-                            baseVertex[0] * Math.sign(heartlineHeight),
-                            baseVertex[1] * Math.sign(heartlineHeight),
+                            baseVertex[0] * heartlineSign,
+                            baseVertex[1] * heartlineSign,
                             baseVertex[2],
                         ],
                         points[i].point.rot
@@ -242,12 +243,14 @@ export class TrackModelType {
                 );
                 const pos = trackPointStart;
 
+                const heartlineSign = Math.sign(heartlineHeight) >= 0 ? 1 : -1;
+
                 const point = vadd(
                     pos,
                     qrotate(
                         [
-                            -baseVertex[0] * Math.sign(heartlineHeight),
-                            baseVertex[1] * Math.sign(heartlineHeight),
+                            -baseVertex[0] * heartlineSign,
+                            baseVertex[1] * heartlineSign,
                             baseVertex[2],
                         ],
                         rot

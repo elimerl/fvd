@@ -267,6 +267,7 @@
             worker.postMessage({
                 type: "geometry",
                 points: spline.points,
+                config,
             });
         }
     }
@@ -286,11 +287,14 @@
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.intervalPoints(0.1).map((v) => {
-                return new THREE.Vector3(
-                    v.point.pos[0],
-                    v.point.pos[1],
-                    v.point.pos[2],
+                const p = vadd(
+                    v.point.pos,
+                    qrotate(
+                        vmul(DOWN, config.heartlineHeight * 0.9),
+                        v.point.rot,
+                    ),
                 );
+                return new THREE.Vector3(p[0], p[1], p[2]);
             }),
         );
         return {
