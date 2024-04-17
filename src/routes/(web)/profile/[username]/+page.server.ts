@@ -4,18 +4,18 @@ import { error } from "@sveltejs/kit";
 import { desc, eq } from "drizzle-orm";
 
 export async function load(event) {
-    const user = await db.query.userTable.findFirst({
+    const profileUser = await db.query.userTable.findFirst({
         where: eq(userTable.username, event.params.username),
     });
 
-    if (!user) {
+    if (!profileUser) {
         error(404);
     }
 
     const tracks = await db.query.tracksTable.findMany({
-        where: eq(tracksTable.userId, user.id),
+        where: eq(tracksTable.userId, profileUser.id),
         orderBy: [desc(tracksTable.createdAt)],
     });
-
-    return { user, settings: event.locals.settings, tracks };
+    console.log(event.locals);
+    return { user: profileUser, settings: event.locals.settings, tracks };
 }

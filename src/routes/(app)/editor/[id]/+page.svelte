@@ -148,8 +148,14 @@
                 align="start"
                 sideOffset={3}
             >
+                <a href="/editor/new" data-sveltekit-reload
+                    ><Menubar.Item
+                        class="flex h-8 select-none items-center py-0.5 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                        >New</Menubar.Item
+                    ></a
+                >
                 <Menubar.Item
-                    class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
                     on:click={async () => {
                         if ("showSaveFilePicker" in window) {
                             if (!handle)

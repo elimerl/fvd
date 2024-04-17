@@ -6,7 +6,6 @@
     import utc from "dayjs/plugin/utc";
     dayjs.extend(utc);
     import * as _ from "lodash-es";
-    import MarkdownIt from "markdown-it";
 
     export let data;
 
@@ -24,12 +23,6 @@
         const v = spline.points.map((v) => v.velocity);
         return _.max(v);
     });
-
-    const md = MarkdownIt({
-        linkify: true,
-        html: false,
-        typographer: true,
-    }).disable(["image", "table"]);
 </script>
 
 <main class="mt-8 mx-auto px-4 max-w-xl">
@@ -38,7 +31,7 @@
     </h1>
     <ul>
         {#each data.tracks as track, i}
-            <li class="mb-8">
+            <li class="">
                 <h2 class="text-2xl font-bold">
                     <a href={`/editor/${track.id}`}>{track.name}</a>
                 </h2>
@@ -52,7 +45,14 @@
                             )}</time
                         >
                     </p>
-
+                    <p>
+                        length <UnitNumberSpan
+                            value={splines[i].getLength()}
+                            baseUnit="distance"
+                            unitSystem={data.settings.unitSystem}
+                            fractionalDigits={1}
+                        />
+                    </p>
                     <p>
                         height (total elevation change) <UnitNumberSpan
                             value={heights[i]}
@@ -69,16 +69,8 @@
                             fractionalDigits={0}
                         />
                     </p>
-                    <p>
-                        length <UnitNumberSpan
-                            value={splines[i].getLength()}
-                            baseUnit="distance"
-                            unitSystem={data.settings.unitSystem}
-                            fractionalDigits={1}
-                        />
-                    </p>
                 </div>
-                <div class="ml-1">{@html md.render(track.description)}</div>
+                <p>{track.description}</p>
             </li>
         {/each}
     </ul>

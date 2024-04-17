@@ -11,7 +11,6 @@ onmessage = (e) => {
         spline.points = e.data.points;
         const railsMesh = modelType.makeRailsMesh(
             spline,
-            6,
             e.data.config.heartlineHeight
         );
         const spineMesh = modelType.makeSpineMesh(

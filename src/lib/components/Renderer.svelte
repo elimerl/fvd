@@ -3,7 +3,7 @@
     import type { TrackSpline } from "$lib/core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qaxisangle, qmul, qrotate, vadd, vec, vmul } from "$lib/core/math";
+    import { qaxisangle, qmul, qrotate, vadd, vec } from "$lib/core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
     import {
@@ -15,7 +15,6 @@
     import { time } from "../util";
 
     import ModelWorker from "../modelWorker?worker";
-    import { DOWN } from "$lib/core/constants";
     import type { TrackConfig } from "$lib/core/Track";
 
     const modelWorkers = [];
@@ -27,9 +26,9 @@
 
     export let spline: TrackSpline;
     export let pov: { pos: number } = { pos: 0 };
-    export let config: TrackConfig;
 
     export let models: Map<string, TrackModelType>;
+    export let config: TrackConfig;
 
     let canvasThree: HTMLCanvasElement;
 
@@ -151,7 +150,7 @@
             const { heartlineGeometry, railGeometry, spineGeometry } =
                 trackGeometry(
                     spline,
-                    modelType.makeRailsMesh(spline, 6, config.heartlineHeight),
+                    modelType.makeRailsMesh(spline, config.heartlineHeight),
                     modelType.makeSpineMesh(spline, config.heartlineHeight),
                 );
 
@@ -286,16 +285,16 @@
         spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline.intervalPoints(0.1).map((v) => {
-                const p = vadd(
-                    v.point.pos,
-                    qrotate(
-                        vmul(DOWN, config.heartlineHeight * 0.9),
-                        v.point.rot,
-                    ),
-                );
-                return new THREE.Vector3(p[0], p[1], p[2]);
-            }),
+            spline
+                .intervalPoints(0.1)
+                .map(
+                    (v) =>
+                        new THREE.Vector3(
+                            v.point.pos[0],
+                            v.point.pos[1],
+                            v.point.pos[2],
+                        ),
+                ),
         );
         return {
             heartlineGeometry,
