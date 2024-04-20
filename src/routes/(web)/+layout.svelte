@@ -3,7 +3,7 @@
     export let data;
 </script>
 
-<nav class="flex flex-row items-center gap-x-8 px-4 py-2">
+<nav class="flex flex-row items-center gap-x-8 px-4 py-2 h-16">
     <a href="/" class="text-xl font-bold">forcevector.app</a>
     {#if data.user}
         <a
@@ -14,13 +14,15 @@
         >
     {/if}
 
-    <div class="ml-auto">
+    <div class="ml-auto h-full">
         {#if data.user}
-            <div class="flex flex-row gap-x-4 fl">
+            <div class="flex flex-row gap-x-4 justify-center">
                 <a href="/settings" class="text-lg my-auto"
-                    ><SettingsIcon size="20" /></a
+                    ><SettingsIcon size="1x" /></a
                 >
-                <a href="/logout" class="my-auto">Logout</a>
+                <form action="/login/logout" method="post" class="my-auto">
+                    <button type="submit"> Logout</button>
+                </form>
 
                 <a
                     href={`/profile/${data.user.username}`}

@@ -345,6 +345,7 @@
                     selected.arr === "vert"
                         ? TransitionCurve.Cubic
                         : TransitionCurve.Plateau,
+                center: 0,
                 tension: 0,
                 dynamicLength: false,
             };
@@ -366,6 +367,7 @@
                     selected.arr === "vert"
                         ? TransitionCurve.Cubic
                         : TransitionCurve.Plateau,
+                center: 0,
                 tension: 0,
                 dynamicLength: false,
             };
@@ -400,6 +402,8 @@
         if (ev.button === 2) {
             ev.preventDefault();
         }
+
+        // TODO: disable selection with readonly
     }}
     on:mouseup={(ev) => {
         if (ev.button === 0) {

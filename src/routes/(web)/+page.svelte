@@ -2,7 +2,6 @@
     export let data;
 </script>
 
-<svelte:body class="bg-background" />
 <main>
     <div class="prose dark:prose-invert mx-auto px-4 mt-8">
         <h1>forcevector.app</h1>

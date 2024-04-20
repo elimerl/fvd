@@ -16,6 +16,5 @@ export async function load(event) {
         where: eq(tracksTable.userId, profileUser.id),
         orderBy: [desc(tracksTable.createdAt)],
     });
-    console.log(event.locals);
     return { user: profileUser, settings: event.locals.settings, tracks };
 }

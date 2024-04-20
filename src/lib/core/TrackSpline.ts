@@ -8,6 +8,7 @@ import {
     qslerp,
     vlerp,
     lerp,
+    vcross,
 } from "./math";
 
 export interface TrackPoint {
@@ -127,13 +128,7 @@ export class TrackSpline {
 
         exportPoints.forEach((p, i) => {
             const isStrict = i === 0 || i === exportPoints.length - 1;
-            output += `<vertex><x>${p.point.pos[0].toFixed(
-                3
-            )}</x><y>${p.point.pos[1].toFixed(
-                3
-            )}</y><z>${p.point.pos[2].toFixed(
-                3
-            )}</z><strict>${isStrict}</strict></vertex>`;
+            output += `<vertex><x>${p.point.pos[0].toExponential()}</x><y>${p.point.pos[1].toExponential()}</y><z>${p.point.pos[2].toExponential()}</z><strict>${isStrict}</strict></vertex>`;
         });
 
         let totalLength = 0;
@@ -154,18 +149,12 @@ export class TrackSpline {
             currentLength += vlength(vsub(p.point.pos, lastPoint.point.pos));
 
             lastPoint = p;
-            const up = qrotate(UP, p.point.rot);
-            const right = qrotate(RIGHT, p.point.rot);
+            const up = qrotate([0, 1, 0], p.point.rot);
+            const right = qrotate([-1, 0, 0], p.point.rot);
 
-            output += `<roll><ux>${up[0].toFixed(6)}</ux><uy>${up[1].toFixed(
-                6
-            )}</uy><uz>${up[2].toFixed(6)}</uz><rx>${right[0].toFixed(
-                6
-            )}</rx><ry>${right[1].toFixed(6)}</ry><rz>${right[2].toFixed(
-                6
-            )}</rz><coord>${(currentLength / totalLength).toFixed(
-                6
-            )}</coord><strict>false</strict></roll>`;
+            output += `<roll><ux>${up[0].toExponential()}</ux><uy>${up[1].toExponential()}</uy><uz>${up[2].toExponential()}</uz><rx>${right[0].toExponential()}</rx><ry>${right[1].toExponential()}</ry><rz>${right[2].toExponential()}</rz><coord>${(
+                currentLength / totalLength
+            ).toExponential()}</coord><strict>false</strict></roll>`;
         });
 
         output += "</element></root>";

@@ -7,11 +7,23 @@ import { settingsTable } from "$lib/server/schema";
 import { defaultSettings, type AppSettings } from "$lib/settings";
 
 export const handle: Handle = async ({ event, resolve }) => {
+    let settings: AppSettings;
     const sessionId = event.cookies.get(lucia.sessionCookieName);
     if (!sessionId) {
+        settings = defaultSettings();
         event.locals.user = null;
         event.locals.session = null;
-        return resolve(event);
+        event.locals.settings = settings;
+        return resolve(event, {
+            transformPageChunk({ html }) {
+                return html.replace(
+                    "%app.themeclass%",
+                    settings.darkMode
+                        ? "dark bg-background text-foreground"
+                        : ""
+                );
+            },
+        });
     }
 
     const { session, user } = await lucia.validateSession(sessionId);
@@ -32,17 +44,22 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = user;
     event.locals.session = session;
 
-    const settings = event.locals.user
-        ? (JSON.parse(
-              (
-                  await db.query.settingsTable.findFirst({
-                      where: eq(settingsTable.userId, event.locals.user!.id),
-                  })
-              ).json
-          ) as AppSettings)
-        : defaultSettings();
+    settings = JSON.parse(
+        (
+            await db.query.settingsTable.findFirst({
+                where: eq(settingsTable.userId, event.locals.user!.id),
+            })
+        ).json
+    ) as AppSettings;
 
     event.locals.settings = settings;
 
-    return resolve(event);
+    return resolve(event, {
+        transformPageChunk({ html }) {
+            return html.replace(
+                "%app.themeclass%",
+                settings.darkMode ? "dark bg-background text-foreground" : ""
+            );
+        },
+    });
 };

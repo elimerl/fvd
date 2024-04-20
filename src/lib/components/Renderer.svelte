@@ -16,6 +16,7 @@
 
     import ModelWorker from "../modelWorker?worker";
     import type { TrackConfig } from "$lib/core/Track";
+    import { UP } from "$lib/core/constants";
 
     const modelWorkers = [];
     for (let i = 0; i < 6; i++) {
@@ -285,16 +286,10 @@
         spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
-            spline
-                .intervalPoints(0.1)
-                .map(
-                    (v) =>
-                        new THREE.Vector3(
-                            v.point.pos[0],
-                            v.point.pos[1],
-                            v.point.pos[2],
-                        ),
-                ),
+            spline.intervalPoints(0.1).map((v) => {
+                const p = v.point.pos;
+                return new THREE.Vector3(p[0], p[1], p[2]);
+            }),
         );
         return {
             heartlineGeometry,
@@ -404,13 +399,19 @@
         resizeCanvas(renderer, camera);
     }}
     on:contextmenu={(ev) => ev.preventDefault()}
-    on:mousedown={(ev) => {
+    on:mousedown={async (ev) => {
         ev.preventDefault();
         if (ev.button === 2) {
-            if (!pointerLocked)
-                // @ts-expect-error
-                canvasThree.requestPointerLock({ unadjustedMovement: true });
-            else document.exitPointerLock();
+            try {
+                if (!pointerLocked) {
+                    // @ts-expect-error
+                    canvasThree.requestPointerLock({
+                        unadjustedMovement: true,
+                    });
+                } else document.exitPointerLock();
+            } catch {
+                console.error("pointer lock failed");
+            }
         }
     }}
     on:mousemove={(ev) => {

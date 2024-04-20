@@ -37,10 +37,8 @@
 </script>
 
 {#if point}
+    <p class="font-semibold">point info</p>
     <table class="text-sm text-foreground">
-        <thead>
-            <tr><th>point info</th></tr>
-        </thead>
         <tbody>
             <tr>
                 <td class="pr-4"

@@ -17,7 +17,7 @@
     import { Track, forces } from "$lib/core/Track";
     import { loadModels, type TrackModelType } from "$lib/coaster_types/model";
 
-    import { Trash2Icon } from "svelte-feather-icons";
+    import { CloudIcon, CloudOffIcon, Trash2Icon } from "svelte-feather-icons";
 
     import { Pane, PaneGroup, PaneResizer } from "paneforge";
     import { Menubar } from "bits-ui";
@@ -67,10 +67,12 @@
         if (track) dirty = true;
     }
     $: {
-        if (saveTimeout) clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-            await save();
-        }, 2000);
+        if (dirty) {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                await save();
+            }, 2000);
+        }
     }
 
     beforeNavigate(({ from, to, cancel }) => {
@@ -92,7 +94,7 @@
             }
         };
         window.addEventListener("beforeunload", beforeUnloadHandler);
-
+        dirty = false;
         return () => {
             window.removeEventListener("beforeunload", beforeUnloadHandler);
         };
@@ -136,9 +138,11 @@
 
 <div class="w-screen h-screen overflow-clip bg-background text-foreground">
     <Menubar.Root
-        class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini"
+        class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini pl-2"
     >
         <Menubar.Menu>
+            <a class="font-semibold" href="/">forcevector.app</a>
+
             <Menubar.Trigger
                 class="inline-flex h-8 cursor-default items-center justify-center rounded-9px px-1 text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted data-[state=open]:bg-muted"
                 >File</Menubar.Trigger
@@ -220,11 +224,20 @@
                 >
             </Menubar.Content>
         </Menubar.Menu>
+        <p class="text-foreground-alt">
+            <span>
+                {#if dirty}
+                    <CloudOffIcon class="inline-block mr-1" size="1x" /> not saved
+                {:else}
+                    <CloudIcon class="inline-block mr-1" size="1x" /> saved
+                {/if}</span
+            >
+        </p>
     </Menubar.Root>
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
             <div>
-                <details>
+                <details class="flex flex-col">
                     <summary>
                         <span class="mb-2 font-semibold text-lg">
                             Track properties
@@ -589,7 +602,14 @@
                                             {/each}
                                         </select>
                                     </label>
-
+                                    <label
+                                        ><span class="mr-2">Center:</span>
+                                        <div class="float-right">
+                                            <NumberScroll
+                                                bind:value={selectedTransition.center}
+                                            />
+                                        </div></label
+                                    >
                                     <label
                                         ><span class="mr-2">Tension:</span>
                                         <div class="float-right">
