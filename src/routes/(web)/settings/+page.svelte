@@ -2,6 +2,8 @@
     import { UnitSystem } from "$lib/core/units";
 
     export let data;
+
+    let fov = data.settings.fov;
 </script>
 
 <main class="max-w-96 mx-auto px-4 my-8">
@@ -35,6 +37,17 @@
                     value={UnitSystem.Imperial}>Imperial (ft, mph)</option
                 >
             </select></label
+        >
+        <label class="flex gap-x-2"
+            >FOV: <input
+                type="range"
+                min="50"
+                max="120"
+                step="5"
+                name="fov"
+                bind:value={fov}
+            />
+            {fov}</label
         >
         <button type="submit" class="button">submit</button>
     </form>

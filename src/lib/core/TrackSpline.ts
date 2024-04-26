@@ -119,7 +119,7 @@ export class TrackSpline {
     exportToNl2Elem(): string {
         const exportPoints = this.intervalPoints(EXPORT_INTERVAL);
 
-        let output = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><root><element><description>fvd.elidavies.com exported data</description>`;
+        let output = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><root><element><description>forcevector.app exported spline</description>`;
 
         const maxHeight = exportPoints.reduce(
             (max, p) => Math.max(max, p.point.pos[1]),

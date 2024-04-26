@@ -27,6 +27,8 @@
 
     export let data;
 
+    let mode: "fly" | "pov" = "pov";
+
     let selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined =
         undefined;
 
@@ -218,18 +220,25 @@
                 align="start"
                 sideOffset={3}
             >
-                <Menubar.Item
-                    class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
-                    >IDK</Menubar.Item
+                <a href="/settings" data-sveltekit-reload
+                    ><Menubar.Item
+                        class="flex h-8 select-none items-center py-0.5 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                        >Settings</Menubar.Item
+                    ></a
                 >
             </Menubar.Content>
         </Menubar.Menu>
         <p class="text-foreground-alt">
             <span>
-                {#if dirty}
-                    <CloudOffIcon class="inline-block mr-1" size="1x" /> not saved
+                {#if data.user.id === data.track.userId}
+                    {#if dirty}
+                        <CloudOffIcon class="inline-block mr-1" size="1x" /> not
+                        saved
+                    {:else}
+                        <CloudIcon class="inline-block mr-1" size="1x" /> saved
+                    {/if}
                 {:else}
-                    <CloudIcon class="inline-block mr-1" size="1x" /> saved
+                    not owned by you
                 {/if}</span
             >
         </p>
@@ -259,7 +268,7 @@
                     </label>
 
                     <label class="mb-1"
-                        >Anchor Y (todo xyz)
+                        >Anchor Y
                         <NumberScroll
                             bind:value={track.anchor.pos[1]}
                             unit="m"
@@ -500,6 +509,7 @@
                                     {spline}
                                     {models}
                                     config={track.config}
+                                    bind:mode
                                     bind:pov
                                 />
                             {/await}
@@ -509,7 +519,7 @@
                                 {spline}
                                 {pov}
                                 unitSystem={data.settings.unitSystem}
-                                mode={"pov"}
+                                mode={mode === "fly" ? "atEnd" : "pov"}
                             />
                         </div>
                     </div></Pane

@@ -41,7 +41,7 @@
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
-    let mode: "fly" | "pov" = "pov";
+    export let mode: "fly" | "pov" = "pov";
 
     let flyPos = vec(0, 0, 0);
     let flyPitch = 0;

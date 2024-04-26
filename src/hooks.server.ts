@@ -44,13 +44,27 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = user;
     event.locals.session = session;
 
-    settings = JSON.parse(
-        (
-            await db.query.settingsTable.findFirst({
-                where: eq(settingsTable.userId, event.locals.user!.id),
+    const settingsJson = (
+        await db.query.settingsTable.findFirst({
+            where: eq(settingsTable.userId, event.locals.user!.id),
+        })
+    ).json;
+    // use default settings if not in original
+    settings = {
+        ...defaultSettings(),
+        ...(JSON.parse(settingsJson) as AppSettings),
+    };
+
+    // update settings if changed
+    if (event.locals.settings && settingsJson !== JSON.stringify(settings)) {
+        await db
+            .update(settingsTable)
+            .set({
+                json: JSON.stringify(settings),
             })
-        ).json
-    ) as AppSettings;
+            .where(eq(settingsTable.userId, event.locals.user!.id))
+            .execute();
+    }
 
     event.locals.settings = settings;
 
