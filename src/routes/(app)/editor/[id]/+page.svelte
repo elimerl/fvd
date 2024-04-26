@@ -43,7 +43,9 @@
 
     let track = Track.fromJSON(JSON.parse(data.track.trackJson));
 
-    $: data.track.trackJson = JSON.stringify(track);
+    $: {
+        data.track.trackJson = JSON.stringify(track);
+    }
     // track.sections.push({
     //     type: "force",
     //     fixedSpeed: undefined,
