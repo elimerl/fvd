@@ -9,8 +9,14 @@ onmessage = (e) => {
     } else if (e.data.type === "geometry") {
         const spline = new TrackSpline();
         spline.points = e.data.points;
-        const railsMesh = modelType.makeRailsMesh(spline);
-        const spineMesh = modelType.makeSpineMesh(spline);
+        const railsMesh = modelType.makeRailsMesh(
+            spline,
+            e.data.config.heartlineHeight
+        );
+        const spineMesh = modelType.makeSpineMesh(
+            spline,
+            e.data.config.heartlineHeight
+        );
 
         postMessage({ railsMesh, spineMesh });
     }

@@ -18,6 +18,13 @@ export const actions = {
         const data = await event.request.formData();
         const username = data.get("username");
 
+        if (!username || !/^[_\-a-zA-Z0-9]+$/.test(username.toString())) {
+            return {
+                status: 400,
+                body: "Invalid username",
+            };
+        }
+
         if (
             await db.query.userTable.findFirst({
                 where: eq(userTable.username, username.toString()),

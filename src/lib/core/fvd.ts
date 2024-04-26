@@ -1,4 +1,3 @@
-import type { TrackModelType } from "$lib/coaster_types/model";
 import { G, UP, FORWARD, RIGHT, DOWN, degToRad } from "./constants";
 import {
     type quaternion,
@@ -29,7 +28,7 @@ import { Transitions } from "./Transitions";
 // const GRAVITY = new THREE.Vector3(0, -G, 0);
 
 const EPSILON = 0.0001;
-const DT = 0.01;
+const DT = 0.001;
 
 export function fvd(
     transitions: Transitions,

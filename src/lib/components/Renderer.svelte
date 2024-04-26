@@ -3,7 +3,7 @@
     import type { TrackSpline } from "$lib/core/TrackSpline";
     import * as THREE from "three";
     import { InfiniteGridHelper } from "../InfiniteGridHelper";
-    import { qaxisangle, qmul, qrotate, vadd, vec, vmul } from "$lib/core/math";
+    import { qaxisangle, qmul, qrotate, vadd, vec } from "$lib/core/math";
     import { keyState } from "../input";
     import * as _ from "lodash-es";
     import {
@@ -15,8 +15,8 @@
     import { time } from "../util";
 
     import ModelWorker from "../modelWorker?worker";
-    import { DOWN } from "$lib/core/constants";
     import type { TrackConfig } from "$lib/core/Track";
+    import { UP } from "$lib/core/constants";
 
     const modelWorkers = [];
     for (let i = 0; i < 6; i++) {
@@ -27,9 +27,9 @@
 
     export let spline: TrackSpline;
     export let pov: { pos: number } = { pos: 0 };
-    export let config: TrackConfig;
 
     export let models: Map<string, TrackModelType>;
+    export let config: TrackConfig;
 
     let canvasThree: HTMLCanvasElement;
 
@@ -41,7 +41,7 @@
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
-    let mode: "fly" | "pov" = "pov";
+    export let mode: "fly" | "pov" = "pov";
 
     let flyPos = vec(0, 0, 0);
     let flyPitch = 0;
@@ -151,7 +151,7 @@
             const { heartlineGeometry, railGeometry, spineGeometry } =
                 trackGeometry(
                     spline,
-                    modelType.makeRailsMesh(spline, 6, config.heartlineHeight),
+                    modelType.makeRailsMesh(spline, config.heartlineHeight),
                     modelType.makeSpineMesh(spline, config.heartlineHeight),
                 );
 
@@ -267,6 +267,7 @@
             worker.postMessage({
                 type: "geometry",
                 points: spline.points,
+                config,
             });
         }
     }
@@ -286,11 +287,8 @@
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.intervalPoints(0.1).map((v) => {
-                return new THREE.Vector3(
-                    v.point.pos[0],
-                    v.point.pos[1],
-                    v.point.pos[2],
-                );
+                const p = v.point.pos;
+                return new THREE.Vector3(p[0], p[1], p[2]);
             }),
         );
         return {
@@ -401,13 +399,19 @@
         resizeCanvas(renderer, camera);
     }}
     on:contextmenu={(ev) => ev.preventDefault()}
-    on:mousedown={(ev) => {
+    on:mousedown={async (ev) => {
         ev.preventDefault();
         if (ev.button === 2) {
-            if (!pointerLocked)
-                // @ts-expect-error
-                canvasThree.requestPointerLock({ unadjustedMovement: true });
-            else document.exitPointerLock();
+            try {
+                if (!pointerLocked) {
+                    // @ts-expect-error
+                    canvasThree.requestPointerLock({
+                        unadjustedMovement: true,
+                    });
+                } else document.exitPointerLock();
+            } catch {
+                console.error("pointer lock failed");
+            }
         }
     }}
     on:mousemove={(ev) => {

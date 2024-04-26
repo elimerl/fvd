@@ -37,10 +37,8 @@
 </script>
 
 {#if point}
+    <p class="font-semibold">point info</p>
     <table class="text-sm text-foreground">
-        <thead>
-            <tr><th>point info</th></tr>
-        </thead>
         <tbody>
             <tr>
                 <td class="pr-4"
@@ -91,33 +89,51 @@
                     /></td
                 >
             </tr>
-            <!-- <div class="flex gap-x-4">
-                <NumberDisplay label="yaw" value={yaw} unit="°" />
-                <NumberDisplay
-                    label="yaw/s"
-                    value={yawPerS}
-                    unit="°/s"
-                    fractionalDigits={1}
-                />
-                <NumberDisplay label="pitch" value={pitch} unit="°" />
-                <NumberDisplay
-                    label="pitch/s"
-                    value={pitchPerS}
-                    unit="°/s"
-                    fractionalDigits={1}
-                />
-                <NumberDisplay label="roll" value={roll} unit="°" />
-                <NumberDisplay
-                    label="roll/s"
-                    value={rollPerS}
-                    unit="°/s"
-                    fractionalDigits={1}
-                />
-            </div>
-            <div class="flex gap-x-4">
-                <NumberDisplay label="y-accel" value={force.vert} unit="g" />
-                <NumberDisplay label="x-accel" value={force.lat} unit="g" />
-            </div> -->
+            <tr>
+                <td><NumberDisplay label="yaw" value={yaw} unit="°" /></td>
+                <td
+                    ><NumberDisplay
+                        label="yaw/s"
+                        value={yawPerS}
+                        unit="°/s"
+                        fractionalDigits={1}
+                    /></td
+                >
+                <td><NumberDisplay label="pitch" value={pitch} unit="°" /></td>
+                <td
+                    ><NumberDisplay
+                        label="pitch/s"
+                        value={pitchPerS}
+                        unit="°/s"
+                        fractionalDigits={1}
+                    /></td
+                >
+                <td><NumberDisplay label="roll" value={roll} unit="°" /></td>
+                <td
+                    ><NumberDisplay
+                        label="roll/s"
+                        value={rollPerS}
+                        unit="°/s"
+                        fractionalDigits={1}
+                    /></td
+                >
+            </tr>
+            <tr>
+                <td>
+                    <NumberDisplay
+                        label="y-accel"
+                        value={force.vert}
+                        unit="g"
+                    /></td
+                >
+                <td
+                    ><NumberDisplay
+                        label="x-accel"
+                        value={force.lat}
+                        unit="g"
+                    /></td
+                >
+            </tr>
         </tbody>
     </table>
 {/if}

@@ -14,5 +14,5 @@ export async function load(event) {
         });
     }
 
-    return { track, settings: event.locals.settings };
+    return { track, user: event.locals.user, settings: event.locals.settings };
 }

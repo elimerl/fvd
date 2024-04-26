@@ -21,6 +21,7 @@ export const actions = {
         const settings: AppSettings = {
             unitSystem: data.get("unitSystem") as UnitSystem,
             darkMode: data.get("darkMode") === "true",
+            fov: parseInt(data.get("fov") as string),
         };
 
         await db

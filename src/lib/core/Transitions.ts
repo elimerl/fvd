@@ -31,7 +31,11 @@ export function evalTransition(transition: Transition, t: number) {
     return (
         evalCurve(
             transition.curve,
-            timewarp(t / transition.length, transition.tension)
+            timewarp(
+                t / transition.length,
+                transition.center,
+                transition.tension
+            )
         ) * transition.value
     );
 }
@@ -66,7 +70,20 @@ export function evalCurve(curve: TransitionCurve, t: number) {
 //     }
 // }
 
-export function timewarp(t: number, tension: number) {
+export function timewarp(t: number, center: number, tension: number) {
+    return timewarpTension(timewarpCenter(t, center), tension);
+}
+
+function timewarpCenter(t: number, center: number) {
+    if (Math.abs(center) < 0.01) {
+        return t;
+    } else if (center > 0) {
+        return Math.pow(t, Math.pow(2, center / 2));
+    } else {
+        return 1 - Math.pow(1 - t, Math.pow(2, -center / 2));
+    }
+}
+function timewarpTension(t: number, tension: number) {
     if (Math.abs(tension) < 0.01) {
         return t;
     } else if (tension > 0) {
@@ -132,6 +149,7 @@ export interface Transition {
     curve: TransitionCurve;
     value: number;
     length: number;
+    center: number;
     tension: number;
     dynamicLength: boolean;
 }
@@ -146,6 +164,7 @@ export class Transitions {
             curve: TransitionCurve.Cubic,
             value: 0,
             length: 1,
+            center: 0,
             tension: 0,
             dynamicLength: false,
         },
@@ -155,6 +174,7 @@ export class Transitions {
             curve: TransitionCurve.Cubic,
             value: 0,
             length: 1,
+            center: 0,
             tension: 0,
             dynamicLength: true,
         },
@@ -164,6 +184,7 @@ export class Transitions {
             curve: TransitionCurve.Plateau,
             value: 0,
             length: 1,
+            center: 0,
             tension: 0,
             dynamicLength: false,
         },
@@ -172,7 +193,22 @@ export class Transitions {
     constructor() {}
 
     static fromJSON(parse: any): Transitions {
-        return Object.assign(new Transitions(), parse);
+        const transitions: Transitions = Object.assign(
+            new Transitions(),
+            parse
+        );
+
+        // migrate from old files
+        transitions.vert.forEach((t) => {
+            if (!t.center) t.center = 0;
+        });
+        transitions.lat.forEach((t) => {
+            if (!t.center) t.center = 0;
+        });
+        transitions.roll.forEach((t) => {
+            if (!t.center) t.center = 0;
+        });
+        return transitions;
     }
 
     length(): number {

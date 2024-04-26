@@ -17,7 +17,7 @@
     import { Track, forces } from "$lib/core/Track";
     import { loadModels, type TrackModelType } from "$lib/coaster_types/model";
 
-    import { Trash2Icon } from "svelte-feather-icons";
+    import { CloudIcon, CloudOffIcon, Trash2Icon } from "svelte-feather-icons";
 
     import { Pane, PaneGroup, PaneResizer } from "paneforge";
     import { Menubar } from "bits-ui";
@@ -26,6 +26,8 @@
     let pov = { pos: 0 };
 
     export let data;
+
+    let mode: "fly" | "pov" = "pov";
 
     let selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined =
         undefined;
@@ -41,7 +43,9 @@
 
     let track = Track.fromJSON(JSON.parse(data.track.trackJson));
 
-    $: data.track.trackJson = JSON.stringify(track);
+    $: {
+        data.track.trackJson = JSON.stringify(track);
+    }
     // track.sections.push({
     //     type: "force",
     //     fixedSpeed: undefined,
@@ -67,10 +71,12 @@
         if (track) dirty = true;
     }
     $: {
-        if (saveTimeout) clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-            await save();
-        }, 2000);
+        if (dirty) {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                await save();
+            }, 2000);
+        }
     }
 
     beforeNavigate(({ from, to, cancel }) => {
@@ -92,7 +98,7 @@
             }
         };
         window.addEventListener("beforeunload", beforeUnloadHandler);
-
+        dirty = false;
         return () => {
             window.removeEventListener("beforeunload", beforeUnloadHandler);
         };
@@ -136,9 +142,11 @@
 
 <div class="w-screen h-screen overflow-clip bg-background text-foreground">
     <Menubar.Root
-        class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini"
+        class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini pl-2"
     >
         <Menubar.Menu>
+            <a class="font-semibold" href="/">forcevector.app</a>
+
             <Menubar.Trigger
                 class="inline-flex h-8 cursor-default items-center justify-center rounded-9px px-1 text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted data-[state=open]:bg-muted"
                 >File</Menubar.Trigger
@@ -148,8 +156,14 @@
                 align="start"
                 sideOffset={3}
             >
+                <a href="/editor/new" data-sveltekit-reload
+                    ><Menubar.Item
+                        class="flex h-8 select-none items-center py-0.5 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                        >New</Menubar.Item
+                    ></a
+                >
                 <Menubar.Item
-                    class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
                     on:click={async () => {
                         if ("showSaveFilePicker" in window) {
                             if (!handle)
@@ -196,6 +210,28 @@
                         ? `(${handle.name})`
                         : "nl2elem"}</Menubar.Item
                 >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={async () => {
+                        var element = document.createElement("a");
+                        element.setAttribute(
+                            "href",
+                            "data:text/plain;charset=utf-8," +
+                                encodeURIComponent(JSON.stringify(track)),
+                        );
+                        element.setAttribute(
+                            "download",
+                            data.track.name + ".json",
+                        );
+
+                        element.style.display = "none";
+                        document.body.appendChild(element);
+
+                        element.click();
+
+                        document.body.removeChild(element);
+                    }}>Export track JSON (beta)</Menubar.Item
+                >
             </Menubar.Content>
         </Menubar.Menu>
         <Menubar.Menu>
@@ -208,17 +244,33 @@
                 align="start"
                 sideOffset={3}
             >
-                <Menubar.Item
-                    class="flex h-8 select-none items-center py-1 pl-3 pr-1.5 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
-                    >IDK</Menubar.Item
+                <a href="/settings" data-sveltekit-reload
+                    ><Menubar.Item
+                        class="flex h-8 select-none items-center py-0.5 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                        >Settings</Menubar.Item
+                    ></a
                 >
             </Menubar.Content>
         </Menubar.Menu>
+        <p class="text-foreground-alt">
+            <span>
+                {#if data.user.id === data.track.userId}
+                    {#if dirty}
+                        <CloudOffIcon class="inline-block mr-1" size="1x" /> not
+                        saved
+                    {:else}
+                        <CloudIcon class="inline-block mr-1" size="1x" /> saved
+                    {/if}
+                {:else}
+                    not owned by you
+                {/if}</span
+            >
+        </p>
     </Menubar.Root>
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
             <div>
-                <details>
+                <details class="flex flex-col">
                     <summary>
                         <span class="mb-2 font-semibold text-lg">
                             Track properties
@@ -239,8 +291,28 @@
                         />
                     </label>
 
-                    <p class="mb-1">Anchor Y (todo xyz)</p>
-                    <NumberScroll bind:value={track.anchor.pos[1]} unit="m" />
+                    <label class="mb-1"
+                        >Anchor Y
+                        <NumberScroll
+                            bind:value={track.anchor.pos[1]}
+                            unit="m"
+                        /></label
+                    >
+
+                    <label class="mb-1"
+                        >Heartline Height
+                        <NumberScroll
+                            bind:value={track.config.heartlineHeight}
+                            unit="m"
+                        /></label
+                    >
+                    <label class="mb-1"
+                        >Friction
+                        <NumberScroll
+                            fractionalDigits={2}
+                            bind:value={track.config.parameter}
+                        /></label
+                    >
                 </details>
             </div>
             <div class="flex flex-col flex-grow">
@@ -461,6 +533,7 @@
                                     {spline}
                                     {models}
                                     config={track.config}
+                                    bind:mode
                                     bind:pov
                                 />
                             {/await}
@@ -470,7 +543,7 @@
                                 {spline}
                                 {pov}
                                 unitSystem={data.settings.unitSystem}
-                                mode={"pov"}
+                                mode={mode === "fly" ? "atEnd" : "pov"}
                             />
                         </div>
                     </div></Pane
@@ -563,7 +636,14 @@
                                             {/each}
                                         </select>
                                     </label>
-
+                                    <label
+                                        ><span class="mr-2">Center:</span>
+                                        <div class="float-right">
+                                            <NumberScroll
+                                                bind:value={selectedTransition.center}
+                                            />
+                                        </div></label
+                                    >
                                     <label
                                         ><span class="mr-2">Tension:</span>
                                         <div class="float-right">

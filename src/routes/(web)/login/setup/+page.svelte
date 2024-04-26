@@ -13,6 +13,7 @@
                 name="username"
                 type="text"
                 class="border px-1 bg-background-alt text-foreground"
+                pattern="^[_\-a-zA-Z0-9]+$"
             /></label
         >
         <button type="submit" class="button">submit</button>
