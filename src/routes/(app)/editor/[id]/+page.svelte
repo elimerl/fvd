@@ -210,6 +210,28 @@
                         ? `(${handle.name})`
                         : "nl2elem"}</Menubar.Item
                 >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={async () => {
+                        var element = document.createElement("a");
+                        element.setAttribute(
+                            "href",
+                            "data:text/plain;charset=utf-8," +
+                                encodeURIComponent(JSON.stringify(track)),
+                        );
+                        element.setAttribute(
+                            "download",
+                            data.track.name + ".json",
+                        );
+
+                        element.style.display = "none";
+                        document.body.appendChild(element);
+
+                        element.click();
+
+                        document.body.removeChild(element);
+                    }}>Export track JSON (beta)</Menubar.Item
+                >
             </Menubar.Content>
         </Menubar.Menu>
         <Menubar.Menu>
