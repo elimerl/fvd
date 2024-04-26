@@ -2,19 +2,12 @@
     import "@fontsource-variable/overpass";
     import "@fontsource-variable/overpass-mono";
 
-    import "../app.css";
-
-    import { SettingsIcon } from "svelte-feather-icons";
+    import "$lib/app.css";
 
     export let data;
 
     const darkMode = data.settings.darkMode;
 </script>
-
-<svelte:body
-    class={(darkMode ? "dark bg-background text-foreground" : "") +
-        " overscroll-none overflow-x-clip subpixel-antialiased"}
-/>
 
 <svelte:head>
     <title>forcevector.app</title>

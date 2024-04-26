@@ -12,7 +12,6 @@
     export let parentheses: boolean = false;
     export let plusPositive: boolean = false;
     export let fractionalDigits: number = 2;
-    export let alignRight: boolean = false;
 
     export let value: number;
     export let baseUnit: "distance" | "velocity";
