@@ -173,14 +173,14 @@ export class Track {
 
         const initialPoint = this.anchor;
 
-        let startForces: Forces = { vert: 1, lat: 0, roll: 0 };
+        let startForces: Forces = { vert: 1, lat: 0, roll: 0 }; // FIXME this is wrong for rotated anchors
 
         this.sections.forEach((section) => {
             if (splines.length === 0) {
                 splines.push(
                     this.makeSpline(
                         section,
-                        { ...initialPoint },
+                        { ...initialPoint, time: 0, rot: qidentity() },
                         startForces,
                         this.config
                     )

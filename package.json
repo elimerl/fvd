@@ -25,7 +25,8 @@
         "mitt": "^3.0.1",
         "oslo": "^1.2.0",
         "svelte-splitpanes": "^0.8.0",
-        "three": "^0.161.0"
+        "three": "^0.161.0",
+        "@elimerl/fvd-rs": "https://github.com/elimerl/fvd-rs/releases/download/v0.1.0/elimerl-fvd-rs-0.1.0.tgz"
     },
     "devDependencies": {
         "@sveltejs/adapter-cloudflare": "^4.2.0",

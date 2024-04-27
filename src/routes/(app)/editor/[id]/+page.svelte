@@ -22,6 +22,10 @@
     import { Pane, PaneGroup, PaneResizer } from "paneforge";
     import { Menubar } from "bits-ui";
     import { beforeNavigate } from "$app/navigation";
+    import { TrackSpline } from "$lib/core/TrackSpline.js";
+
+    import init, { get_spline } from "@elimerl/fvd-rs";
+    import { page } from "$app/stores";
 
     let pov = { pos: 0 };
 
@@ -63,8 +67,16 @@
     $: selectedTransition = transitions
         ? getSelected(transitions, selected)
         : undefined;
-
-    $: ({ spline, sectionStartPos } = time(() => track.getSpline(), "spline"));
+    let wasm_get_spline: ((v: string) => string) | undefined;
+    function getSpline(track: Track): [TrackSpline, number[]] | undefined {
+        const splineBundle = track.getSpline();
+        if (!wasm_get_spline)
+            return [splineBundle.spline, splineBundle.sectionStartPos];
+        const r = JSON.parse(wasm_get_spline(JSON.stringify(track)));
+        console.log(r);
+        return [TrackSpline.fromJSON(r[0]), r[1]];
+    }
+    $: [spline, sectionStartPos] = time(() => getSpline(track), "spline");
     let saveTimeout: any;
     let dirty = false;
     $: {
@@ -88,6 +100,9 @@
     });
 
     onMount(() => {
+        init().then((v) => {
+            wasm_get_spline = get_spline;
+        });
         const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
             if (dirty) {
                 const confirmationMessage =
@@ -232,6 +247,32 @@
                         document.body.removeChild(element);
                     }}>Export track JSON (beta)</Menubar.Item
                 >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={async () => {
+                        var element = document.createElement("input");
+                        element.setAttribute("type", "file");
+                        element.setAttribute("accept", "application/json");
+
+                        element.style.display = "none";
+                        document.body.appendChild(element);
+
+                        element.click();
+                        element.onchange = async () => {
+                            const file = element.files[0];
+                            const contents = await file.text();
+                            const json = JSON.parse(contents);
+                            if (
+                                confirm(
+                                    "Importing a track deletes the current track. Are you sure?",
+                                )
+                            ) {
+                                track = Track.fromJSON(json);
+                            }
+                        };
+                        document.body.removeChild(element);
+                    }}>Import track JSON (beta)</Menubar.Item
+                >
             </Menubar.Content>
         </Menubar.Menu>
         <Menubar.Menu>
@@ -244,7 +285,9 @@
                 align="start"
                 sideOffset={3}
             >
-                <a href="/settings" data-sveltekit-reload
+                <a
+                    href={"/settings?redirect=" + $page.url.pathname}
+                    data-sveltekit-reload
                     ><Menubar.Item
                         class="flex h-8 select-none items-center py-0.5 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
                         >Settings</Menubar.Item
@@ -533,6 +576,7 @@
                                     {spline}
                                     {models}
                                     config={track.config}
+                                    fov={70 ?? data.settings.fov}
                                     bind:mode
                                     bind:pov
                                 />

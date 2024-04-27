@@ -11,6 +11,7 @@
         account settings for {data.user.username}
     </h1>
     <form method="post">
+        <input name="redirect" type="hidden" value={data.redirectUrl} />
         <label class="flex gap-x-2"
             >Theme:<select name="darkMode" class="bg-background-alt p-1">
                 <option selected={!data.settings.darkMode} value={false}

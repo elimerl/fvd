@@ -38,7 +38,6 @@ export function fvd(
     fixedSpeed: number | undefined
 ): TrackSpline {
     const spline = new TrackSpline();
-    const pointEnergies: number[] = [];
     let velocity = fixedSpeed ?? start.velocity;
     let pos = start.pos;
     let traveled = 0;
@@ -52,36 +51,7 @@ export function fvd(
         if (transition) {
             const { vert, lat, roll: rollSpeed } = transition;
 
-            // velocity = fixed_speed !== undefined ? fixed_speed : velocity;
-
             let new_dir = direction;
-
-            // const linear_accel = vadd(
-            //     vmul(qrotate(UP, direction), -vert * G),
-            //     vmul(qrotate(RIGHT, direction), -lat * G)
-            // );
-            // const remainder_accel = vsub(GRAVITY, linear_accel);
-            // const forward_accel = vproject(
-            //     remainder_accel,
-            //     qrotate(FORWARD, direction)
-            // );
-            // const centripetal_accel = vsub(remainder_accel, forward_accel);
-
-            // if (vlengthsquared(centripetal_accel) > EPSILON) {
-            //     const axis = vnormalize(
-            //         vcross(qrotate(FORWARD, direction), centripetal_accel)
-            //     );
-            //     const radius =
-            //         (velocity * velocity) / vlength(centripetal_accel);
-            //     const angle = deltaLength / radius;
-            //     const rel_rot = qaxisangle(axis, angle);
-            //     new_dir = qmul(rel_rot, new_dir);
-            // }
-
-            // const rel_rot = qaxisangle(
-            //     vnormalize(qrotate(FORWARD, direction)),
-            //     roll * (Math.PI / 180) * DT
-            // );
 
             if (Math.abs(rollSpeed) > 0.01) {
                 new_dir = qmul(
@@ -168,7 +138,6 @@ export function fvd(
                                 config.parameter) *
                             G)
             );
-            pointEnergies.push(energy);
         }
 
         spline.points.push({

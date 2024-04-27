@@ -27,6 +27,7 @@
 
     export let spline: TrackSpline;
     export let pov: { pos: number } = { pos: 0 };
+    export let fov: number = 70;
 
     export let models: Map<string, TrackModelType>;
     export let config: TrackConfig;
@@ -256,6 +257,7 @@
             mode,
             flyPos,
             flyQuat,
+            fov,
         );
     }
 
@@ -312,6 +314,8 @@
                 throw new Error("no spline points");
             }
         }
+
+        camera.fov = fov;
 
         if (mode === "pov") {
             const camPos = vadd(start.pos, qrotate(vec(0, 0, 0), start.rot));

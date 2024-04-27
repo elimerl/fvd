@@ -21,6 +21,11 @@ export interface TrackPoint {
 // export point interval in meters
 const EXPORT_INTERVAL = 1;
 export class TrackSpline {
+    static fromJSON(v: any): TrackSpline {
+        const spline = new TrackSpline();
+        spline.points = v.points;
+        return spline;
+    }
     points: TrackPoint[] = [];
 
     getLength(): number {

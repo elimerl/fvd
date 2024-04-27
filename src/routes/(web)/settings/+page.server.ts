@@ -9,9 +9,12 @@ export async function load(event) {
     if (!event.locals.user) {
         return redirect(302, "/login");
     }
+    const query = new URLSearchParams(event.url.search);
+
     return {
         user: event.locals.user,
         settings: event.locals.settings,
+        redirectUrl: query.get("redirect") || "/",
     };
 }
 
@@ -29,6 +32,6 @@ export const actions = {
             .set({ json: JSON.stringify(settings) })
             .where(eq(settingsTable.userId, locals.user.id));
 
-        return redirect(302, "/");
+        return redirect(302, (data.get("redirect") as string) || "/");
     },
 };
