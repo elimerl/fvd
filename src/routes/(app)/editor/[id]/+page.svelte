@@ -72,11 +72,29 @@
         const splineBundle = track.getSpline();
         if (!wasm_get_spline)
             return [splineBundle.spline, splineBundle.sectionStartPos];
-        const r = JSON.parse(wasm_get_spline(JSON.stringify(track)));
-        console.log(r);
-        return [TrackSpline.fromJSON(r[0]), r[1]];
+        const jsonTrack = time(() => JSON.stringify(track), "stringify");
+        const jsonRes = time(
+            () => wasm_get_spline(jsonTrack),
+            "get spline wasm",
+        );
+        const res = time(() => JSON.parse(jsonRes), "json parse");
+        return [TrackSpline.fromJSON(res[0]), res[1]];
     }
-    $: [spline, sectionStartPos] = time(() => getSpline(track), "spline");
+    let [spline, sectionStartPos] = time(() => getSpline(track), "spline");
+    $: if (track) asyncUpdateTrack(track);
+    let currentIdleCallback = 0;
+    function asyncUpdateTrack(track: Track) {
+        cancelIdleCallback(currentIdleCallback);
+        currentIdleCallback = requestIdleCallback(
+            () => {
+                [spline, sectionStartPos] = time(
+                    () => getSpline(track),
+                    "spline",
+                );
+            },
+            { timeout: 100 },
+        );
+    }
     let saveTimeout: any;
     let dirty = false;
     $: {
@@ -709,7 +727,10 @@
                                         spline,
                                         sectionStartPos[selectedSectionIdx],
                                     )}
-                                    markerTime={spline.evaluate(pov.pos)
+                                    markerTime={spline.evaluate(pov.pos) &&
+                                    spline.evaluate(
+                                        sectionStartPos[selectedSectionIdx],
+                                    )
                                         ? spline.evaluate(pov.pos).time -
                                           spline.evaluate(
                                               sectionStartPos[

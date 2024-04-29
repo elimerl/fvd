@@ -5,6 +5,7 @@
     import UnitNumberDisplay from "./UnitNumberDisplay.svelte";
     import { euler, forces } from "$lib/core/Track";
     import type { UnitSystem } from "$lib/core/units";
+    import { vlength, vsub } from "$lib/core/math";
 
     export let spline: TrackSpline;
     export let unitSystem: UnitSystem;
@@ -21,14 +22,14 @@
     let [yawPerS, pitchPerS, rollPerS] = [0, 0, 0];
     $: {
         if (point) {
-            const DP = pos - 0.1 < 0 ? 0.1 : -0.1;
-            const [lastYaw, lastPitch, lastRoll] = euler(
-                spline.evaluate(pos + DP)!,
-            );
+            const [p1, p2] = spline.evaluateNoInterpolation(pos)!;
+            const [lastYaw, lastPitch, lastRoll] = euler(p1);
+            const [yaw, pitch, roll] = euler(p2);
+            const dp = vlength(vsub(p2.pos, p1.pos));
             [yawPerS, pitchPerS, rollPerS] = [
-                (degDiff(yaw, lastYaw) * point.velocity) / DP,
-                (degDiff(pitch, lastPitch) * point.velocity) / DP,
-                (degDiff(roll, lastRoll) * point.velocity) / DP,
+                (degDiff(yaw, lastYaw) * point.velocity) / dp,
+                (degDiff(pitch, lastPitch) * point.velocity) / dp,
+                (degDiff(roll, lastRoll) * point.velocity) / dp,
             ];
         }
     }

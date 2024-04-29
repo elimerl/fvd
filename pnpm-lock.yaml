@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@elimerl/fvd-rs':
-    specifier: https://github.com/elimerl/fvd-rs/releases/download/v0.1.0/elimerl-fvd-rs-0.1.0.tgz
-    version: '@github.com/elimerl/fvd-rs/releases/download/v0.1.0/elimerl-fvd-rs-0.1.0.tgz'
+    specifier: https://github.com/elimerl/fvd-rs/releases/download/v0.1.3/elimerl-fvd-rs-0.1.3.tgz
+    version: '@github.com/elimerl/fvd-rs/releases/download/v0.1.3/elimerl-fvd-rs-0.1.3.tgz'
   '@fontsource-variable/overpass':
     specifier: ^5.0.17
     version: 5.0.17
@@ -4224,8 +4224,8 @@ packages:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
     dev: true
 
-  '@github.com/elimerl/fvd-rs/releases/download/v0.1.0/elimerl-fvd-rs-0.1.0.tgz':
-    resolution: {tarball: https://github.com/elimerl/fvd-rs/releases/download/v0.1.0/elimerl-fvd-rs-0.1.0.tgz}
+  '@github.com/elimerl/fvd-rs/releases/download/v0.1.3/elimerl-fvd-rs-0.1.3.tgz':
+    resolution: {tarball: https://github.com/elimerl/fvd-rs/releases/download/v0.1.3/elimerl-fvd-rs-0.1.3.tgz}
     name: '@elimerl/fvd-rs'
-    version: 0.1.0
+    version: 0.1.3
     dev: false
