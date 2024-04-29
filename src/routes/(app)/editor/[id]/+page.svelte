@@ -419,7 +419,6 @@
                                 length: 10,
                             });
                             track = track;
-                            selectedSectionIdx++;
                         }}>+ straight</button
                     >
                     <button
@@ -433,7 +432,6 @@
                                 direction: 0,
                             });
                             track = track;
-                            selectedSectionIdx++;
                         }}>+ curved</button
                     >
                     <button
@@ -445,7 +443,6 @@
                                 transitions: new Transitions(),
                             });
                             track = track;
-                            selectedSectionIdx++;
                         }}>+ force</button
                     >
                 </div>
