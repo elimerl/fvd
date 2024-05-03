@@ -26,9 +26,6 @@ dependencies:
   bits-ui:
     specifier: ^0.21.1
     version: 0.21.1(svelte@4.2.12)
-  dayjs:
-    specifier: ^1.11.10
-    version: 1.11.10
   drizzle-orm:
     specifier: ^0.30.6
     version: 0.30.6(@libsql/client@0.6.0)
@@ -2292,10 +2289,6 @@ packages:
     dependencies:
       whatwg-mimetype: 4.0.0
       whatwg-url: 14.0.0
-    dev: false
-
-  /dayjs@1.11.10:
-    resolution: {integrity: sha512-vjAczensTgRcqDERK0SR2XMwsF/tSvnvlv6VcF2GIhg6Sx4yOIt/irsr1RDJsKiIyBzJDpCoXiWWq28MqH2cnQ==}
     dev: false
 
   /debug@4.3.4:
