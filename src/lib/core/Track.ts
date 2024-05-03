@@ -1,4 +1,3 @@
-import initWasm, { get_spline } from "@elimerl/fvd-rs";
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import { Transitions } from "./Transitions";
 import {
@@ -31,9 +30,11 @@ import {
     qaxisangle,
 } from "./math";
 import { browser } from "$app/environment";
+import initWasm, { get_spline } from "@elimerl/fvd-rs";
+import wasmUrl from "@elimerl/fvd-rs/fvd_rs_bg.wasm?url";
+
 const loadWasm = async () => {
-    const resolvedUrl = (await import("@elimerl/fvd-rs/fvd_rs_bg.wasm?url"))
-        .default;
+    const resolvedUrl = wasmUrl;
     if (browser) {
         await initWasm(resolvedUrl);
     } else {

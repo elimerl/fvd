@@ -1,4 +1,8 @@
 <script lang="ts">
+    // this is a hack so bundler works
+    import wasmUrl from "@elimerl/fvd-rs/fvd_rs_bg.wasm?url";
+    console.log(wasmUrl);
+
     import {
         Transitions,
         type Transition,

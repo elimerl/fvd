@@ -5,12 +5,7 @@ export default defineConfig({
     plugins: [sveltekit()],
     build: {
         rollupOptions: {
-            external: [
-                "better-sqlite3",
-                "drizzle-orm/better-sqlite3",
-                "bindings",
-            ],
+            external: ["bindings"],
         },
     },
-    optimizeDeps: { exclude: ["@elimerl/fvd-rs"] },
 });
