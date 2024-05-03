@@ -32,6 +32,9 @@ dependencies:
   drizzle-orm:
     specifier: ^0.30.6
     version: 0.30.6(@libsql/client@0.6.0)
+  hash-wasm:
+    specifier: ^4.11.0
+    version: 4.11.0
   isomorphic-dompurify:
     specifier: ^2.7.0
     version: 2.7.0
@@ -50,6 +53,9 @@ dependencies:
   svelte-splitpanes:
     specifier: ^0.8.0
     version: 0.8.0(svelte@4.2.12)
+  temporal-polyfill:
+    specifier: ^0.2.4
+    version: 0.2.4
   three:
     specifier: ^0.161.0
     version: 0.161.0
@@ -2846,6 +2852,10 @@ packages:
       sisteransi: 1.0.5
     dev: true
 
+  /hash-wasm@4.11.0:
+    resolution: {integrity: sha512-HVusNXlVqHe0fzIzdQOGolnFN6mX/fqcrSAOcTBXdvzrXVHwTz11vXeKRmkR5gTuwVpvHZEIyKoePDvuAR+XwQ==}
+    dev: false
+
   /hasown@2.0.1:
     resolution: {integrity: sha512-1/th4MHjnwncwXsIW6QMzlvYL9kG5e/CpVvLRZe4XPa8TOUNbCELqmvhDmnkNsAjwaG4+I8gJJL0JBvTTLO9qA==}
     engines: {node: '>= 0.4'}
@@ -3878,6 +3888,16 @@ packages:
     transitivePeerDependencies:
       - ts-node
     dev: true
+
+  /temporal-polyfill@0.2.4:
+    resolution: {integrity: sha512-WA5p0CjQTkMjF9m8sP4wSYgpqI8m2d4q7wPUyaJOWhy4bI9mReLb2yGvTV4qf/DPMTe6H6M/Dig5KmTMB7ev6Q==}
+    dependencies:
+      temporal-spec: 0.2.4
+    dev: false
+
+  /temporal-spec@0.2.4:
+    resolution: {integrity: sha512-lDMFv4nKQrSjlkHKAlHVqKrBG4DyFfa9F74cmBZ3Iy3ed8yvWnlWSIdi4IKfSqwmazAohBNwiN64qGx4y5Q3IQ==}
+    dev: false
 
   /thenify-all@1.6.0:
     resolution: {integrity: sha512-RNxQH/qI8/t3thXJDwcstUO4zeqo64+Uy/+sNVRBx4Xn2OX+OZ9oP+iJnNFqplFra2ZUVeKCSa2oVWi3T4uVmA==}

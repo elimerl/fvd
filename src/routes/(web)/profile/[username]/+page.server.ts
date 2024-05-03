@@ -1,5 +1,6 @@
 import { db } from "$lib/server/db";
 import { tracksTable, userTable } from "$lib/server/schema.js";
+import { getTrackStats } from "$lib/stats.js";
 import { error } from "@sveltejs/kit";
 import { desc, eq } from "drizzle-orm";
 
@@ -16,5 +17,16 @@ export async function load(event) {
         where: eq(tracksTable.userId, profileUser.id),
         orderBy: [desc(tracksTable.createdAt)],
     });
-    return { user: profileUser, settings: event.locals.settings, tracks };
+    const stats = await Promise.all(
+        tracks.map(
+            async (track) => await getTrackStats(track.id, track.trackJson)
+        )
+    );
+
+    return {
+        user: profileUser,
+        settings: event.locals.settings,
+        tracks,
+        stats,
+    };
 }

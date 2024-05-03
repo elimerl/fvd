@@ -24,7 +24,6 @@
     import { beforeNavigate } from "$app/navigation";
     import { TrackSpline } from "$lib/core/TrackSpline.js";
 
-    import init, { get_spline } from "@elimerl/fvd-rs";
     import { page } from "$app/stores";
 
     let pov = { pos: 0 };
@@ -67,30 +66,22 @@
     $: selectedTransition = transitions
         ? getSelected(transitions, selected)
         : undefined;
-    let wasm_get_spline: ((v: string) => string) | undefined;
-    function getSpline(track: Track): [TrackSpline, number[]] | undefined {
-        const splineBundle = track.getSpline();
-        if (!wasm_get_spline)
-            return [splineBundle.spline, splineBundle.sectionStartPos];
-        const jsonTrack = time(() => JSON.stringify(track), "stringify");
-        const jsonRes = time(
-            () => wasm_get_spline(jsonTrack),
-            "get spline wasm",
-        );
-        const res = time(() => JSON.parse(jsonRes), "json parse");
-        return [TrackSpline.fromJSON(res[0]), res[1]];
-    }
-    let [spline, sectionStartPos] = time(() => getSpline(track), "spline");
+
+    let [spline, sectionStartPos] = time(() => {
+        const r = track.getSpline();
+        return [r.spline, r.sectionStartPos];
+    }, "spline");
     $: if (track) asyncUpdateTrack(track);
     let currentIdleCallback = 0;
     function asyncUpdateTrack(track: Track) {
         cancelIdleCallback(currentIdleCallback);
         currentIdleCallback = requestIdleCallback(
             () => {
-                [spline, sectionStartPos] = time(
-                    () => getSpline(track),
-                    "spline",
-                );
+                const results = time(() => track.getSpline(), "spline");
+                [spline, sectionStartPos] = [
+                    results.spline,
+                    results.sectionStartPos,
+                ];
             },
             { timeout: 100 },
         );
@@ -103,9 +94,15 @@
     $: {
         if (dirty) {
             if (saveTimeout) clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(async () => {
-                await save();
-            }, 2000);
+            saveTimeout = setTimeout(() => {
+                requestIdleCallback(
+                    async () => {
+                        await save();
+                        dirty = false;
+                    },
+                    { timeout: 2000 },
+                );
+            }, 500);
         }
     }
 
@@ -118,9 +115,6 @@
     });
 
     onMount(() => {
-        init().then((v) => {
-            wasm_get_spline = get_spline;
-        });
         const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
             if (dirty) {
                 const confirmationMessage =
@@ -609,7 +603,7 @@
                 >
                 <PaneResizer class="py-2"
                     ><div
-                        class="h-1 border-t border-foreground p-0 mx-4"
+                        class="h-1 border-t border-slate-300 dark:border-slate-500 p-0 mx-4"
                     ></div></PaneResizer
                 >
                 <Pane>

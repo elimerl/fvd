@@ -1,3 +1,4 @@
+import initWasm, { get_spline } from "@elimerl/fvd-rs";
 import { TrackSpline, type TrackPoint } from "./TrackSpline";
 import { Transitions } from "./Transitions";
 import {
@@ -29,6 +30,20 @@ import {
     qtoaxisangle,
     qaxisangle,
 } from "./math";
+import { browser } from "$app/environment";
+const loadWasm = async () => {
+    const resolvedUrl = (await import("@elimerl/fvd-rs/fvd_rs_bg.wasm?url"))
+        .default;
+    if (browser) {
+        await initWasm(resolvedUrl);
+    } else {
+        const buffer = await (
+            await import("node:fs/promises")
+        ).readFile("." + resolvedUrl);
+        await initWasm(buffer.buffer);
+    }
+};
+await loadWasm();
 
 export type TrackSection =
     | {
@@ -151,170 +166,8 @@ export class Track {
     ) {}
 
     getSpline(): { spline: TrackSpline; sectionStartPos: number[] } {
-        const splines = this.makeSplines();
-
-        const sectionStartPos = [];
-        let lenAccum = 0;
-        splines.forEach((v) => {
-            sectionStartPos.push(lenAccum);
-            lenAccum += v.getLength();
-        });
-        sectionStartPos.push(lenAccum);
-
-        const points = splines.map((v) => v.points).flat(); // there might be a duplicate points bug here, look into that
-
-        const spline = new TrackSpline();
-        spline.points = points;
-        return { spline, sectionStartPos };
-    }
-
-    private makeSplines(): TrackSpline[] {
-        const splines: TrackSpline[] = [];
-
-        const initialPoint = this.anchor;
-
-        let startForces: Forces = { vert: 1, lat: 0, roll: 0 }; // FIXME this is wrong for rotated anchors
-
-        this.sections.forEach((section) => {
-            if (splines.length === 0) {
-                splines.push(
-                    this.makeSpline(
-                        section,
-                        { ...initialPoint, time: 0, rot: qidentity() },
-                        startForces,
-                        this.config
-                    )
-                );
-            } else {
-                const point =
-                    splines[splines.length - 1].points[
-                        splines[splines.length - 1].points.length - 1
-                    ];
-                splines.push(
-                    this.makeSpline(
-                        section,
-                        {
-                            ...point,
-                        },
-                        startForces,
-                        this.config
-                    )
-                );
-            }
-            startForces = forces(
-                splines[splines.length - 1],
-                splines[splines.length - 1].getLength() - 0.05
-            )!;
-        });
-
-        return splines;
-    }
-
-    private makeSpline(
-        section: TrackSection,
-        start: TrackPoint,
-        startForces: Forces,
-        config: TrackConfig
-    ): TrackSpline {
-        let spline = new TrackSpline();
-
-        if (section.type === "straight") {
-            const dp = 0.01;
-            let pos = start.pos;
-            let velocity = start.velocity;
-
-            for (let d = 0; d <= section.length; d += dp) {
-                const lastPoint = spline.points[spline.points.length - 1];
-                pos = vadd(pos, qrotate(vmul(FORWARD, dp), start.rot));
-                if (section.fixedSpeed !== undefined) {
-                    velocity = section.fixedSpeed;
-                } else {
-                    const dt = dp / velocity;
-                    const point = {
-                        pos,
-                        rot: start.rot,
-                        velocity,
-                        time: d / velocity + start.time,
-                    };
-                    velocity = trackFriction(
-                        config.parameter,
-                        config.resistance,
-                        config.heartlineHeight,
-                        lastPoint ?? point,
-                        point,
-                        dt
-                    );
-                    if (velocity <= 0) {
-                        return spline;
-                    }
-                }
-                spline.points.push({
-                    pos,
-                    rot: start.rot,
-                    velocity,
-                    time: d / velocity + start.time,
-                });
-            }
-        } else if (section.type === "force") {
-            spline = fvd(
-                section.transitions,
-                { ...start },
-                this.config,
-                startForces,
-                section.fixedSpeed
-            );
-        } else if (section.type === "curved") {
-            let pos = start.pos;
-            let velocity = start.velocity;
-            let rot = start.rot;
-
-            const angle = degToRad(section.angle);
-            const radPerM = 1 / section.radius;
-
-            const dp = (angle * section.radius) / 200;
-
-            const axis = qrotate(
-                RIGHT,
-                qaxisangle(FORWARD, degToRad(section.direction))
-            );
-
-            for (let d = 0; d < angle * section.radius; d += dp) {
-                const lastPoint = spline.points[spline.points.length - 1];
-
-                pos = vadd(pos, qrotate(vmul(FORWARD, dp), rot));
-                if (section.fixedSpeed !== undefined) {
-                    velocity = section.fixedSpeed;
-                } else {
-                    const dt = dp / velocity;
-                    const point = {
-                        pos,
-                        rot,
-                        velocity,
-                        time: d / velocity + start.time,
-                    };
-                    velocity = trackFriction(
-                        config.parameter,
-                        config.resistance,
-                        config.heartlineHeight,
-                        lastPoint ?? point,
-                        point,
-                        dt
-                    );
-                    if (velocity <= 0) {
-                        return spline;
-                    }
-                }
-                rot = qmul(rot, qaxisangle(axis, radPerM * dp));
-                spline.points.push({
-                    pos,
-                    rot,
-                    velocity,
-                    time: d / velocity + start.time,
-                });
-            }
-        }
-
-        return spline;
+        const v = JSON.parse(get_spline(JSON.stringify(this)));
+        return { spline: TrackSpline.fromJSON(v[0]), sectionStartPos: v[1] };
     }
 
     exportToNl2Elem(): string {

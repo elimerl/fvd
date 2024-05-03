@@ -41,3 +41,14 @@ export const trackVideoTable = sqliteTable("track_video", {
         .references(() => tracksTable.id),
     youtubeId: text("youtube_id").notNull(),
 });
+
+export const trackStatsTable = sqliteTable("track_stats", {
+    id: integer("id").notNull().primaryKey({ autoIncrement: true }),
+    trackId: integer("track_id")
+        .notNull()
+        .references(() => tracksTable.id),
+    trackJsonHash: text("track_json_hash").notNull(),
+    length: text("length").notNull(),
+    height: text("height").notNull(),
+    topSpeed: text("top_speed").notNull(),
+});

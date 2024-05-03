@@ -1,0 +1,1 @@
+ALTER TABLE track_stats ADD `track_json_hash` text NOT NULL;
