@@ -77,3 +77,10 @@ export const handle: Handle = async ({ event, resolve }) => {
         },
     });
 };
+
+export async function handleError({ error, event, status, message }) {
+    return {
+        message: "Internal Error",
+        stack: (error as any).stack ?? "",
+    };
+}

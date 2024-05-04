@@ -4,4 +4,8 @@ declare namespace App {
         session: import("lucia").Session | null;
         settings: import("$lib/settings").AppSettings;
     }
+    interface Error {
+        message: string;
+        stack: string;
+    }
 }
