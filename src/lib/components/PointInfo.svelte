@@ -27,9 +27,9 @@
             const [yaw, pitch, roll] = euler(p2);
             const dp = vlength(vsub(p2.pos, p1.pos));
             [yawPerS, pitchPerS, rollPerS] = [
-                (degDiff(yaw, lastYaw) * point.velocity) / dp,
-                (degDiff(pitch, lastPitch) * point.velocity) / dp,
-                (degDiff(roll, lastRoll) * point.velocity) / dp,
+                (degDiff(lastYaw, yaw) * point.velocity) / dp,
+                (degDiff(lastPitch, pitch) * point.velocity) / dp,
+                (degDiff(lastRoll, roll) * point.velocity) / dp,
             ];
         }
     }

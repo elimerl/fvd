@@ -1,6 +1,4 @@
 import { OAuth2RequestError } from "arctic";
-import { generateId } from "lucia";
-import { parseJWT } from "oslo/jwt";
 
 import type { RequestEvent } from "@sveltejs/kit";
 

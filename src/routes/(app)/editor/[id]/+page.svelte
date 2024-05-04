@@ -1,8 +1,4 @@
 <script lang="ts">
-    // this is a hack so bundler works
-    import wasmUrl from "@elimerl/fvd-rs/fvd_rs_bg.wasm?url";
-    console.log(wasmUrl);
-
     import {
         Transitions,
         type Transition,
@@ -313,7 +309,7 @@
         </Menubar.Menu>
         <p class="text-foreground-alt">
             <span>
-                {#if data.user.id === data.track.userId}
+                {#if data.user && data.user.id === data.track.userId}
                     {#if dirty}
                         <CloudOffIcon class="inline-block mr-1" size="1x" /> not
                         saved

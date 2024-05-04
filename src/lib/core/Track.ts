@@ -30,21 +30,7 @@ import {
     qaxisangle,
 } from "./math";
 import { browser } from "$app/environment";
-import initWasm, { get_spline } from "@elimerl/fvd-rs";
-import wasmUrl from "@elimerl/fvd-rs/fvd_rs_bg.wasm?url";
-
-const loadWasm = async () => {
-    const resolvedUrl = wasmUrl;
-    if (browser) {
-        await initWasm(resolvedUrl);
-    } else {
-        const buffer = await (
-            await import("node:fs/promises")
-        ).readFile("." + resolvedUrl);
-        await initWasm(buffer.buffer);
-    }
-};
-await loadWasm();
+import { get_spline } from "@elimerl/fvd-rs";
 
 export type TrackSection =
     | {
