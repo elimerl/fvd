@@ -7,7 +7,6 @@
         {$page.status}
     </h1>
     <p>{$page.status === 404 ? "Not Found" : $page.error.message}</p>
-    <pre>
-        {$page.error.stack}</pre>
+    <pre>{$page.error.stack}</pre>
     <a href="/">Home</a>
 </main>
