@@ -72,7 +72,7 @@ export default function wasm(modules: string[]): Plugin {
             return id;
         },
 
-        async load(id) {
+        async load(id, options) {
             // Fetch module info
             const resolution = resolutions.get(id);
             // Only handle files we know about and have resolved
@@ -88,9 +88,15 @@ export default function wasm(modules: string[]): Plugin {
 				if (!import.meta.env.SSR) {
 					await init(url);
 				} else {
-					await init(Uint8Array.from(atob(${JSON.stringify(
-                        await readFile(resolution.wasmPath, "base64")
-                    )}), c => c.charCodeAt(0)));
+                    if ((typeof process !== 'undefined')) {
+                        const wasm = await (await import("fs/promises")).readFile("${
+                            resolution.wasmPath
+                        }");
+                        await init(wasm);
+                    } else {
+					await init((await import("${resolution.module}/${
+                resolution.wasmFileName
+            }")).default);}
 				}
 				export * from ${JSON.stringify(resolution.entryPath)};
 				export default () => {};

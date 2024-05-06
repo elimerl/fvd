@@ -115,9 +115,9 @@ devDependencies:
   vite:
     specifier: ^5.1.0
     version: 5.1.3
-  vite-plugin-wasm-esm:
-    specifier: ^1.0.1
-    version: 1.0.1(vite@5.1.3)
+  vite-plugin-wasm:
+    specifier: ^3.3.0
+    version: 3.3.0(vite@5.1.3)
 
 packages:
 
@@ -4024,10 +4024,10 @@ packages:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
     dev: true
 
-  /vite-plugin-wasm-esm@1.0.1(vite@5.1.3):
-    resolution: {integrity: sha512-Lbc1SNzePrnWiQUa12Jv+BE9AWwMqxTkyYVdC+j9WrnPMFhnwcRGr2mTB/Law07dfl578+0Bu46vh0aVbRsA7Q==}
+  /vite-plugin-wasm@3.3.0(vite@5.1.3):
+    resolution: {integrity: sha512-tVhz6w+W9MVsOCHzxo6SSMSswCeIw4HTrXEi6qL3IRzATl83jl09JVO1djBqPSwfjgnpVHNLYcaMbaDX5WB/pg==}
     peerDependencies:
-      vite: 3.x || 4.x || 5.x
+      vite: ^2 || ^3 || ^4 || ^5
     dependencies:
       vite: 5.1.3
     dev: true

@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { sveltekit } from "@sveltejs/kit/vite";
 import wasm from "./wasm-plugin";
+
 export default defineConfig({
     plugins: [sveltekit(), wasm(["@elimerl/fvd-rs"])],
     build: {
