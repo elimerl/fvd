@@ -81,7 +81,7 @@ export default function wasm(modules: string[]): Plugin {
 				import url from ${JSON.stringify(
                     `${resolution.module}/${resolution.wasmFileName}?url`
                 )};
-				if (!import.meta.env.SSR) {
+				if (typeof window !== "undefined") {
 					await init(url);
 				}
 				export * from ${JSON.stringify(resolution.entryPath)};
