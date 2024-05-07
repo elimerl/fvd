@@ -3,6 +3,8 @@
     import * as _ from "lodash-es";
     import { Temporal } from "temporal-polyfill";
     import { browser } from "$app/environment";
+    import { Pagination } from "bits-ui";
+    import { ChevronLeftIcon, ChevronRightIcon } from "svelte-feather-icons";
 
     export let data;
 
@@ -62,5 +64,50 @@
                 </div>
             </li>
         {/each}
+        <div class="flex items-center justify-center">
+            <div>
+                <Pagination.Root
+                    class="my-8"
+                    count={data.count}
+                    perPage={data.pageSize}
+                    let:pages
+                    let:range
+                >
+                    <div class="flex my-2">
+                        <Pagination.PrevButton
+                            class="mr-4 inline-flex size-8 items-center justify-center bg-transparent hover:bg-dark-10 active:scale-98 disabled:cursor-not-allowed disabled:text-muted-foreground hover:disabled:bg-transparent"
+                        >
+                            <ChevronLeftIcon class="size-6" />
+                        </Pagination.PrevButton>
+                        <div class="flex items-center gap-1">
+                            {#each pages as page (page.key)}
+                                {#if page.type === "ellipsis"}
+                                    <div
+                                        class="text-[16px] font-medium text-foreground-alt"
+                                    >
+                                        ...
+                                    </div>
+                                {:else}
+                                    <Pagination.Page
+                                        {page}
+                                        class="inline-flex size-8 items-center justify-center bg-transparent text-[16px] font-medium hover:bg-dark-10 active:scale-98 disabled:cursor-not-allowed disabled:opacity-50 hover:disabled:bg-transparent data-[selected]:bg-foreground data-[selected]:text-background"
+                                    >
+                                        {page.value}
+                                    </Pagination.Page>
+                                {/if}
+                            {/each}
+                        </div>
+                        <Pagination.NextButton
+                            class="ml-[17px] inline-flex size-8 items-center justify-center bg-transparent hover:bg-dark-10 active:scale-98 disabled:cursor-not-allowed disabled:text-muted-foreground hover:disabled:bg-transparent"
+                        >
+                            <ChevronRightIcon class="size-6" />
+                        </Pagination.NextButton>
+                    </div>
+                    <p class="text-center text-muted-foreground">
+                        Showing {range.start} - {range.end} (total {data.count})
+                    </p>
+                </Pagination.Root>
+            </div>
+        </div>
     </ul>
 </main>

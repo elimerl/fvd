@@ -1,0 +1,10 @@
+{
+    "name": "wasm-worker",
+    "version": "1.0.0",
+    "scripts": {},
+    "devDependencies": {
+        "@cloudflare/workers-types": "^4.20240502.0",
+        "wrangler": "3.53.1",
+        "@elimerl/fvd-rs": "https://github.com/elimerl/fvd-rs/releases/download/v0.1.3/elimerl-fvd-rs-0.1.3.tgz"
+    }
+}

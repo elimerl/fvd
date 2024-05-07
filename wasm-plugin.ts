@@ -88,15 +88,14 @@ export default function wasm(modules: string[]): Plugin {
 				if (!import.meta.env.SSR) {
 					await init(url);
 				} else {
-                    if ((typeof process !== 'undefined')) {
+                    if (typeof process !== "undefined") {
                         const wasm = await (await import("fs/promises")).readFile("${
                             resolution.wasmPath
                         }");
                         await init(wasm);
                     } else {
-					await init((await import("${resolution.module}/${
-                resolution.wasmFileName
-            }")).default);}
+                        throw new Error("WASM must be called through a service binding on Workers.");
+                    }
 				}
 				export * from ${JSON.stringify(resolution.entryPath)};
 				export default () => {};

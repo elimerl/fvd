@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { trackStatsTable } from "./server/schema";
 import { Track } from "./core/Track";
 import * as _ from "lodash-es";
+import { TrackSpline } from "./core/TrackSpline";
 
 interface TrackStats {
     length: number;
@@ -12,7 +13,8 @@ interface TrackStats {
 }
 export async function getTrackStats(
     trackId: number,
-    trackJSON: string
+    trackJSON: string,
+    getSpline: (json: string) => Promise<TrackSpline>
 ): Promise<TrackStats> {
     const hash = await xxhash64(trackJSON);
     const dbStats = await db.query.trackStatsTable.findFirst({
@@ -26,7 +28,7 @@ export async function getTrackStats(
             topSpeed: parseFloat(dbStats.topSpeed),
         };
     } else {
-        const stats = await calculateTrackStats(trackJSON);
+        const stats = calculateTrackStats(await getSpline(trackJSON));
 
         if (dbStats) {
             await db
@@ -56,8 +58,7 @@ export async function getTrackStats(
     }
 }
 
-function calculateTrackStats(trackJSON: string): TrackStats {
-    const { spline } = Track.fromJSON(JSON.parse(trackJSON)).getSpline();
+function calculateTrackStats(spline: TrackSpline): TrackStats {
     const pointsY = spline.points.map((v) => v.pos[1]);
     const height = _.max(pointsY) - _.min(pointsY);
     return {
