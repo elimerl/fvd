@@ -36,6 +36,7 @@ export async function load(event) {
             ? parseInt(event.url.searchParams.get("page")) * PAGE_SIZE
             : 0,
     });
+    throw new Error(JSON.stringify(event.platform.env));
     const stats = await Promise.all(
         tracks.map(
             async (track) =>
