@@ -83,9 +83,7 @@ export default function wasm(modules: string[]): Plugin {
                 )};
 				if (!import.meta.env.SSR) {
 					await init(url);
-				} else {
-                    throw new Error("WASM must be called through a service binding on Workers.");
-                }
+				}
 				export * from ${JSON.stringify(resolution.entryPath)};
                 export default () => { };`;
             }
