@@ -5,7 +5,8 @@
     import { browser } from "$app/environment";
     import { Pagination } from "bits-ui";
     import { ChevronLeftIcon, ChevronRightIcon } from "svelte-feather-icons";
-
+    import { page } from "$app/stores";
+    import { goto } from "$app/navigation";
     export let data;
 
     const createdAt = data.tracks.map((t) =>
@@ -13,6 +14,16 @@
             .toZonedDateTime("UTC")
             .withTimeZone(browser ? Temporal.Now.timeZoneId() : "UTC"),
     );
+
+    let pageNum = 1;
+
+    $: if (pageNum && !import.meta.env.SSR) {
+        let query = new URLSearchParams($page.url.searchParams.toString());
+
+        query.set("page", pageNum.toString());
+
+        goto(`?${query.toString()}`);
+    }
 </script>
 
 <main class="mt-8 mx-auto px-4 max-w-xl">
@@ -72,6 +83,7 @@
                     perPage={data.pageSize}
                     let:pages
                     let:range
+                    bind:page={pageNum}
                 >
                     <div class="flex my-2">
                         <Pagination.PrevButton

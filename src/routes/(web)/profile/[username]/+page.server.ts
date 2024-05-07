@@ -33,7 +33,7 @@ export async function load(event) {
         orderBy: [desc(tracksTable.createdAt)],
         limit: PAGE_SIZE,
         offset: event.url.searchParams.has("page")
-            ? parseInt(event.url.searchParams.get("page")) * PAGE_SIZE
+            ? (parseInt(event.url.searchParams.get("page")) - 1) * PAGE_SIZE
             : 0,
     });
     const stats = await Promise.all(
