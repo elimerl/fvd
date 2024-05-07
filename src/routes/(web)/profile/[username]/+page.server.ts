@@ -2,11 +2,15 @@ import { TrackSpline } from "$lib/core/TrackSpline.js";
 import { db } from "$lib/server/db";
 import { tracksTable, userTable } from "$lib/server/schema.js";
 import { getTrackStats } from "$lib/stats.js";
-import { get_spline } from "@elimerl/fvd-rs";
 import { error } from "@sveltejs/kit";
 import { desc, eq, count } from "drizzle-orm";
 
 const PAGE_SIZE = 25;
+
+const get_spline =
+    typeof process !== "undefined"
+        ? (await import("@elimerl/fvd-rs")).get_spline
+        : null;
 
 export async function load(event) {
     const profileUser = await db.query.userTable.findFirst({
