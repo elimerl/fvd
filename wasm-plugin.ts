@@ -73,13 +73,23 @@ export default function wasm(modules: string[]): Plugin {
         },
 
         async load(id, options) {
-            // Fetch module info
             const resolution = resolutions.get(id);
-            // Only handle files we know about and have resolved
             if (!resolution) return null;
+            if (process.env.CF_PAGES) {
+                return `
+                import init from ${JSON.stringify(resolution.entryPath)};
+				import url from ${JSON.stringify(
+                    `${resolution.module}/${resolution.wasmFileName}?url`
+                )};
+				if (!import.meta.env.SSR) {
+					await init(url);
+				} else {
+                    throw new Error("WASM must be called through a service binding on Workers.");
+                }
+				export * from ${JSON.stringify(resolution.entryPath)};
+                export default () => { };`;
+            }
 
-            // Create polyfill to allow SSR to load wasm from disk
-            // and web to load wasm file over HTTP
             return `
 				import init from ${JSON.stringify(resolution.entryPath)};
 				import url from ${JSON.stringify(
