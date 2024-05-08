@@ -1,5 +1,5 @@
 import { lucia } from "$lib/server/auth";
-import type { Handle } from "@sveltejs/kit";
+import { redirect, type Handle } from "@sveltejs/kit";
 import { sequence } from "@sveltejs/kit/hooks";
 import { db } from "$lib/server/db";
 import { eq } from "drizzle-orm";
@@ -44,11 +44,13 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.user = user;
     event.locals.session = session;
 
-    const settingsJson = (
-        await db.query.settingsTable.findFirst({
-            where: eq(settingsTable.userId, event.locals.user!.id),
-        })
-    ).json;
+    const settingsJson = user
+        ? (
+              await db.query.settingsTable.findFirst({
+                  where: eq(settingsTable.userId, event.locals.user!.id),
+              })
+          ).json
+        : "{}";
     // use default settings if not in original
     settings = {
         ...defaultSettings(),
