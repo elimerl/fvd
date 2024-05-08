@@ -47,7 +47,7 @@
                             >{createdAt[i].toLocaleString("en-US")}</time
                         >
                     </p>
-                    <p>
+                    <!-- <p>
                         length: <UnitNumberSpan
                             value={data.stats[i].length}
                             baseUnit="distance"
@@ -71,7 +71,7 @@
                             unitSystem={data.settings.unitSystem}
                             fractionalDigits={0}
                         />
-                    </p>
+                    </p> -->
                 </div>
             </li>
         {/each}

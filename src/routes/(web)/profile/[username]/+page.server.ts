@@ -36,32 +36,32 @@ export async function load(event) {
             ? (parseInt(event.url.searchParams.get("page")) - 1) * PAGE_SIZE
             : 0,
     });
-    const stats = await Promise.all(
-        tracks.map(
-            async (track) =>
-                await getTrackStats(track.id, track.trackJson, async (json) => {
-                    if (event.platform.env.WASM_WORKER)
-                        return TrackSpline.fromJSON(
-                            await (
-                                await event.platform.env.WASM_WORKER.fetch(
-                                    "/",
-                                    {
-                                        method: "POST",
-                                        body: json,
-                                        headers: {
-                                            "content-type": "application/json",
-                                        },
-                                    }
-                                )
-                            ).json()[0]
-                        );
-                    else
-                        return TrackSpline.fromJSON(
-                            JSON.parse(get_spline(json))[0]
-                        );
-                })
-        )
-    );
+    // const stats = await Promise.all(
+    //     tracks.map(
+    //         async (track) =>
+    //             await getTrackStats(track.id, track.trackJson, async (json) => {
+    //                 if (event.platform.env.WASM_WORKER)
+    //                     return TrackSpline.fromJSON(
+    //                         await (
+    //                             await event.platform.env.WASM_WORKER.fetch(
+    //                                 "/",
+    //                                 {
+    //                                     method: "POST",
+    //                                     body: json,
+    //                                     headers: {
+    //                                         "content-type": "application/json",
+    //                                     },
+    //                                 }
+    //                             )
+    //                         ).json()[0]
+    //                     );
+    //                 else
+    //                     return TrackSpline.fromJSON(
+    //                         JSON.parse(get_spline(json))[0]
+    //                     );
+    //             })
+    //     )
+    // );
 
     return {
         count: rowCount[0].count,
@@ -69,6 +69,6 @@ export async function load(event) {
         user: profileUser,
         settings: event.locals.settings,
         tracks,
-        stats,
+        // stats,
     };
 }
