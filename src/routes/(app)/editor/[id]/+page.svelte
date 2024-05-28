@@ -20,11 +20,14 @@
     import { CloudIcon, CloudOffIcon, Trash2Icon } from "svelte-feather-icons";
 
     import { Pane, PaneGroup, PaneResizer } from "paneforge";
-    import { Menubar } from "bits-ui";
+    import { Dialog, Label, Menubar, Separator } from "bits-ui";
     import { beforeNavigate } from "$app/navigation";
     import { TrackSpline } from "$lib/core/TrackSpline.js";
 
     import { page } from "$app/stores";
+    import UnitNumberScroll from "$lib/components/UnitNumberScroll.svelte";
+    import LaunchCalculator from "$lib/components/LaunchCalculator.svelte";
+    import TrackSettings from "$lib/components/TrackSettings.svelte";
 
     let pov = { pos: 0 };
 
@@ -72,6 +75,9 @@
         return [r.spline, r.sectionStartPos];
     }, "spline");
     $: if (track) asyncUpdateTrack(track);
+
+    let overlay: HTMLImageElement | null;
+
     let currentIdleCallback = 0;
     function asyncUpdateTrack(track: Track) {
         cancelIdleCallback(currentIdleCallback);
@@ -154,6 +160,9 @@
         });
         dirty = false;
     }
+
+    let calculatorsOpen = false;
+    let trackSettingsOpen = false;
 </script>
 
 <svelte:window
@@ -168,6 +177,13 @@
 />
 
 <div class="w-screen h-screen overflow-clip bg-background text-foreground">
+    <LaunchCalculator bind:open={calculatorsOpen} />
+    <TrackSettings
+        bind:open={trackSettingsOpen}
+        bind:dataTrack={data.track}
+        bind:track
+        {models}
+    />
     <Menubar.Root
         class="flex h-12 items-center gap-1 rounded-10px border border-dark-10 bg-background-alt px-[3px] shadow-mini pl-2"
     >
@@ -189,6 +205,34 @@
                         >New</Menubar.Item
                     ></a
                 >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={async () => {
+                        const input = document.createElement("input");
+                        input.type = "file";
+                        input.accept = "image/*";
+
+                        input.onchange = () => {
+                            if (input.files.length > 0) {
+                                const file = input.files[0];
+                                const reader = new FileReader();
+                                reader.readAsDataURL(file);
+                                reader.onload = (ev) => {
+                                    const img = new Image();
+                                    img.onload = () => {
+                                        overlay = img;
+                                    };
+                                    //@ts-expect-error
+                                    img.src = ev.target.result;
+                                };
+                            }
+                        };
+
+                        input.click();
+                    }}
+                >
+                    Upload overlay (beta, 400x400m)
+                </Menubar.Item>
                 <Menubar.Item
                     class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
                     on:click={async () => {
@@ -285,6 +329,22 @@
                         document.body.removeChild(element);
                     }}>Import track JSON (beta)</Menubar.Item
                 >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={() => {
+                        trackSettingsOpen = true;
+                    }}
+                >
+                    Track settings</Menubar.Item
+                >
+                <Menubar.Item
+                    class="flex h-8 select-none items-center py-1 pl-2 text-foreground text-base font-medium !ring-0 !ring-transparent data-[highlighted]:bg-muted"
+                    on:click={() => {
+                        calculatorsOpen = true;
+                    }}
+                >
+                    Calculators</Menubar.Item
+                >
             </Menubar.Content>
         </Menubar.Menu>
         <Menubar.Menu>
@@ -324,52 +384,6 @@
     </Menubar.Root>
     <div class="flex flex-row w-full h-full">
         <div class="w-1/3 min-w-48 max-w-64 m-4 flex flex-col">
-            <div>
-                <details class="flex flex-col">
-                    <summary>
-                        <span class="mb-2 font-semibold text-lg">
-                            Track properties
-                        </span>
-                    </summary>
-                    <label
-                        >Name <input
-                            type="text"
-                            class="bg-background-alt text-foreground px-1 py-0.5 border"
-                            bind:value={data.track.name}
-                        />
-                    </label>
-                    <label
-                        >Description <textarea
-                            class="bg-background-alt text-foreground p-1 border"
-                            bind:value={data.track.description}
-                            placeholder="Description goes here..."
-                        />
-                    </label>
-
-                    <label class="mb-1"
-                        >Anchor Y
-                        <NumberScroll
-                            bind:value={track.anchor.pos[1]}
-                            unit="m"
-                        /></label
-                    >
-
-                    <label class="mb-1"
-                        >Heartline Height
-                        <NumberScroll
-                            bind:value={track.config.heartlineHeight}
-                            unit="m"
-                        /></label
-                    >
-                    <label class="mb-1"
-                        >Friction
-                        <NumberScroll
-                            fractionalDigits={2}
-                            bind:value={track.config.parameter}
-                        /></label
-                    >
-                </details>
-            </div>
             <div class="flex flex-col flex-grow">
                 <p class="mb-2 font-semibold text-lg">Track sections</p>
                 <div class="h-1/2">
@@ -588,6 +602,7 @@
                                     fov={70 ?? data.settings.fov}
                                     bind:mode
                                     bind:pov
+                                    {overlay}
                                 />
                             {/await}
                         </div>

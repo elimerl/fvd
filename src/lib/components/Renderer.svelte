@@ -16,7 +16,6 @@
 
     import ModelWorker from "../modelWorker?worker";
     import type { TrackConfig } from "$lib/core/Track";
-    import { UP } from "$lib/core/constants";
 
     const modelWorkers = [];
     for (let i = 0; i < 6; i++) {
@@ -37,12 +36,17 @@
     let renderer: THREE.WebGLRenderer;
     let camera: THREE.PerspectiveCamera;
     let scene: THREE.Scene;
+    let sunLight: THREE.DirectionalLight;
 
     let heartline: THREE.Line;
     let rails: THREE.Mesh;
     let spine: THREE.Mesh;
 
+    let overlayPlane: THREE.Mesh;
+
     export let mode: "fly" | "pov" = "pov";
+
+    export let overlay: HTMLImageElement | null;
 
     let flyPos = vec(0, 0, 0);
     let flyPitch = 0;
@@ -52,16 +56,18 @@
         qaxisangle(vec(1, 0, 0), flyPitch),
     );
 
-    let modelType = models.get("b&m_family");
+    $: modelType = models.get(config.modelId);
 
-    onMount(() => {
+    $: {
         modelWorkers.forEach((worker) =>
             worker.postMessage({
                 type: "load",
                 modelType,
             }),
         );
+    }
 
+    onMount(() => {
         modelWorkers.forEach((worker) => {
             worker.onmessage = (event) => {
                 const applyGeometry = () => {
@@ -111,20 +117,21 @@
 
             scene.add(ambientLight);
 
-            const sunLight = new THREE.DirectionalLight("white", 2.7);
+            sunLight = new THREE.DirectionalLight("white", 2.7);
 
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 2048;
             sunLight.shadow.mapSize.height = 2048;
             sunLight.shadow.camera.near = 0.1;
             sunLight.shadow.camera.far = 1000;
-            sunLight.shadow.camera.top = 32;
-            sunLight.shadow.camera.right = 32;
-            sunLight.shadow.camera.bottom = -32;
-            sunLight.shadow.camera.left = -32;
+            sunLight.shadow.camera.top = 128;
+            sunLight.shadow.camera.right = 128;
+            sunLight.shadow.camera.bottom = -128;
+            sunLight.shadow.camera.left = -128;
 
             sunLight.position.set(0, 500, 0);
             scene.add(sunLight);
+            scene.add(sunLight.target);
 
             const grid = new InfiniteGridHelper(
                 1,
@@ -147,6 +154,18 @@
             ground.position.set(0, -0.1, 0);
             ground.receiveShadow = true;
             scene.add(ground);
+
+            overlayPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(400, 400, 16, 16),
+                new THREE.MeshStandardMaterial({
+                    color: "#fff",
+                    side: THREE.DoubleSide,
+                }),
+            );
+            overlayPlane.rotateX(-Math.PI / 2);
+            overlayPlane.position.set(0, -0.05, 10);
+            overlayPlane.visible = false;
+            scene.add(overlayPlane);
 
             // track
             const { heartlineGeometry, railGeometry, spineGeometry } =
@@ -258,6 +277,7 @@
             flyPos,
             flyQuat,
             fov,
+            overlay,
         );
     }
 
@@ -317,9 +337,34 @@
 
         camera.fov = fov;
 
+        if (overlay) {
+            if (!overlayPlane.visible) {
+                const tex = new THREE.Texture(overlay);
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.needsUpdate = true;
+                overlayPlane.visible = true;
+                overlayPlane.material = new THREE.MeshBasicMaterial({
+                    color: "white",
+                    side: THREE.DoubleSide,
+                    map: tex,
+                });
+            }
+        } else {
+            if (overlayPlane.visible) {
+                overlayPlane.visible = false;
+                overlayPlane.material = new THREE.MeshBasicMaterial({
+                    color: "#fff",
+                    side: THREE.DoubleSide,
+                });
+            }
+        }
+
         if (mode === "pov") {
             const camPos = vadd(start.pos, qrotate(vec(0, 0, 0), start.rot));
 
+            sunLight.position.set(camPos[0], 500, camPos[2]);
+            sunLight.target.position.set(camPos[0], 0, camPos[2]);
             camera.position.set(camPos[0], camPos[1], camPos[2]);
             camera.setRotationFromQuaternion(
                 new THREE.Quaternion(
@@ -335,6 +380,8 @@
                 ),
             );
         } else {
+            sunLight.position.set(flyPos[0], 500, flyPos[2]);
+            sunLight.target.position.set(flyPos[0], 0, flyPos[2]);
             camera.position.set(flyPos[0], flyPos[1], flyPos[2]);
             camera.setRotationFromQuaternion(
                 new THREE.Quaternion(

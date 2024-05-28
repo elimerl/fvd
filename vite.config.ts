@@ -16,4 +16,7 @@ export default defineConfig({
     optimizeDeps: {
         exclude: ["@elimerl/fvd-rs"],
     },
+    define: {
+        "process.env.NODE_ENV": '"production"',
+    },
 });

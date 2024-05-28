@@ -1,0 +1,36 @@
+{
+    "name": "forcevector.app",
+    "short_name": "forcevector",
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#166534",
+    "icons": [
+        {
+            "src": "/android-chrome-192x192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/android-chrome-512x512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        },
+        { "src": "/favicon.svg", "type": "image/svg", "sizes": "84x84" },
+        {
+            "src": "/maskable_icon.png",
+            "type": "image/png",
+            "sizes": "1024x1024",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshots/1.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Main interface"
+        }
+    ],
+    "description": "Rollercoaster layout design program for NoLimits 2."
+}

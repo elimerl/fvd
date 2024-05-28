@@ -9,9 +9,7 @@ export async function load(event) {
     });
 
     if (!track) {
-        error(404, {
-            message: "Not found",
-        });
+        return error(404);
     }
 
     return { track, user: event.locals.user, settings: event.locals.settings };

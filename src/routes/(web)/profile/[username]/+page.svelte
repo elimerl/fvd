@@ -7,6 +7,7 @@
     import { ChevronLeftIcon, ChevronRightIcon } from "svelte-feather-icons";
     import { page } from "$app/stores";
     import { goto } from "$app/navigation";
+    import linkifyStr from "linkify-string";
     export let data;
 
     const createdAt = data.tracks.map((t) =>
@@ -36,8 +37,8 @@
                 <h2 class="text-2xl font-bold">
                     <a href={`/editor/${track.id}`}>{track.name}</a>
                 </h2>
-                <p class="mt-2">
-                    {track.description}
+                <p class="mt-2 prose dark:prose-invert">
+                    {@html linkifyStr(track.description)}
                 </p>
                 <div class="ml-2 my-2">
                     <p>

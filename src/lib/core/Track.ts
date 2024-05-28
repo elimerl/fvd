@@ -29,7 +29,6 @@ import {
     qtoaxisangle,
     qaxisangle,
 } from "./math";
-import { browser } from "$app/environment";
 import { get_spline } from "@elimerl/fvd-rs";
 
 export type TrackSection =
@@ -139,6 +138,9 @@ export class Track {
             }
         });
         track.config = json.config;
+        if (!track.config.modelId) {
+            track.config.modelId = "s&s_newgen";
+        }
         track.anchor = json.anchor;
         return track;
     }
@@ -167,13 +169,16 @@ export type TrackConfig = {
     resistance: number;
 
     heartlineHeight: number;
+
+    modelId: string;
 };
 
 export function defaultTrackConfig(): TrackConfig {
     return {
-        parameter: 0.027,
+        parameter: 0.03,
         resistance: 1e-5,
         heartlineHeight: 1.1,
+        modelId: "s&s_newgen",
     };
 }
 
