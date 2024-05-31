@@ -9,7 +9,7 @@
         <a
             href="/editor/new"
             data-sveltekit-reload
-            class="px-2 py-1 border rounded bg-green-600 text-white dark:bg-green-800 md:block hidden"
+            class="px-2 py-1 border rounded bg-green-600 text-white dark:bg-green-800 md:block hidden no-underline"
             >New Track</a
         >
     {/if}
@@ -36,3 +36,7 @@
 </nav>
 
 <slot />
+
+<footer class="text-sm text-center mb-4 mt-8">
+    &copy; 2024 Eli Davies. All rights reserved.
+</footer>

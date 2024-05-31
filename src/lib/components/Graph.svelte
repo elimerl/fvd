@@ -219,7 +219,7 @@
             ctx.beginPath();
             ctx.moveTo(
                 timeOffset / canvas.width +
-                    ((32 * window.devicePixelRatio) / canvas.width) * zoomLevel,
+                    ((70 * window.devicePixelRatio) / canvas.width) * zoomLevel,
                 transformG(g),
             );
             ctx.lineTo(timeOffset / canvas.width + zoomLevel, transformG(g));
@@ -235,7 +235,7 @@
                 (window.devicePixelRatio || 1) * 16
             }px "Overpass Variable"`;
             ctx.fillText(
-                g + "g",
+                g + "g " + g * 100 + "°",
                 8 * window.devicePixelRatio,
                 transformG(g) * canvas.height + 2,
             );
