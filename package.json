@@ -12,7 +12,7 @@
         "migrate": "tsx migrate"
     },
     "dependencies": {
-        "@elimerl/fvd-rs": "https://github.com/elimerl/fvd-rs/releases/download/v0.1.3/elimerl-fvd-rs-0.1.3.tgz",
+        "@elimerl/fvd-rs": "https://github.com/elimerl/fvd-rs/releases/download/v0.1.6/elimerl-fvd-rs-0.1.6.tgz",
         "@fontsource-variable/overpass": "^5.0.17",
         "@fontsource-variable/overpass-mono": "^5.0.16",
         "@libsql/client": "^0.6.0",

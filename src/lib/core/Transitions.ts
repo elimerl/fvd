@@ -5,6 +5,7 @@ export enum TransitionCurve {
     Quadratic = "quadratic",
     Cubic = "cubic",
     Plateau = "plateau",
+    Sinusoidal = "sinusoidal",
     QuarticBump = "quartic-bump",
 }
 
@@ -13,6 +14,7 @@ export const curveTypes = [
     TransitionCurve.Quadratic,
     TransitionCurve.Cubic,
     TransitionCurve.Plateau,
+    TransitionCurve.Sinusoidal,
     TransitionCurve.QuarticBump,
 ];
 
@@ -51,6 +53,8 @@ export function evalCurve(curve: TransitionCurve, t: number) {
             return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
         case TransitionCurve.Plateau:
             return 1 - Math.exp(-15 * Math.pow(1 - Math.abs(2 * t - 1), 3));
+        case TransitionCurve.Sinusoidal:
+            return 0.5 * (1 - Math.cos(Math.PI * t));
         case TransitionCurve.QuarticBump:
             return t * t * (16 + t * (-32 + t * 16));
     }

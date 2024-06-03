@@ -2,13 +2,5 @@
     "name": "B&M Family Launch",
     "author": "KohlerCoaster",
     "heartlineHeight": 1.1,
-    "railGauge": 1.0,
-    "railGeometry": {
-        "type": "cylinder",
-        "radius": 0.07
-    },
-    "spineInterval": 0.8,
-    "crossTieInterval": null,
-    "spineObj": "b&m_family_spine.obj",
-    "crossTieObj": "b&m_family_crosstie.obj"
+    "trackObj": "track.obj"
 }
