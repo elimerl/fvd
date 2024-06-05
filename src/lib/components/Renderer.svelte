@@ -55,7 +55,7 @@
         qaxisangle(vec(1, 0, 0), flyPitch),
     );
 
-    $: modelType = models.get("b&m_family");
+    $: modelType = models.get(config.modelId);
 
     $: {
         modelWorkers.forEach((worker) =>
@@ -82,7 +82,7 @@
                     heartline = heartline;
                 };
 
-                requestIdleCallback(applyGeometry, { timeout: 100 });
+                applyGeometry();
             };
         });
 
@@ -102,7 +102,7 @@
             camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
 
             scene = new THREE.Scene();
-            scene.background = new THREE.Color("white");
+            scene.background = new THREE.Color(0x87ceeb);
 
             const ambientLight = new THREE.AmbientLight("white", 1);
 
@@ -170,11 +170,12 @@
             heartline = new THREE.Line(heartlineGeometry, heartlineMat);
             scene.add(heartline);
 
-            const railMat = new THREE.MeshStandardMaterial({
+            const railMat = new THREE.MeshPhysicalMaterial({
                 color: new THREE.Color("#3261e3"),
                 roughness: 0.6,
                 metalness: 0.2,
-                // wireframe: true,
+                specularIntensity: 0.5,
+                flatShading: false,
             });
 
             rails = new THREE.Mesh(railsGeometry, railMat);
