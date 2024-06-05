@@ -16,7 +16,6 @@ import {
     qslerp,
     vlerp,
 } from "../core/math";
-import * as _ from "lodash-es";
 
 import type { TrackPoint, TrackSpline } from "../core/TrackSpline";
 import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
@@ -42,8 +41,7 @@ export type RailGeometry = {
     radius: number;
 };
 
-// trackGeometry must face in the positive X direction in blender and start at x=0
-// the blender obj settings should be set to how the screenshot is
+// model info: gauge is from center of rail to center of other rail
 // all distances in meters
 
 const RAIL_INTERVAL = 0.1;
@@ -54,71 +52,268 @@ export class TrackModelType {
 
     /// note: not used for track model
     heartlineHeight: number;
-
-    readonly trackGeometry: { vertices: vec3[]; indices: number[] };
+    railGauge: number;
+    railGeometry: RailGeometry;
+    readonly spineGeometry: { vertices: vec3[] };
+    spineInterval: number | null;
+    crossTieInterval: number | null;
+    readonly crossTieGeometry: { vertices: vec3[]; indices: number[] };
 
     constructor(info: {
         name: string;
         author: string;
         heartlineHeight: number;
-        trackGeometry: { vertices: vec3[]; indices: number[] };
+        railGauge: number;
+        railGeometry: RailGeometry;
+        spineInterval: number | null;
+        crossTieInterval: number | null;
+        spineGeometry: { vertices: vec3[] };
+        crossTieGeometry: { vertices: vec3[]; indices: number[] };
     }) {
         this.name = info.name;
         this.author = info.author;
         this.heartlineHeight = info.heartlineHeight;
-        this.trackGeometry = info.trackGeometry;
+        this.railGauge = info.railGauge;
+        this.railGeometry = info.railGeometry;
+        this.spineInterval = info.spineInterval;
+        this.crossTieInterval = info.crossTieInterval;
+        this.spineGeometry = info.spineGeometry;
+        this.crossTieGeometry = info.crossTieGeometry;
+
+        this.fixGeometryOrder();
     }
 
-    makeMesh(spline: TrackSpline, heartlineHeight: number): Geometry {
-        const geometryLength = _.maxBy(
-            this.trackGeometry.vertices,
-            (v) => v[0]
-        )[0];
-        const splineLength = spline.getLength();
-        const instances = Math.ceil(splineLength / geometryLength);
-        const geometry: { vertices: vec3[]; indices: number[] } = {
-            vertices: [],
-            indices: [],
-        };
-        // array
-        let offset = 0;
-        for (let i = 0; i < instances; i++) {
-            geometry.vertices.push(
-                ...this.trackGeometry.vertices.map((v) =>
-                    vec(v[0] + offset, v[1], v[2])
-                )
+    private fixGeometryOrder() {
+        this.spineGeometry.vertices.sort((a, b) => {
+            const angleA = Math.atan2(a[1], a[2]);
+            const angleB = Math.atan2(b[1], b[2]);
+
+            return angleA - angleB;
+        });
+    }
+
+    makeSpineMesh(spline: TrackSpline, heartlineHeight: number): Geometry {
+        const vertices: vec3[] = [];
+        const indices: number[] = [];
+        const indexArray = [];
+
+        const points =
+            this.spineInterval !== null
+                ? spline.intervalPoints(this.spineInterval)
+                : spline.intervalPoints(0);
+
+        for (let i = 0; i < points.length; i++) {
+            const indexRow: number[] = [];
+            const trackPoint = vsub(
+                points[i].point.pos,
+                qrotate(vec(0, heartlineHeight, 0), points[i].point.rot)
             );
-            geometry.indices.push(
-                ...this.trackGeometry.indices.map(
-                    (v) => v + this.trackGeometry.vertices.length * i
-                )
-            );
-            offset += geometryLength;
-        }
-        // curve
-        for (let i = 0; i < geometry.vertices.length; i++) {
-            const d = geometry.vertices[i][0];
-            const point = spline.evaluate(_.clamp(d, 0, splineLength));
             const heartlineSign = Math.sign(heartlineHeight) >= 0 ? 1 : -1;
 
-            const transformed: vec3 = vadd(
-                qrotate(
-                    [
-                        -geometry.vertices[i][2] * heartlineSign,
-                        geometry.vertices[i][1] * heartlineSign -
-                            heartlineHeight,
-                        0,
-                    ],
-                    point.rot
-                ),
-                point.pos
-            );
-            geometry.vertices[i] = transformed;
+            for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
+                let baseVertex = this.spineGeometry.vertices[j];
+                baseVertex = vec(baseVertex[2], baseVertex[1], baseVertex[0]);
+                const point = vadd(
+                    trackPoint,
+                    qrotate(
+                        [
+                            baseVertex[0] * heartlineSign,
+                            baseVertex[1] * heartlineSign,
+                            baseVertex[2],
+                        ],
+                        points[i].point.rot
+                    )
+                );
+
+                const vertex: vec3 = [point[0], point[1], point[2]];
+                vertices.push(vertex);
+
+                indexRow.push(vertices.length - 1);
+            }
+
+            indexArray.push(indexRow);
+
+            // TODO: add end faces
         }
+
+        for (let i = 0; i < indexArray.length - 1; i++) {
+            for (let j = 0; j < this.spineGeometry.vertices.length; j++) {
+                const a = indexArray[i][j];
+                const b = indexArray[i + 1][j];
+                const c =
+                    indexArray[i + 1][
+                        (j + 1) % this.spineGeometry.vertices.length
+                    ];
+                const d =
+                    indexArray[i][(j + 1) % this.spineGeometry.vertices.length];
+
+                indices.push(c, b, a);
+                indices.push(d, c, a);
+            }
+        }
+
         return {
-            vertices: new Float32Array(geometry.vertices.flat()),
-            indices: geometry.indices,
+            vertices: new Float32Array(vertices.flat()),
+            indices,
         };
+    }
+
+    makeRailsMesh(
+        spline: TrackSpline,
+        heartlineHeight: number,
+        vertexCount: number = 6
+    ): Geometry {
+        const baseVertices: vec3[] = [];
+
+        if (this.railGeometry.type === "cylinder") {
+            for (let i = 0; i < vertexCount; i++) {
+                const angle = (i / vertexCount) * Math.PI * 2;
+                const x = Math.cos(angle);
+                const y = Math.sin(angle);
+                baseVertices.push([
+                    x * this.railGeometry.radius,
+                    y * this.railGeometry.radius,
+                    0,
+                ]);
+            }
+        }
+
+        const vertices: vec3[] = [];
+        const indices: number[] = [];
+
+        const points = spline.intervalPoints(RAIL_INTERVAL);
+
+        this.makeRail(
+            baseVertices,
+            vertices,
+            indices,
+            -1,
+            points,
+            heartlineHeight
+        );
+
+        this.makeRail(
+            baseVertices,
+            vertices,
+            indices,
+            1,
+            points,
+            heartlineHeight
+        );
+
+        this.makeCrossTies(spline, vertices, indices, heartlineHeight);
+
+        return { vertices: new Float32Array(vertices.flat()), indices };
+    }
+    private makeCrossTies(
+        spline: TrackSpline,
+        vertices: vec3[],
+        indices: number[],
+        heartlineHeight: number
+    ) {
+        if (!this.crossTieGeometry) return;
+        const interval = this.crossTieInterval ?? this.spineInterval;
+        if (interval === null) throw new Error("no cross tie interval");
+
+        const points = spline.intervalPoints(interval, false);
+
+        for (let i = 0; i < points.length; i++) {
+            const trackPointStart = vsub(
+                points[i].point.pos,
+                qrotate(vec(0, heartlineHeight, 0), points[i].point.rot)
+            );
+            const pointEnd =
+                spline.evaluate(points[i].dist + interval) ?? points[i].point;
+
+            for (const index of this.crossTieGeometry.indices) {
+                indices.push(index + vertices.length);
+            }
+
+            for (let j = 0; j < this.crossTieGeometry.vertices.length; j++) {
+                const baseVertex = [
+                    this.crossTieGeometry.vertices[j][2],
+                    this.crossTieGeometry.vertices[j][1],
+                    this.crossTieGeometry.vertices[j][0],
+                ];
+                const offset = baseVertex[0];
+
+                const rot = qslerp(
+                    points[i].point.rot,
+                    pointEnd.rot,
+                    offset / interval
+                );
+                const pos = trackPointStart;
+
+                const heartlineSign = Math.sign(heartlineHeight) >= 0 ? 1 : -1;
+
+                const point = vadd(
+                    pos,
+                    qrotate(
+                        [
+                            -baseVertex[0] * heartlineSign,
+                            baseVertex[1] * heartlineSign,
+                            baseVertex[2],
+                        ],
+                        rot
+                    )
+                );
+                vertices.push(point);
+            }
+        }
+    }
+
+    private makeRail(
+        baseVertices: vec3[],
+        vertices: vec3[],
+        indices: number[],
+        side: -1 | 1,
+        points: { point: TrackPoint; dist: number }[],
+        heartlineHeight: number
+    ) {
+        const indexArray = [];
+
+        for (let i = 0; i < points.length; i++) {
+            {
+                const trackPoint = vsub(
+                    points[i].point.pos,
+                    qrotate(
+                        vec((this.railGauge / 2) * side, heartlineHeight, 0),
+                        points[i].point.rot
+                    )
+                );
+                const indexRow = [];
+                for (let j = 0; j < baseVertices.length; j++) {
+                    const baseVertex = baseVertices[j];
+                    const point = vadd(
+                        trackPoint,
+                        qrotate(baseVertex, points[i].point.rot)
+                    );
+
+                    const vertex: vec3 = [point[0], point[1], point[2]];
+                    vertices.push(vertex);
+
+                    indexRow.push(vertices.length - 1);
+                }
+
+                indexArray.push(indexRow);
+                if (1 < i && i < points.length - 1) {
+                    for (let j = 0; j < baseVertices.length; j++) {
+                        const a = indexArray[i][j];
+                        const b = indexArray[i - 1][j];
+                        const c =
+                            indexArray[i - 1][(j + 1) % baseVertices.length];
+                        const d = indexArray[i][(j + 1) % baseVertices.length];
+
+                        indices.push(a, b, d);
+                        indices.push(b, c, d);
+                    }
+                }
+
+                // TODO: add end faces
+            }
+        }
+
+        indexArray.length = 0;
     }
 }
 
@@ -139,22 +334,37 @@ export async function loadModels() {
     for (const [filename, json] of Object.entries(modelsJSON)) {
         const filenameNoJson = filename.slice(2, -5);
         const modelJSON = json as any;
-        const trackText = await fetch(
-            `/models/${filenameNoJson}/${modelJSON.trackObj}`
+        const spineText = await fetch(
+            `/models/${filenameNoJson}/${modelJSON.spineObj}`
         ).then((r) => r.text());
-        const trackObj = findMeshChild(new OBJLoader().parse(trackText));
-        const fixedTrackGeometry = BufferGeometryUtils.mergeVertices(
-            trackObj.geometry
+        const spineObj = findMeshChild(new OBJLoader().parse(spineText));
+        const crossTieText = await fetch(
+            `/models/${filenameNoJson}/${modelJSON.crossTieObj}`
+        ).then((r) => r.text());
+        const crossTieObj = findMeshChild(new OBJLoader().parse(crossTieText));
+        const fixedCrossTieGeometry = BufferGeometryUtils.mergeVertices(
+            crossTieObj.geometry,
+            0.0001
         );
         const model = new TrackModelType({
             name: modelJSON.name,
             author: modelJSON.author,
             heartlineHeight: modelJSON.heartlineHeight,
-            trackGeometry: {
+            crossTieInterval: modelJSON.crossTieInterval,
+            spineInterval: modelJSON.spineInterval,
+            railGauge: modelJSON.railGauge,
+            railGeometry: modelJSON.railGeometry,
+            spineGeometry: {
                 vertices: float32ArrayToVec3Array(
-                    fixedTrackGeometry.attributes.position.array as Float32Array
+                    spineObj.geometry.attributes.position.array as Float32Array
                 ),
-                indices: Array.from(fixedTrackGeometry.index!.array),
+            },
+            crossTieGeometry: {
+                vertices: float32ArrayToVec3Array(
+                    fixedCrossTieGeometry.attributes.position
+                        .array as Float32Array
+                ),
+                indices: Array.from(fixedCrossTieGeometry.index!.array),
             },
         });
         models.set(filenameNoJson, model);

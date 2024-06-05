@@ -40,6 +40,7 @@
 
     let heartline: THREE.Line;
     let rails: THREE.Mesh;
+    let spine: THREE.Mesh;
 
     let overlayPlane: THREE.Mesh;
 
@@ -55,7 +56,7 @@
         qaxisangle(vec(1, 0, 0), flyPitch),
     );
 
-    $: modelType = models.get("b&m_family");
+    $: modelType = models.get(config.modelId);
 
     $: {
         modelWorkers.forEach((worker) =>
@@ -72,12 +73,20 @@
                 const applyGeometry = () => {
                     rails.geometry.dispose();
                     heartline.geometry.dispose();
-                    const { heartlineGeometry, railsGeometry } = time(
-                        () => trackGeometry(spline, event.data.railsMesh),
-                        "makeGeometry",
-                    );
+                    spine.geometry.dispose();
+                    const { heartlineGeometry, railGeometry, spineGeometry } =
+                        time(
+                            () =>
+                                trackGeometry(
+                                    spline,
+                                    event.data.railsMesh,
+                                    event.data.spineMesh,
+                                ),
+                            "makeGeometry",
+                        );
                     heartline.geometry = heartlineGeometry;
-                    rails.geometry = railsGeometry;
+                    rails.geometry = railGeometry;
+                    spine.geometry = spineGeometry;
 
                     heartline = heartline;
                 };
@@ -159,10 +168,12 @@
             scene.add(overlayPlane);
 
             // track
-            const { heartlineGeometry, railsGeometry } = trackGeometry(
-                spline,
-                modelType.makeMesh(spline, config.heartlineHeight),
-            );
+            const { heartlineGeometry, railGeometry, spineGeometry } =
+                trackGeometry(
+                    spline,
+                    modelType.makeRailsMesh(spline, config.heartlineHeight),
+                    modelType.makeSpineMesh(spline, config.heartlineHeight),
+                );
 
             const heartlineMat = new THREE.LineBasicMaterial({
                 color: new THREE.Color("red"),
@@ -177,10 +188,23 @@
                 // wireframe: true,
             });
 
-            rails = new THREE.Mesh(railsGeometry, railMat);
+            rails = new THREE.Mesh(railGeometry, railMat);
             rails.castShadow = true;
             rails.receiveShadow = true;
             scene.add(rails);
+
+            const spineMat = new THREE.MeshStandardMaterial({
+                color: new THREE.Color("#3261e3"),
+                roughness: 0.6,
+                metalness: 0.2,
+                // flatShading: true,
+                // wireframe: true,
+            });
+
+            spine = new THREE.Mesh(spineGeometry, spineMat);
+            spine.castShadow = true;
+            spine.receiveShadow = true;
+            scene.add(spine);
         }
 
         let f = 0;
@@ -248,6 +272,7 @@
             spline,
             heartline,
             rails,
+            spine,
             mode,
             flyPos,
             flyQuat,
@@ -269,10 +294,18 @@
         }
     }
 
-    function trackGeometry(spline: TrackSpline, trackMesh: Geometry) {
-        const railsGeometry = toBufferGeometry(trackMesh);
+    function trackGeometry(
+        spline: TrackSpline,
+        railsMesh: Geometry,
+        spineMesh: Geometry,
+    ) {
+        const railGeometry = toBufferGeometry(railsMesh);
 
-        railsGeometry.computeVertexNormals();
+        railGeometry.computeVertexNormals();
+
+        const spineGeometry = toBufferGeometry(spineMesh);
+
+        spineGeometry.computeVertexNormals();
 
         const heartlineGeometry = new THREE.BufferGeometry().setFromPoints(
             spline.intervalPoints(0.1).map((v) => {
@@ -282,7 +315,8 @@
         );
         return {
             heartlineGeometry,
-            railsGeometry,
+            railGeometry,
+            spineGeometry,
         };
     }
 
