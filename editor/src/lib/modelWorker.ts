@@ -1,0 +1,22 @@
+import { TrackModelType } from "./coaster_types/model";
+import { TrackSpline } from "./core/TrackSpline";
+
+let modelType: TrackModelType;
+onmessage = (e) => {
+    if (e.data.type === "load") {
+        modelType = new TrackModelType(e.data.modelType);
+    } else if (e.data.type === "geometry") {
+        const spline = new TrackSpline();
+        spline.points = e.data.points;
+        const railsMesh = modelType.makeRailsMesh(
+            spline,
+            e.data.config.heartlineHeight
+        );
+        const spineMesh = modelType.makeSpineMesh(
+            spline,
+            e.data.config.heartlineHeight
+        );
+
+        postMessage({ railsMesh, spineMesh });
+    }
+};

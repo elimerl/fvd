@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@import "@fontsource-variable/overpass";
+@import "@fontsource-variable/overpass-mono";
+
+:root {
+  font-family: "Overpass Variable", sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  background: #171717;
+  color: #e5e5e5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.button {
+  @apply px-2 py-0.5 rounded border border-neutral-600 bg-neutral-700 hover:bg-neutral-600 text-sm cursor-pointer text-neutral-100;
+}
+
+.help-link {
+  @apply inline-flex h-4 w-4 items-center justify-center rounded-full border border-neutral-500 bg-neutral-700 text-[10px] font-semibold text-neutral-200 no-underline hover:bg-neutral-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-1 focus-visible:ring-offset-neutral-900;
+}
