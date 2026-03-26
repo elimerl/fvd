@@ -16,10 +16,30 @@ interface Props {
     transitions: Transitions;
     startForces: Forces;
     onTransitionsChange: (t: Transitions) => void;
+    trackRollAngleAtTime?: (t: number) => number | undefined;
+    solveRollEndValue?: (transitionIndex: number) => number | undefined;
 }
 
-export function TransitionEditor({ selected, transitions, startForces, onTransitionsChange }: Props) {
+export function TransitionEditor({
+    selected,
+    transitions,
+    startForces,
+    onTransitionsChange,
+    trackRollAngleAtTime,
+    solveRollEndValue,
+}: Props) {
     const selectedTransition = selected ? transitions[selected.arr][selected.i] : undefined;
+    const dynamicCount = (["vert", "lat", "roll"] as const).filter((arr) =>
+        transitions[arr].some((tr) => tr.dynamicLength)
+    ).length;
+    const selectedArrHasDynamic =
+        selected ? transitions[selected.arr].some((tr) => tr.dynamicLength) : false;
+    const disableDynamicLengthToggle =
+        !!selected &&
+        !!selectedTransition &&
+        !selectedTransition.dynamicLength &&
+        !selectedArrHasDynamic &&
+        dynamicCount >= 2;
 
     const update = (fn: () => void) => {
         fn();
@@ -57,12 +77,20 @@ export function TransitionEditor({ selected, transitions, startForces, onTransit
                 startForces.roll,
                 selected.i
             );
-            rollAngleStart = state.angleStart;
-            rollAngleEnd = rollAngleAtTransitionEnd(
-                transitions.roll,
-                startForces.roll,
-                selected.i
-            );
+            const startT = transitions.roll
+                .slice(0, selected.i)
+                .reduce((sum, tr) => sum + tr.length, 0);
+            const endT = startT + selectedTransition.length;
+
+            rollAngleStart =
+                trackRollAngleAtTime?.(startT) ?? state.angleStart;
+            rollAngleEnd =
+                trackRollAngleAtTime?.(endT) ??
+                rollAngleAtTransitionEnd(
+                    transitions.roll,
+                    startForces.roll,
+                    selected.i
+                );
             setToZeroDenom =
                 selectedTransition.length *
                 curveIntegral(
@@ -78,6 +106,14 @@ export function TransitionEditor({ selected, transitions, startForces, onTransit
     const setRollEndToZero = () => {
         if (!selected || selected.arr !== "roll") return;
         if (!selectedTransition) return;
+
+        const solvedValue = solveRollEndValue?.(selected.i);
+        if (solvedValue !== undefined && Number.isFinite(solvedValue)) {
+            update(() => {
+                selectedTransition.value = solvedValue;
+            });
+            return;
+        }
 
         const state = rollStateAtTransitionStart(
             transitions.roll,
@@ -110,10 +146,11 @@ export function TransitionEditor({ selected, transitions, startForces, onTransit
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                         <label className="mr-2 inline-flex items-center gap-1 text-sm text-neutral-300">
-                            <LabelWithHelp label="Dynamic Length" topic="dynamic-length" />
+                            <LabelWithHelp label="Auto Length" topic="dynamic-length" />
                             <input
                                 type="checkbox"
                                 checked={selectedTransition.dynamicLength}
+                                disabled={disableDynamicLengthToggle}
                                 onChange={(e) =>
                                     update(() => {
                                         selectedTransition.dynamicLength = e.target.checked;
@@ -171,9 +208,9 @@ export function TransitionEditor({ selected, transitions, startForces, onTransit
                             <button
                                 className="button text-xs w-fit mt-1"
                                 onClick={setRollEndToZero}
-                                disabled={Math.abs(setToZeroDenom) < 1e-6}
+                                disabled={!solveRollEndValue && Math.abs(setToZeroDenom) < 1e-6}
                                 title={
-                                    Math.abs(setToZeroDenom) < 1e-6
+                                    !solveRollEndValue && Math.abs(setToZeroDenom) < 1e-6
                                         ? "Cannot solve: near-zero integral"
                                         : "Set end roll angle to 0°"
                                 }

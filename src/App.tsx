@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
-import { Track, forces } from "./lib/core/Track";
+import { Track, euler, forces } from "./lib/core/Track";
 import { TrackSpline } from "./lib/core/TrackSpline";
 import { Transitions } from "./lib/core/Transitions";
 import { loadModels, type TrackModelType } from "./lib/coaster_types/model";
@@ -16,6 +16,53 @@ import { LaunchCalculator } from "./components/LaunchCalculator";
 import { TrackSettings } from "./components/TrackSettings";
 import { UnitContext, type UnitSystem } from "./contexts/UnitContext";
 import { openHelpTopic } from "./lib/help";
+
+function findDistanceAtTime(
+    spline: TrackSpline,
+    startDist: number,
+    endDist: number,
+    targetTime: number
+) {
+    let lo = startDist;
+    let hi = endDist;
+    for (let i = 0; i < 36; i++) {
+        const mid = (lo + hi) * 0.5;
+        const point = spline.evaluate(mid);
+        if (!point) return mid;
+        if (point.time < targetTime) lo = mid;
+        else hi = mid;
+    }
+    return (lo + hi) * 0.5;
+}
+
+function rollAngleAtSectionTime(
+    spline: TrackSpline,
+    sectionStartDist: number,
+    sectionEndDist: number,
+    sectionTime: number
+) {
+    if (sectionTime < 0) return undefined;
+
+    const startPoint = spline.evaluate(sectionStartDist);
+    const endPoint = spline.evaluate(sectionEndDist);
+    if (!startPoint || !endPoint) return undefined;
+
+    const targetAbsTime = startPoint.time + sectionTime;
+    if (targetAbsTime < startPoint.time || targetAbsTime > endPoint.time) {
+        return undefined;
+    }
+
+    const targetDist = findDistanceAtTime(
+        spline,
+        sectionStartDist,
+        sectionEndDist,
+        targetAbsTime
+    );
+    const point = spline.evaluate(targetDist);
+    if (!point) return undefined;
+
+    return euler(point)[2];
+}
 
 export default function App() {
     const { track, updateTrack, replaceTrack } = useTrack(new Track());
@@ -125,6 +172,153 @@ export default function App() {
             ? forces(spline, sectionStartPos[selectedSectionIdx]) ?? { vert: 0, lat: 0, roll: 0 }
             : undefined;
 
+    const trackRollAngleAtTime = useCallback(
+        (t: number) => {
+            if (selectedSection?.type !== "force") return undefined;
+            const sectionStartDist = sectionStartPos[selectedSectionIdx];
+            if (sectionStartDist === undefined) return undefined;
+            const sectionEndDist =
+                sectionStartPos[selectedSectionIdx + 1] ?? spline.getLength();
+            return rollAngleAtSectionTime(
+                spline,
+                sectionStartDist,
+                sectionEndDist,
+                t
+            );
+        },
+        [selectedSection, sectionStartPos, selectedSectionIdx, spline]
+    );
+
+    const solveRollEndValue = useCallback(
+        (transitionIndex: number) => {
+            const currentSection = track.sections[selectedSectionIdx];
+            if (!currentSection || currentSection.type !== "force") {
+                return undefined;
+            }
+
+            const candidate = Track.fromJSON(JSON.parse(JSON.stringify(track)));
+            const candidateSection = candidate.sections[selectedSectionIdx];
+            if (!candidateSection || candidateSection.type !== "force") {
+                return undefined;
+            }
+
+            candidateSection.transitions.updateDynamicLengths();
+            const target = candidateSection.transitions.roll[transitionIndex];
+            if (!target) return undefined;
+
+            const endTime = candidateSection.transitions.roll
+                .slice(0, transitionIndex + 1)
+                .reduce((sum, tr) => sum + tr.length, 0);
+            const originalValue = target.value;
+
+            const evaluateEndRoll = (value: number) => {
+                target.value = value;
+                candidateSection.transitions.updateDynamicLengths();
+
+                const { spline: candidateSpline, sectionStartPos: candidateStarts } =
+                    candidate.getSpline();
+                const sectionStartDist = candidateStarts[selectedSectionIdx];
+                if (sectionStartDist === undefined) return undefined;
+                const sectionEndDist =
+                    candidateStarts[selectedSectionIdx + 1] ??
+                    candidateSpline.getLength();
+                return rollAngleAtSectionTime(
+                    candidateSpline,
+                    sectionStartDist,
+                    sectionEndDist,
+                    endTime
+                );
+            };
+
+            const tolerance = 0.05;
+            const f0 = evaluateEndRoll(originalValue);
+            if (f0 === undefined || !Number.isFinite(f0)) return undefined;
+            if (Math.abs(f0) <= tolerance) return originalValue;
+
+            let x = originalValue;
+            let fx = f0;
+
+            for (let i = 0; i < 8; i++) {
+                const h = Math.max(0.5, Math.abs(x) * 0.02);
+                const fp = evaluateEndRoll(x + h);
+                const fm = evaluateEndRoll(x - h);
+                if (
+                    fp === undefined ||
+                    fm === undefined ||
+                    !Number.isFinite(fp) ||
+                    !Number.isFinite(fm)
+                ) {
+                    break;
+                }
+                const dfdx = (fp - fm) / (2 * h);
+                if (!Number.isFinite(dfdx) || Math.abs(dfdx) < 1e-6) break;
+
+                const nextX = x - fx / dfdx;
+                if (!Number.isFinite(nextX)) break;
+                x = Math.max(-10000, Math.min(10000, nextX));
+
+                const nextFx = evaluateEndRoll(x);
+                if (nextFx === undefined || !Number.isFinite(nextFx)) break;
+                fx = nextFx;
+                if (Math.abs(fx) <= tolerance) return x;
+            }
+
+            let left = x;
+            let right = x;
+            let fLeft = fx;
+            let fRight = fx;
+            let step = Math.max(1, Math.abs(x) * 0.25);
+
+            let bracketed = false;
+            for (let i = 0; i < 12; i++) {
+                left = x - step;
+                right = x + step;
+                const nextFLeft = evaluateEndRoll(left);
+                const nextFRight = evaluateEndRoll(right);
+                if (
+                    nextFLeft !== undefined &&
+                    nextFRight !== undefined &&
+                    Number.isFinite(nextFLeft) &&
+                    Number.isFinite(nextFRight)
+                ) {
+                    fLeft = nextFLeft;
+                    fRight = nextFRight;
+                    if (fLeft === 0) return left;
+                    if (fRight === 0) return right;
+                    if (fLeft * fRight < 0) {
+                        bracketed = true;
+                        break;
+                    }
+                }
+                step *= 2;
+            }
+
+            if (!bracketed) {
+                return Math.abs(fx) < Math.abs(f0) ? x : undefined;
+            }
+
+            for (let i = 0; i < 28; i++) {
+                const mid = (left + right) * 0.5;
+                const fMid = evaluateEndRoll(mid);
+                if (fMid === undefined || !Number.isFinite(fMid)) break;
+                if (Math.abs(fMid) <= tolerance) return mid;
+
+                if (fLeft * fMid <= 0) {
+                    right = mid;
+                    fRight = fMid;
+                } else {
+                    left = mid;
+                    fLeft = fMid;
+                }
+            }
+
+            const best = Math.abs(fLeft) < Math.abs(fRight) ? left : right;
+            const fBest = Math.abs(fLeft) < Math.abs(fRight) ? fLeft : fRight;
+            return Math.abs(fBest) < Math.abs(f0) ? best : undefined;
+        },
+        [track, selectedSectionIdx]
+    );
+
     return (
         <UnitContext.Provider value={{ system: unitSystem, setSystem: setUnitSystem }}>
             <div className="w-screen h-screen overflow-hidden flex flex-col bg-neutral-900 text-neutral-100">
@@ -202,6 +396,8 @@ export default function App() {
                                     onTransitionsChange={handleTransitionsChange}
                                     startForces={startForces}
                                     markerTime={markerTime}
+                                    trackRollAngleAtTime={trackRollAngleAtTime}
+                                    solveRollEndValue={solveRollEndValue}
                                 />
                             </Panel>
                         </PanelGroup>

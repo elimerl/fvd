@@ -24,6 +24,7 @@ interface Props {
     onTransitionsChange: (t: Transitions) => void;
     startForces: Forces;
     markerTime: number;
+    trackRollAngleAtTime?: (t: number) => number | undefined;
 }
 
 const transformG = (g: number) => -g * 0.125 + 0.72;
@@ -68,6 +69,7 @@ function getRollSharedRange(
     startRollRate: number,
     tStart: number,
     tEnd: number,
+    trackRollAngleAtTime?: (t: number) => number | undefined,
 ): RollRange {
     let min = Infinity;
     let max = -Infinity;
@@ -76,7 +78,9 @@ function getRollSharedRange(
     for (let i = 0; i <= steps; i++) {
         const t = tStart + ((tEnd - tStart) * i) / steps;
         const rollRate = transitionsEvaluate(transitions.roll, t, startRollRate);
-        const rollAngle = rollAngleEvaluateAtT(transitions.roll, startRollRate, t);
+        const rollAngle =
+            trackRollAngleAtTime?.(t) ??
+            rollAngleEvaluateAtT(transitions.roll, startRollRate, t);
 
         if (rollRate !== undefined && Number.isFinite(rollRate)) {
             min = Math.min(min, rollRate);
@@ -119,6 +123,7 @@ export function Graph({
     onTransitionsChange,
     startForces,
     markerTime,
+    trackRollAngleAtTime,
 }: Props) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const zoomLevelRef = useRef(5);
@@ -176,6 +181,7 @@ export function Graph({
             selected,
             markerTime,
             startForces,
+            trackRollAngleAtTime,
         );
     });
 
@@ -287,6 +293,7 @@ export function Graph({
                     startForces.roll,
                     tStart,
                     tEnd,
+                    trackRollAngleAtTime,
                 );
                 const transformRoll = makeRollTransform(
                     rollRange,
@@ -309,11 +316,13 @@ export function Graph({
                     t,
                     startForces.roll,
                 );
-                const rollAngle = rollAngleEvaluateAtT(
-                    transitions.roll,
-                    startForces.roll,
-                    t,
-                );
+                const rollAngle =
+                    trackRollAngleAtTime?.(t) ??
+                    rollAngleEvaluateAtT(
+                        transitions.roll,
+                        startForces.roll,
+                        t,
+                    );
 
                 const vertY = vert !== undefined ? transformG(vert) : Infinity;
                 const latY = lat !== undefined ? transformG(lat) : Infinity;
@@ -428,6 +437,7 @@ function drawGraph(
     selected: { i: number; arr: "vert" | "lat" | "roll" } | undefined,
     markerTime: number,
     startForces: Forces,
+    trackRollAngleAtTime?: (t: number) => number | undefined,
 ) {
     canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
     canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
@@ -446,6 +456,7 @@ function drawGraph(
         startForces.roll,
         tStart,
         tEnd,
+        trackRollAngleAtTime,
     );
     const transformRoll = makeRollTransform(rollRange, canvas.height, dpr);
 
@@ -602,13 +613,15 @@ function drawGraph(
         transformRoll,
     );
 
-    // Draw integrated roll-angle as sampled polyline.
+    // Draw roll-angle sampled from track geometry when available.
     const samples = 360;
     ctx.beginPath();
     let started = false;
     for (let i = 0; i <= samples; i++) {
         const t = tStart + ((tEnd - tStart) * i) / samples;
-        const angle = rollAngleEvaluateAtT(transitions.roll, startForces.roll, t);
+        const angle =
+            trackRollAngleAtTime?.(t) ??
+            rollAngleEvaluateAtT(transitions.roll, startForces.roll, t);
         if (angle === undefined) continue;
 
         const y = transformRoll(angle);

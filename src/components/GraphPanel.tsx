@@ -10,6 +10,8 @@ interface Props {
     onTransitionsChange: (t: Transitions) => void;
     startForces: Forces | undefined;
     markerTime: number;
+    trackRollAngleAtTime?: (t: number) => number | undefined;
+    solveRollEndValue?: (transitionIndex: number) => number | undefined;
 }
 
 export function GraphPanel({
@@ -19,6 +21,8 @@ export function GraphPanel({
     onTransitionsChange,
     startForces,
     markerTime,
+    trackRollAngleAtTime,
+    solveRollEndValue,
 }: Props) {
     if (!transitions || !startForces) {
         return (
@@ -35,6 +39,8 @@ export function GraphPanel({
                 transitions={transitions}
                 startForces={startForces}
                 onTransitionsChange={onTransitionsChange}
+                trackRollAngleAtTime={trackRollAngleAtTime}
+                solveRollEndValue={solveRollEndValue}
             />
             <div className="flex-1 h-full pb-8">
                 <Graph
@@ -44,6 +50,7 @@ export function GraphPanel({
                     onTransitionsChange={onTransitionsChange}
                     startForces={startForces}
                     markerTime={markerTime}
+                    trackRollAngleAtTime={trackRollAngleAtTime}
                 />
             </div>
         </div>
