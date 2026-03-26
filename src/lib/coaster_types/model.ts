@@ -1,48 +1,17 @@
-import {
-    type Object3D,
-    BufferAttribute,
-    BufferGeometry,
-    Mesh as ThreeMesh,
-    Points as ThreePoints,
-} from "three";
-import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import {
-    vsub,
-    type vec3,
-    vec,
-    qrotate,
-    vadd,
-    vmul,
-    qslerp,
-    vlerp,
-} from "../core/math";
+import { vsub, type vec3, vec, qrotate, vadd, qslerp } from "../core/math";
 
 import type { TrackPoint, TrackSpline } from "../core/TrackSpline";
-import { BufferGeometryUtils } from "three/examples/jsm/Addons.js";
 
 export type Geometry = {
-    vertices: Float32Array;
-    indices: number[];
+    positions: Float32Array;
+    normals: Float32Array;
+    indices: Uint32Array;
 };
-
-export function toBufferGeometry(geometry: Geometry): BufferGeometry {
-    const threeGeometry = new BufferGeometry();
-    threeGeometry.setIndex(geometry.indices);
-    threeGeometry.setAttribute(
-        "position",
-        new BufferAttribute(geometry.vertices, 3)
-    );
-
-    return threeGeometry;
-}
 
 export type RailGeometry = {
     type: "cylinder";
     radius: number;
 };
-
-// model info: gauge is from center of rail to center of other rail
-// all distances in meters
 
 const RAIL_INTERVAL = 0.1;
 
@@ -50,7 +19,6 @@ export class TrackModelType {
     name: string;
     author: string;
 
-    /// note: not used for track model
     heartlineHeight: number;
     railGauge: number;
     railGeometry: RailGeometry;
@@ -87,7 +55,6 @@ export class TrackModelType {
         this.spineGeometry.vertices.sort((a, b) => {
             const angleA = Math.atan2(a[1], a[2]);
             const angleB = Math.atan2(b[1], b[2]);
-
             return angleA - angleB;
         });
     }
@@ -95,7 +62,7 @@ export class TrackModelType {
     makeSpineMesh(spline: TrackSpline, heartlineHeight: number): Geometry {
         const vertices: vec3[] = [];
         const indices: number[] = [];
-        const indexArray = [];
+        const indexArray: number[][] = [];
 
         const points =
             this.spineInterval !== null
@@ -125,15 +92,11 @@ export class TrackModelType {
                     )
                 );
 
-                const vertex: vec3 = [point[0], point[1], point[2]];
-                vertices.push(vertex);
-
+                vertices.push([point[0], point[1], point[2]]);
                 indexRow.push(vertices.length - 1);
             }
 
             indexArray.push(indexRow);
-
-            // TODO: add end faces
         }
 
         for (let i = 0; i < indexArray.length - 1; i++) {
@@ -152,10 +115,7 @@ export class TrackModelType {
             }
         }
 
-        return {
-            vertices: new Float32Array(vertices.flat()),
-            indices,
-        };
+        return finalizeGeometry(vertices, indices);
     }
 
     makeRailsMesh(
@@ -192,19 +152,13 @@ export class TrackModelType {
             heartlineHeight
         );
 
-        this.makeRail(
-            baseVertices,
-            vertices,
-            indices,
-            1,
-            points,
-            heartlineHeight
-        );
+        this.makeRail(baseVertices, vertices, indices, 1, points, heartlineHeight);
 
         this.makeCrossTies(spline, vertices, indices, heartlineHeight);
 
-        return { vertices: new Float32Array(vertices.flat()), indices };
+        return finalizeGeometry(vertices, indices);
     }
+
     private makeCrossTies(
         spline: TrackSpline,
         vertices: vec3[],
@@ -270,50 +224,38 @@ export class TrackModelType {
         points: { point: TrackPoint; dist: number }[],
         heartlineHeight: number
     ) {
-        const indexArray = [];
+        const indexArray: number[][] = [];
 
         for (let i = 0; i < points.length; i++) {
-            {
-                const trackPoint = vsub(
-                    points[i].point.pos,
-                    qrotate(
-                        vec((this.railGauge / 2) * side, heartlineHeight, 0),
-                        points[i].point.rot
-                    )
-                );
-                const indexRow = [];
+            const trackPoint = vsub(
+                points[i].point.pos,
+                qrotate(
+                    vec((this.railGauge / 2) * side, heartlineHeight, 0),
+                    points[i].point.rot
+                )
+            );
+            const indexRow: number[] = [];
+            for (let j = 0; j < baseVertices.length; j++) {
+                const baseVertex = baseVertices[j];
+                const point = vadd(trackPoint, qrotate(baseVertex, points[i].point.rot));
+
+                vertices.push([point[0], point[1], point[2]]);
+                indexRow.push(vertices.length - 1);
+            }
+
+            indexArray.push(indexRow);
+            if (1 < i && i < points.length - 1) {
                 for (let j = 0; j < baseVertices.length; j++) {
-                    const baseVertex = baseVertices[j];
-                    const point = vadd(
-                        trackPoint,
-                        qrotate(baseVertex, points[i].point.rot)
-                    );
+                    const a = indexArray[i][j];
+                    const b = indexArray[i - 1][j];
+                    const c = indexArray[i - 1][(j + 1) % baseVertices.length];
+                    const d = indexArray[i][(j + 1) % baseVertices.length];
 
-                    const vertex: vec3 = [point[0], point[1], point[2]];
-                    vertices.push(vertex);
-
-                    indexRow.push(vertices.length - 1);
+                    indices.push(a, b, d);
+                    indices.push(b, c, d);
                 }
-
-                indexArray.push(indexRow);
-                if (1 < i && i < points.length - 1) {
-                    for (let j = 0; j < baseVertices.length; j++) {
-                        const a = indexArray[i][j];
-                        const b = indexArray[i - 1][j];
-                        const c =
-                            indexArray[i - 1][(j + 1) % baseVertices.length];
-                        const d = indexArray[i][(j + 1) % baseVertices.length];
-
-                        indices.push(a, b, d);
-                        indices.push(b, c, d);
-                    }
-                }
-
-                // TODO: add end faces
             }
         }
-
-        indexArray.length = 0;
     }
 }
 
@@ -321,31 +263,25 @@ export async function loadModels() {
     const modelsJSON = import.meta.glob("./*.json", { eager: true });
     const models = new Map<string, TrackModelType>();
 
-    const findMeshChild = (obj: Object3D) => {
-        let v: ThreeMesh | ThreePoints | undefined;
-        obj.traverse(function (child) {
-            if (child instanceof ThreeMesh || child instanceof ThreePoints) {
-                v = child;
-            }
-        });
-        return v;
-    };
-
     for (const [filename, json] of Object.entries(modelsJSON)) {
         const filenameNoJson = filename.slice(2, -5);
         const modelJSON = json as any;
-        const spineText = await fetch(
-            `/models/${filenameNoJson}/${modelJSON.spineObj}`
-        ).then((r) => r.text());
-        const spineObj = findMeshChild(new OBJLoader().parse(spineText));
+
+        const spineText = await fetch(`/models/${filenameNoJson}/${modelJSON.spineObj}`).then((r) =>
+            r.text()
+        );
+        const spineObj = parseObj(spineText);
+
         const crossTieText = await fetch(
             `/models/${filenameNoJson}/${modelJSON.crossTieObj}`
         ).then((r) => r.text());
-        const crossTieObj = findMeshChild(new OBJLoader().parse(crossTieText));
-        const fixedCrossTieGeometry = BufferGeometryUtils.mergeVertices(
-            crossTieObj.geometry,
+        const crossTieObj = parseObj(crossTieText);
+        const fixedCrossTieGeometry = mergeVertices(
+            crossTieObj.vertices,
+            crossTieObj.indices,
             0.0001
         );
+
         const model = new TrackModelType({
             name: modelJSON.name,
             author: modelJSON.author,
@@ -355,16 +291,11 @@ export async function loadModels() {
             railGauge: modelJSON.railGauge,
             railGeometry: modelJSON.railGeometry,
             spineGeometry: {
-                vertices: float32ArrayToVec3Array(
-                    spineObj.geometry.attributes.position.array as Float32Array
-                ),
+                vertices: spineObj.vertices,
             },
             crossTieGeometry: {
-                vertices: float32ArrayToVec3Array(
-                    fixedCrossTieGeometry.attributes.position
-                        .array as Float32Array
-                ),
-                indices: Array.from(fixedCrossTieGeometry.index!.array),
+                vertices: fixedCrossTieGeometry.vertices,
+                indices: fixedCrossTieGeometry.indices,
             },
         });
         models.set(filenameNoJson, model);
@@ -373,10 +304,170 @@ export async function loadModels() {
     return models;
 }
 
-function float32ArrayToVec3Array(array: Float32Array): vec3[] {
-    const result: vec3[] = [];
-    for (let i = 0; i < array.length; i += 3) {
-        result.push([array[i], array[i + 1], array[i + 2]]);
+type ParsedObj = {
+    vertices: vec3[];
+    indices: number[];
+};
+
+function parseObj(source: string): ParsedObj {
+    const vertices: vec3[] = [];
+    const indices: number[] = [];
+
+    const lines = source.split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) {
+            continue;
+        }
+
+        if (trimmed.startsWith("v ")) {
+            const [, xs, ys, zs] = trimmed.split(/\s+/);
+            const x = Number(xs);
+            const y = Number(ys);
+            const z = Number(zs);
+            if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+                vertices.push([x, y, z]);
+            }
+            continue;
+        }
+
+        if (!trimmed.startsWith("f ")) {
+            continue;
+        }
+
+        const parts = trimmed.split(/\s+/).slice(1);
+        if (parts.length < 3) continue;
+
+        const faceIndices: number[] = [];
+        for (const part of parts) {
+            const [vertexIdxRaw] = part.split("/");
+            const vertexIdx = Number(vertexIdxRaw);
+            if (!Number.isInteger(vertexIdx) || vertexIdx === 0) continue;
+
+            // OBJ indices are 1-based. Negative values are relative to the end.
+            const normalized = vertexIdx > 0 ? vertexIdx - 1 : vertices.length + vertexIdx;
+            if (normalized < 0 || normalized >= vertices.length) continue;
+            faceIndices.push(normalized);
+        }
+
+        if (faceIndices.length < 3) continue;
+        for (let i = 1; i < faceIndices.length - 1; i++) {
+            indices.push(faceIndices[0], faceIndices[i], faceIndices[i + 1]);
+        }
     }
-    return result;
+
+    return { vertices, indices };
+}
+
+function mergeVertices(
+    vertices: vec3[],
+    indices: number[],
+    epsilon: number
+): { vertices: vec3[]; indices: number[] } {
+    const mergedVertices: vec3[] = [];
+    const mergedIndices: number[] = [];
+    const map = new Map<string, number>();
+    const inv = 1 / epsilon;
+
+    const getKey = (v: vec3) => {
+        const x = Math.round(v[0] * inv);
+        const y = Math.round(v[1] * inv);
+        const z = Math.round(v[2] * inv);
+        return `${x},${y},${z}`;
+    };
+
+    for (const idx of indices) {
+        const vertex = vertices[idx];
+        const key = getKey(vertex);
+        let mergedIdx = map.get(key);
+        if (mergedIdx === undefined) {
+            mergedIdx = mergedVertices.length;
+            mergedVertices.push(vertex);
+            map.set(key, mergedIdx);
+        }
+        mergedIndices.push(mergedIdx);
+    }
+
+    return { vertices: mergedVertices, indices: mergedIndices };
+}
+
+function finalizeGeometry(vertices: vec3[], indices: number[]): Geometry {
+    const positions = new Float32Array(vertices.length * 3);
+    for (let i = 0; i < vertices.length; i++) {
+        const v = vertices[i];
+        positions[i * 3 + 0] = v[0];
+        positions[i * 3 + 1] = v[1];
+        positions[i * 3 + 2] = v[2];
+    }
+
+    const indexArray = new Uint32Array(indices);
+    const normals = computeVertexNormals(positions, indexArray);
+
+    return {
+        positions,
+        normals,
+        indices: indexArray,
+    };
+}
+
+function computeVertexNormals(
+    positions: Float32Array,
+    indices: Uint32Array
+): Float32Array {
+    const normals = new Float32Array(positions.length);
+
+    for (let i = 0; i < indices.length; i += 3) {
+        const ia = indices[i] * 3;
+        const ib = indices[i + 1] * 3;
+        const ic = indices[i + 2] * 3;
+
+        const ax = positions[ia];
+        const ay = positions[ia + 1];
+        const az = positions[ia + 2];
+        const bx = positions[ib];
+        const by = positions[ib + 1];
+        const bz = positions[ib + 2];
+        const cx = positions[ic];
+        const cy = positions[ic + 1];
+        const cz = positions[ic + 2];
+
+        const abx = bx - ax;
+        const aby = by - ay;
+        const abz = bz - az;
+        const acx = cx - ax;
+        const acy = cy - ay;
+        const acz = cz - az;
+
+        const nx = aby * acz - abz * acy;
+        const ny = abz * acx - abx * acz;
+        const nz = abx * acy - aby * acx;
+
+        normals[ia] += nx;
+        normals[ia + 1] += ny;
+        normals[ia + 2] += nz;
+        normals[ib] += nx;
+        normals[ib + 1] += ny;
+        normals[ib + 2] += nz;
+        normals[ic] += nx;
+        normals[ic + 1] += ny;
+        normals[ic + 2] += nz;
+    }
+
+    for (let i = 0; i < normals.length; i += 3) {
+        const x = normals[i];
+        const y = normals[i + 1];
+        const z = normals[i + 2];
+        const len = Math.hypot(x, y, z);
+        if (len > 1e-6) {
+            normals[i] = x / len;
+            normals[i + 1] = y / len;
+            normals[i + 2] = z / len;
+        } else {
+            normals[i] = 0;
+            normals[i + 1] = 1;
+            normals[i + 2] = 0;
+        }
+    }
+
+    return normals;
 }

@@ -1,4 +1,4 @@
-import _ from "lodash-es";
+import * as _ from "lodash-es";
 import type { Forces } from "./Track";
 export enum TransitionCurve {
     Linear = "linear",
@@ -16,17 +16,6 @@ export const curveTypes = [
     TransitionCurve.QuarticBump,
 ];
 
-export function fixAngleRange(angle: number) {
-    const full = Math.floor(angle / 360);
-    let v = angle - full * 360;
-    if (v > 180) {
-        v -= 360;
-    } else if (v < -180) {
-        v += 360;
-    }
-    return v;
-}
-
 export function evalTransition(transition: Transition, t: number) {
     return (
         evalCurve(
@@ -37,6 +26,48 @@ export function evalTransition(transition: Transition, t: number) {
                 transition.tension
             )
         ) * transition.value
+    );
+}
+
+export function curveIntegral(
+    curve: TransitionCurve,
+    t: number,
+    center = 0,
+    tension = 0
+) {
+    const clampedT = _.clamp(t, 0, 1);
+    if (clampedT <= 0) return 0;
+
+    // Deterministic Simpson integration over normalized time [0, t].
+    const n = 200; // even
+    const h = clampedT / n;
+    let sum = 0;
+
+    const f = (x: number) => evalCurve(curve, timewarp(x, center, tension));
+
+    for (let i = 0; i <= n; i++) {
+        const x = i * h;
+        const coeff = i === 0 || i === n ? 1 : i % 2 === 0 ? 2 : 4;
+        sum += coeff * f(x);
+    }
+
+    return (h / 3) * sum;
+}
+
+export function evalTransitionIntegral(transition: Transition, t: number) {
+    const clampedT = _.clamp(t, 0, transition.length);
+    if (clampedT <= 0 || transition.length <= 0) return 0;
+
+    const normalizedT = clampedT / transition.length;
+    return (
+        transition.value *
+        transition.length *
+        curveIntegral(
+            transition.curve,
+            normalizedT,
+            transition.center,
+            transition.tension
+        )
     );
 }
 export function evalCurve(curve: TransitionCurve, t: number) {
@@ -55,20 +86,6 @@ export function evalCurve(curve: TransitionCurve, t: number) {
             return t * t * (16 + t * (-32 + t * 16));
     }
 }
-// export function evalCurveDerivative(curve: TransitionCurve, t: number) {
-//     t = _.clamp(t, 0, 1);
-
-//     switch (curve) {
-//         case TransitionCurve.Linear:
-//             return t;
-//         case TransitionCurve.Cubic:
-//             return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-//         case TransitionCurve.Quadratic:
-//             return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-//         case TransitionCurve.Plateau:
-//             return (-90* Math.exp(15* (-1 + Math.abs(1 - 2 *t))^3)*(-1 + 2 *t)* (-1 + Math.abs(1 - 2 *t))^2)/Math.abs(1 - 2* t);
-//     }
-// }
 
 export function timewarp(t: number, center: number, tension: number) {
     return timewarpTension(timewarpCenter(t, center), tension);
@@ -96,8 +113,6 @@ function timewarpTension(t: number, tension: number) {
         );
     }
 }
-
-// Rewrite  all of this to use a sorted BTree, very good implementation in https://github.com/qwertie/btree-typescript
 
 export function transitionsLength(transitions: Transition[]) {
     let length = 0;
@@ -128,6 +143,66 @@ export function transitionsEvaluate(
     }
     return value;
 }
+
+export function rollStateAtTransitionStart(
+    rollTransitions: Transition[],
+    startRollRate: number,
+    i: number
+) {
+    const idx = _.clamp(i, 0, rollTransitions.length);
+    let rateStart = startRollRate;
+    let angleStart = 0;
+
+    for (let k = 0; k < idx; k++) {
+        const tr = rollTransitions[k];
+        angleStart +=
+            rateStart * tr.length + evalTransitionIntegral(tr, tr.length);
+        rateStart += evalCurve(tr.curve, 1) * tr.value;
+    }
+
+    return { rateStart, angleStart };
+}
+
+export function rollAngleAtTransitionEnd(
+    rollTransitions: Transition[],
+    startRollRate: number,
+    i: number
+) {
+    if (i < 0 || i >= rollTransitions.length) return 0;
+    const tr = rollTransitions[i];
+    const { rateStart, angleStart } = rollStateAtTransitionStart(
+        rollTransitions,
+        startRollRate,
+        i
+    );
+    return angleStart + rateStart * tr.length + evalTransitionIntegral(tr, tr.length);
+}
+
+export function rollAngleEvaluateAtT(
+    rollTransitions: Transition[],
+    startRollRate: number,
+    t: number
+): number | undefined {
+    if (t < 0 || t >= transitionsLength(rollTransitions)) return undefined;
+
+    let rate = startRollRate;
+    let angle = 0;
+    let timeAccum = 0;
+
+    for (const tr of rollTransitions) {
+        if (timeAccum <= t && t <= timeAccum + tr.length) {
+            const localT = t - timeAccum;
+            angle += rate * localT + evalTransitionIntegral(tr, localT);
+            return angle;
+        }
+
+        angle += rate * tr.length + evalTransitionIntegral(tr, tr.length);
+        rate += evalCurve(tr.curve, 1) * tr.value;
+        timeAccum += tr.length;
+    }
+
+    return undefined;
+}
 export function transitionsGetAtT(
     transitions: Transition[],
     t: number
@@ -137,7 +212,6 @@ export function transitionsGetAtT(
     for (const transition of transitions) {
         if (timeAccum <= t && t <= timeAccum + transition.length) {
             return transition;
-            break;
         }
 
         timeAccum += transition.length;
@@ -152,10 +226,6 @@ export interface Transition {
     center: number;
     tension: number;
     dynamicLength: boolean;
-}
-
-export function isTransitionZero(transition: Transition) {
-    return transition.value === 0;
 }
 
 export class Transitions {
@@ -198,7 +268,6 @@ export class Transitions {
             parse
         );
 
-        // migrate from old files
         transitions.vert.forEach((t) => {
             if (!t.center) t.center = 0;
         });
@@ -224,10 +293,10 @@ export class Transitions {
         for (const transition of this.vert) {
             if (transition.dynamicLength && !alreadyDynamic) {
                 transition.length = Math.min(
-                    _.sumBy(this.roll, (v) =>
+                    _.sumBy(this.roll, (v: Transition) =>
                         v.dynamicLength ? Infinity : v.length
                     ),
-                    _.sumBy(this.lat, (v) =>
+                    _.sumBy(this.lat, (v: Transition) =>
                         v.dynamicLength ? Infinity : v.length
                     )
                 );
@@ -238,10 +307,10 @@ export class Transitions {
         for (const transition of this.lat) {
             if (transition.dynamicLength && !alreadyDynamic) {
                 transition.length = Math.min(
-                    _.sumBy(this.roll, (v) =>
+                    _.sumBy(this.roll, (v: Transition) =>
                         v.dynamicLength ? Infinity : v.length
                     ),
-                    _.sumBy(this.vert, (v) =>
+                    _.sumBy(this.vert, (v: Transition) =>
                         v.dynamicLength ? Infinity : v.length
                     )
                 );
@@ -252,10 +321,10 @@ export class Transitions {
         for (const transition of this.roll) {
             if (transition.dynamicLength && !alreadyDynamic) {
                 transition.length = Math.min(
-                    _.sumBy(this.lat, (v) =>
+                    _.sumBy(this.lat, (v: Transition) =>
                         v.dynamicLength ? Infinity : v.length
                     ),
-                    _.sumBy(this.vert, (v) =>
+                    _.sumBy(this.vert, (v: Transition) =>
                         v.dynamicLength ? Infinity : v.length
                     )
                 );

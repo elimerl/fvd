@@ -10,7 +10,6 @@ import {
     degToRad,
     radToDeg,
 } from "./constants";
-import { fvd } from "./fvd";
 import {
     qrotate,
     vadd,
@@ -18,7 +17,6 @@ import {
     vsub,
     vlength,
     qidentity,
-    vcross,
     vproject,
     qtwist,
     qangle,
@@ -157,10 +155,6 @@ export class Track {
     getSpline(): { spline: TrackSpline; sectionStartPos: number[] } {
         const v = JSON.parse(get_spline(JSON.stringify(this)));
         return { spline: TrackSpline.fromJSON(v[0]), sectionStartPos: v[1] };
-    }
-
-    exportToNl2Elem(): string {
-        return this.getSpline().spline.exportToNl2Elem();
     }
 }
 

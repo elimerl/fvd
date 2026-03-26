@@ -5,8 +5,6 @@ export function lerp(v0: number, v1: number, t: number): number {
     return (1 - t) * v0 + t * v1;
 }
 
-// curvature crap
-
 export function degPerMToRadius(degPerM: number): number {
     if (Math.abs(degPerM) < 0.001) return Infinity;
     return 1 / degToRad(degPerM);
@@ -146,7 +144,7 @@ export function qnormalize(a: quaternion): quaternion {
     const magnitude = Math.sqrt(w * w + x * x + y * y + z * z);
 
     if (magnitude === 0) {
-        return [0, 0, 0, 0]; // Edge case: avoid division by zero
+        return [0, 0, 0, 0];
     } else {
         const invMagnitude = 1 / magnitude;
         return [
